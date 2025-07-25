@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { 
   Camera, 
   Calendar, 
@@ -12,27 +12,29 @@ import {
   X
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
+  currentView: string;
+  onViewChange: (view: string) => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const navigate = useNavigate();
+const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout } = useAuth();
 
   const navigationItems = [
-    { name: 'Dashboard', href: '/dashboard', icon: Camera },
-    { name: 'Agendamentos', href: '/events', icon: Calendar },
-    { name: 'Álbuns', href: '/albums', icon: Image },
-    { name: 'Clientes', href: '/clients', icon: Users },
-    { name: 'Configurações', href: '/settings', icon: Settings },
+    { name: 'Dashboard', key: 'dashboard', icon: Camera },
+    { name: 'Agendamentos', key: 'events', icon: Calendar },
+    { name: 'Álbuns', key: 'albums', icon: Image },
+    { name: 'Novo Agendamento', key: 'scheduling', icon: Calendar },
+    { name: 'Galeria (Cliente)', key: 'gallery', icon: Image },
   ];
 
   const handleLogout = () => {
-    // Handle logout logic
-    navigate('/login');
+    logout();
   };
 
   return (
@@ -61,11 +63,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         <nav className="mt-8">
           {navigationItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = currentView === item.key;
             return (
               <button
                 key={item.name}
-                onClick={() => navigate(item.href)}
+                onClick={() => onViewChange(item.key)}
                 className={`w-full flex items-center px-6 py-3 text-left transition-colors ${
                   isActive
                     ? 'bg-blue-50 border-r-2 border-blue-500 text-blue-600'
@@ -110,11 +112,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">FO</span>
+                  <span className="text-white text-sm font-medium">
+                    {user?.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                  </span>
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">Fotógrafo</p>
-                  <p className="text-xs text-gray-500">fotografo@email.com</p>
+                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
               </div>
             </div>

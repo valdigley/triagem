@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EventScheduling from './components/EventScheduling';
 import PhotoGallery from './components/PhotoGallery';
+import EventList from './components/EventList';
+import AlbumList from './components/AlbumList';
+import Login from './components/Login';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -20,13 +23,33 @@ const mockPhotos = Array.from({ length: 24 }, (_, i) => ({
   price: 25.00,
 }));
 
-function App() {
+const AppContent: React.FC = () => {
+  const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<'dashboard' | 'scheduling' | 'gallery'>('dashboard');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
 
   const renderCurrentView = () => {
     switch (currentView) {
       case 'dashboard':
         return <Dashboard />;
+      case 'events':
+        return <EventList />;
+      case 'albums':
+        return <AlbumList />;
       case 'scheduling':
         return <EventScheduling />;
       case 'gallery':
@@ -46,53 +69,21 @@ function App() {
   };
 
   return (
+    <div className="min-h-screen bg-gray-50">
+      <Layout currentView={currentView} onViewChange={setCurrentView}>
+        {renderCurrentView()}
+      </Layout>
+      <Toaster position="top-right" />
+    </div>
+  );
+};
+
+function App() {
+  return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <div className="min-h-screen bg-gray-50">
-          <Layout>
-            {/* Navigation */}
-            <div className="mb-6">
-              <nav className="flex space-x-4">
-                <button
-                  onClick={() => setCurrentView('dashboard')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    currentView === 'dashboard'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={() => setCurrentView('scheduling')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    currentView === 'scheduling'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Agendamento
-                </button>
-                <button
-                  onClick={() => setCurrentView('gallery')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    currentView === 'gallery'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  Galeria (Cliente)
-                </button>
-              </nav>
-            </div>
-
-            {/* Current View */}
-            {renderCurrentView()}
-          </Layout>
-
-          <Toaster position="top-right" />
-        </div>
-      </BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
