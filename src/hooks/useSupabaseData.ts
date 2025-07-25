@@ -263,4 +263,105 @@ export const useSupabaseData = () => {
     deleteEvent,
     refreshData: loadData,
   };
+  createAlbum,
+  uploadPhotos,
+  deleteAlbum,
+};
+
+// Criar álbum
+const createAlbum = async (albumData: { event_id: string; name: string }) => {
+  try {
+    const { data, error } = await supabase
+      .from('albums')
+      .insert({
+        event_id: albumData.event_id,
+        name: albumData.name,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating album:', error);
+      toast.error('Erro ao criar álbum');
+      return null;
+    }
+
+    setAlbums(prev => [data, ...prev]);
+    return data;
+  } catch (error) {
+    console.error('Error creating album:', error);
+    toast.error('Erro ao criar álbum');
+    return null;
+  }
+};
+
+// Upload de fotos (simulado - em produção seria para storage)
+const uploadPhotos = async (albumId: string, files: File[]) => {
+  try {
+    const photoPromises = files.map(async (file, index) => {
+      // Em produção, aqui faria upload para Supabase Storage
+      const photoId = `photo_${Date.now()}_${index}`;
+      
+      return {
+        album_id: albumId,
+        filename: file.name,
+        original_path: `/photos/original/${photoId}`,
+        thumbnail_path: `/photos/thumbnails/${photoId}`,
+        watermarked_path: `/photos/watermarked/${photoId}`,
+        is_selected: false,
+        price: 25.00,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          width: 4000,
+          height: 3000,
+        },
+      };
+    });
+
+    const photosData = await Promise.all(photoPromises);
+
+    const { data, error } = await supabase
+      .from('photos')
+      .insert(photosData)
+      .select();
+
+    if (error) {
+      console.error('Error uploading photos:', error);
+      toast.error('Erro ao fazer upload das fotos');
+      return false;
+    }
+
+    setPhotos(prev => [...prev, ...data]);
+    return true;
+  } catch (error) {
+    console.error('Error uploading photos:', error);
+    toast.error('Erro ao fazer upload das fotos');
+    return false;
+  }
+};
+
+// Excluir álbum
+const deleteAlbum = async (albumId: string) => {
+  try {
+    const { error } = await supabase
+      .from('albums')
+      .delete()
+      .eq('id', albumId);
+
+    if (error) {
+      console.error('Error deleting album:', error);
+      toast.error('Erro ao excluir álbum');
+      return false;
+    }
+
+    setAlbums(prev => prev.filter(album => album.id !== albumId));
+    setPhotos(prev => prev.filter(photo => photo.album_id !== albumId));
+    toast.success('Álbum excluído com sucesso!');
+    return true;
+  } catch (error) {
+    console.error('Error deleting album:', error);
+    toast.error('Erro ao excluir álbum');
+    return false;
+  }
 };
