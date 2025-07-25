@@ -97,12 +97,18 @@ const Dashboard: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
+      scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
+      in_progress: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Em Andamento' },
       completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Concluído' },
-      pending_selection: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Aguardando Seleção' },
-      in_progress: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Em Andamento' },
+      cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelado' },
     };
 
-    const config = statusConfig[status as keyof typeof statusConfig];
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      bg: 'bg-gray-100',
+      text: 'text-gray-800',
+      label: status
+    };
+    
     return (
       <span className={`px-2 py-1 text-xs font-medium rounded-full ${config.bg} ${config.text}`}>
         {config.label}
