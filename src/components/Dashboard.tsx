@@ -1,4 +1,5 @@
 import React from 'react';
+import { useData } from '../contexts/DataContext';
 import { 
   Calendar,
   Image,
@@ -12,14 +13,20 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const Dashboard: React.FC = () => {
-  // Mock data - would come from API
+  const { events, albums, photos } = useData();
+
+  // Calcular estatísticas reais
   const stats = {
-    totalEvents: 24,
-    activeAlbums: 8,
-    pendingSelections: 5,
-    monthlyRevenue: 4850.00,
-    completedEvents: 19,
-    totalPhotos: 1240,
+    totalEvents: events.length,
+    activeAlbums: albums.filter(album => album.isActive).length,
+    pendingSelections: albums.filter(album => {
+      const albumPhotos = photos.filter(p => p.albumId === album.id);
+      const selectedPhotos = albumPhotos.filter(p => p.isSelected);
+      return albumPhotos.length > 0 && selectedPhotos.length === 0;
+    }).length,
+    monthlyRevenue: photos.filter(p => p.isSelected).reduce((sum, p) => sum + p.price, 0),
+    completedEvents: events.filter(e => e.status === 'completed').length,
+    totalPhotos: photos.length,
   };
 
   const revenueData = [
@@ -40,32 +47,26 @@ const Dashboard: React.FC = () => {
     { month: 'Jun', events: 23 },
   ];
 
-  const recentEvents = [
-    {
-      id: 1,
-      client: 'Ana Silva',
-      date: '2024-01-20',
-      status: 'completed',
-      photos: 45,
-      selected: 12,
-    },
-    {
-      id: 2,
-      client: 'João Santos',
-      date: '2024-01-18',
-      status: 'pending_selection',
-      photos: 38,
-      selected: 0,
-    },
-    {
-      id: 3,
-      client: 'Maria Costa',
-      date: '2024-01-15',
-      status: 'in_progress',
-      photos: 22,
-      selected: 0,
-    },
-  ];
+  // Eventos recentes (últimos 5)
+  const recentEvents = events
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5)
+    .map(event => {
+      const eventPhotos = photos.filter(p => {
+        const album = albums.find(a => a.eventId === event.id);
+        return album && p.albumId === album.id;
+      });
+      const selectedPhotos = eventPhotos.filter(p => p.isSelected);
+      
+      return {
+        id: event.id,
+        client: event.clientName,
+        date: event.eventDate.toISOString().split('T')[0],
+        status: event.status,
+        photos: eventPhotos.length,
+        selected: selectedPhotos.length,
+      };
+    });
 
   const StatCard: React.FC<{
     title: string;

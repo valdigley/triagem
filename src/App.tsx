@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import EventScheduling from './components/EventScheduling';
@@ -26,7 +27,7 @@ const mockPhotos = Array.from({ length: 24 }, (_, i) => ({
 
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
-  const [currentView, setCurrentView] = useState<'dashboard' | 'scheduling' | 'gallery'>('dashboard');
+  const [currentView, setCurrentView] = useState<string>('dashboard');
 
   if (isLoading) {
     return (
@@ -48,11 +49,14 @@ const AppContent: React.FC = () => {
       case 'dashboard':
         return <Dashboard />;
       case 'events':
-        return <EventList />;
+        return <EventList 
+          onCreateNew={() => setCurrentView('scheduling')}
+          onViewAlbum={(eventId) => setCurrentView('gallery')}
+        />;
       case 'albums':
         return <AlbumList />;
       case 'scheduling':
-        return <EventScheduling />;
+        return <EventScheduling onBack={() => setCurrentView('events')} />;
       case 'gallery':
         return (
           <PhotoGallery
@@ -82,11 +86,13 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </AuthProvider>
+      <DataProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <AppContent />
+          </BrowserRouter>
+        </AuthProvider>
+      </DataProvider>
     </QueryClientProvider>
   );
 }
