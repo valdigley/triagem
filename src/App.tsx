@@ -61,11 +61,7 @@ const AppContent: React.FC = () => {
         return (
           <PhotoGallery
             albumId="album_1"
-            photos={mockPhotos}
             isClientView={true}
-            onPhotoSelect={(photoId, selected) => {
-              console.log(`Photo ${photoId} ${selected ? 'selected' : 'deselected'}`);
-            }}
           />
         );
       default:
