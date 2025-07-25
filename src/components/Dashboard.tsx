@@ -98,7 +98,7 @@ const Dashboard: React.FC = () => {
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
-      in_progress: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Em Andamento' },
+      'in-progress': { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'Em Andamento' },
       completed: { bg: 'bg-green-100', text: 'text-green-800', label: 'Concluído' },
       cancelled: { bg: 'bg-red-100', text: 'text-red-800', label: 'Cancelado' },
     };
@@ -106,7 +106,7 @@ const Dashboard: React.FC = () => {
     const config = statusConfig[status as keyof typeof statusConfig] || {
       bg: 'bg-gray-100',
       text: 'text-gray-800',
-      label: status
+      label: status || 'Desconhecido'
     };
     
     return (
