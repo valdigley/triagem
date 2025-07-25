@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, Download, Eye, ShoppingCart, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 
 interface Photo {
   id: string;
@@ -13,23 +14,22 @@ interface Photo {
 
 interface PhotoGalleryProps {
   albumId: string;
-  photos: Photo[];
   isClientView?: boolean;
-  onPhotoSelect?: (photoId: string, selected: boolean) => void;
 }
 
 const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   albumId,
-  photos,
   isClientView = false,
-  onPhotoSelect,
 }) => {
+  const { photos, updatePhoto } = useSupabaseData();
+  const albumPhotos = photos.filter(photo => photo.album_id === albumId);
+  
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
-    new Set(photos.filter(p => p.isSelected).map(p => p.id))
+    new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id))
   );
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
 
-  const togglePhotoSelection = (photoId: string) => {
+  const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
     const isSelected = newSelected.has(photoId);
     
@@ -40,11 +40,17 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     }
     
     setSelectedPhotos(newSelected);
-    onPhotoSelect?.(photoId, !isSelected);
+    
+    // Atualizar no banco de dados
+    const success = await updatePhoto(photoId, { is_selected: !isSelected });
+    if (!success) {
+      // Reverter se falhou
+      setSelectedPhotos(prev => isSelected ? new Set([...prev, photoId]) : new Set([...prev].filter(id => id !== photoId)));
+    }
   };
 
   const totalPrice = Array.from(selectedPhotos).reduce((total, photoId) => {
-    const photo = photos.find(p => p.id === photoId);
+    const photo = albumPhotos.find(p => p.id === photoId);
     return total + (photo?.price || 0);
   }, 0);
 
@@ -68,7 +74,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             {isClientView ? 'Suas Fotos' : 'Galeria do Álbum'}
           </h2>
           <p className="text-gray-600">
-            {photos.length} fotos disponíveis
+            {albumPhotos.length} fotos disponíveis
             {isClientView && ` • ${selectedPhotos.size} selecionadas`}
           </p>
         </div>
@@ -94,7 +100,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
       {/* Photo Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {photos.map((photo) => {
+        {albumPhotos.map((photo) => {
           const isSelected = selectedPhotos.has(photo.id);
           
           return (
@@ -106,7 +112,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             >
               {/* Photo */}
               <img
-                src={`https://picsum.photos/400/400?random=${photo.id}`}
+                src={`https://picsum.photos/400/400?random=${photo.id.slice(-6)}`}
                 alt={photo.filename}
                 className="w-full h-full object-cover"
                 loading="lazy"
@@ -182,7 +188,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </button>
 
             <img
-              src={`https://picsum.photos/1200/800?random=${lightboxPhoto.id}`}
+              src={`https://picsum.photos/1200/800?random=${lightboxPhoto.id.slice(-6)}`}
               alt={lightboxPhoto.filename}
               className="max-w-full max-h-full object-contain rounded-lg"
             />
