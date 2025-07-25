@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { Database } from '../types/database';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -7,7 +8,7 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 // Auth helpers
 export const signIn = async (email: string, password: string) => {
@@ -37,4 +38,3 @@ export const signOut = async () => {
 export const getCurrentUser = async () => {
   const { data: { user }, error } = await supabase.auth.getUser();
   return { user, error };
-};

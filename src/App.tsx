@@ -10,7 +10,6 @@ import EventScheduling from './components/EventScheduling';
 import PhotoGallery from './components/PhotoGallery';
 import EventList from './components/EventList';
 import AlbumList from './components/AlbumList';
-import Login from './components/Login';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -86,13 +85,11 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <DataProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <AppContent />
-          </BrowserRouter>
-        </AuthProvider>
-      </DataProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Calendar, Clock, MapPin, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useData } from '../contexts/DataContext';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -24,7 +24,7 @@ interface EventSchedulingProps {
 
 const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addEvent } = useData();
+  const { addEvent } = useSupabaseData();
   
   const {
     register,
@@ -39,31 +39,27 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
     setIsSubmitting(true);
     
     try {
-      // Simula delay de API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
       // Combine date and time
       const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
       
       // Adiciona o evento
-      addEvent({
-        photographerId: 'photographer_1',
-        clientName: data.clientName,
-        clientEmail: data.clientEmail,
-        clientPhone: data.clientPhone,
-        eventDate: eventDateTime,
+      const success = await addEvent({
+        client_name: data.clientName,
+        client_email: data.clientEmail,
+        client_phone: data.clientPhone,
+        event_date: eventDateTime.toISOString(),
         location: data.location,
         notes: data.notes,
         status: 'scheduled',
       });
 
-      toast.success('Agendamento criado com sucesso!');
-      reset();
-      
-      // Volta para a lista após 1 segundo
-      setTimeout(() => {
-        onBack?.();
-      }, 1000);
+      if (success) {
+        reset();
+        // Volta para a lista após 1 segundo
+        setTimeout(() => {
+          onBack?.();
+        }, 1000);
+      }
       
     } catch (error) {
       console.error('Error creating event:', error);

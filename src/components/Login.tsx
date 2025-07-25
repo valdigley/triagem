@@ -1,27 +1,36 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Camera, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Camera, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login, isLoading } = useAuth();
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const { login, register, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!email || !password || (isRegisterMode && !name)) {
       toast.error('Preencha todos os campos');
       return;
     }
 
-    const success = await login(email, password);
+    const success = isRegisterMode 
+      ? await register(email, password, name)
+      : await login(email, password);
+      
     if (success) {
-      toast.success('Login realizado com sucesso!');
+      if (isRegisterMode) {
+        toast.success('Conta criada com sucesso! Verifique seu e-mail.');
+      } else {
+        toast.success('Login realizado com sucesso!');
+      }
     } else {
-      toast.error('Credenciais inválidas');
+      toast.error(isRegisterMode ? 'Erro ao criar conta' : 'Credenciais inválidas');
     }
   };
 
@@ -33,10 +42,32 @@ const Login: React.FC = () => {
             <Camera className="w-8 h-8 text-blue-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">PhotoSelect</h1>
-          <p className="text-gray-600 mt-2">Sistema de Seleção de Fotos</p>
+          <p className="text-gray-600 mt-2">
+            {isRegisterMode ? 'Criar nova conta' : 'Sistema de Seleção de Fotos'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isRegisterMode && (
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Nome Completo
+              </label>
+              <div className="relative">
+                <UserPlus className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Seu nome completo"
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
               E-mail
@@ -86,16 +117,25 @@ const Login: React.FC = () => {
             disabled={isLoading}
             className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
           >
-            {isLoading ? 'Entrando...' : 'Entrar'}
+            {isLoading 
+              ? (isRegisterMode ? 'Criando conta...' : 'Entrando...') 
+              : (isRegisterMode ? 'Criar Conta' : 'Entrar')
+            }
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-600 mb-2">Credenciais de teste:</p>
-          <p className="text-xs text-gray-500">
-            <strong>E-mail:</strong> fotografo@email.com<br />
-            <strong>Senha:</strong> 123456
-          </p>
+        <div className="mt-6 text-center">
+          <button
+            type="button"
+            onClick={() => setIsRegisterMode(!isRegisterMode)}
+            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            disabled={isLoading}
+          >
+            {isRegisterMode 
+              ? 'Já tem uma conta? Fazer login' 
+              : 'Não tem conta? Criar uma nova'
+            }
+          </button>
         </div>
       </div>
     </div>

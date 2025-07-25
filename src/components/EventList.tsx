@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Calendar, MapPin, User, Phone, Mail, Eye, Plus, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useData } from '../contexts/DataContext';
+import { useSupabaseData } from '../hooks/useSupabaseData';
 import toast from 'react-hot-toast';
 
 interface EventListProps {
@@ -11,8 +11,9 @@ interface EventListProps {
 }
 
 const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
-  const { events, updateEvent, deleteEvent } = useData();
+  const { events, updateEvent, deleteEvent, loading } = useSupabaseData();
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -30,9 +31,10 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
     );
   };
 
-  const handleStatusChange = (eventId: string, newStatus: string) => {
-    updateEvent(eventId, { status: newStatus as any });
-    toast.success('Status atualizado com sucesso!');
+  const handleStatusChange = async (eventId: string, newStatus: string) => {
+    setUpdatingId(eventId);
+    const success = await updateEvent(eventId, { status: newStatus as any });
+    setUpdatingId(null);
   };
 
   const handleDelete = async (eventId: string) => {
@@ -42,16 +44,22 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
 
     setDeletingId(eventId);
     try {
-      // Simula delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      deleteEvent(eventId);
-      toast.success('Agendamento excluído com sucesso!');
+      await deleteEvent(eventId);
     } catch (error) {
-      toast.error('Erro ao excluir agendamento');
+      console.error('Error deleting event:', error);
     } finally {
       setDeletingId(null);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Carregando agendamentos...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -101,7 +109,8 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
                   <select
                     value={event.status}
                     onChange={(e) => handleStatusChange(event.id, e.target.value)}
-                    className="ml-2 text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    disabled={updatingId === event.id}
+                    className="ml-2 text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50"
                   >
                     <option value="scheduled">Agendado</option>
                     <option value="in-progress">Em Andamento</option>
@@ -114,7 +123,7 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div className="flex items-center gap-2 text-gray-600">
                   <Calendar className="w-4 h-4" />
-                  <span>{format(event.eventDate, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                  <span>{format(new Date(event.event_date), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <MapPin className="w-4 h-4" />
@@ -122,16 +131,16 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Mail className="w-4 h-4" />
-                  <span>{event.clientEmail}</span>
+                  <span>{event.client_email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-600">
                   <Phone className="w-4 h-4" />
-                  <span>{event.clientPhone}</span>
+                  <span>{event.client_phone}</span>
                 </div>
               </div>
 
               <div className="flex justify-end gap-2">
-                {event.albumId && (
+                {event.album_id && (
                   <button 
                     onClick={() => onViewAlbum?.(event.id)}
                     className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"

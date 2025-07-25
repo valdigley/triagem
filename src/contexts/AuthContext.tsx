@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -9,7 +11,9 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  supabaseUser: SupabaseUser | null;
   login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -26,47 +30,113 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simular verificação de autenticação
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    setIsLoading(false);
+    // Verificar sessão atual
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setSupabaseUser(session.user);
+        setUser({
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+          email: session.user.email || '',
+          role: 'photographer',
+        });
+      }
+      setIsLoading(false);
+    };
+
+    getSession();
+
+    // Escutar mudanças de autenticação
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser({
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+            email: session.user.email || '',
+            role: 'photographer',
+          });
+        } else {
+          setSupabaseUser(null);
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simular login - em produção seria uma chamada real à API
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    if (email === 'fotografo@email.com' && password === '123456') {
-      const userData = {
-        id: '1',
-        name: 'Maria Fotógrafa',
-        email: 'fotografo@email.com',
-        role: 'photographer' as const,
-      };
-      setUser(userData);
-      localStorage.setItem('user', JSON.stringify(userData));
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        setIsLoading(false);
+        return false;
+      }
+
+      // O usuário será definido automaticamente pelo listener onAuthStateChange
       setIsLoading(false);
       return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return false;
     }
-    
-    setIsLoading(false);
-    return false;
   };
 
-  const logout = () => {
+  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Register error:', error);
+        setIsLoading(false);
+        return false;
+      }
+
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Register error:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('user');
+    setSupabaseUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, supabaseUser, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );
