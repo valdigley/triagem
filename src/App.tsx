@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import Login from './components/Login';
 import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
