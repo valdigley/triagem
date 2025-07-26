@@ -19,7 +19,6 @@ interface Album {
   name: string;
   shareToken: string;
   isActive: boolean;
-  event_id?: string;
 }
 
 interface ClientPhotoSelectionProps {
