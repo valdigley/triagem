@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Calendar, Clock, MapPin, User, Mail, Phone, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Mail, Phone, ArrowLeft, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 
