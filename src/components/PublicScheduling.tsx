@@ -280,8 +280,6 @@ const PublicScheduling: React.FC = () => {
       client_email: eventData.client_email,
     };
 
-    console.log('Creating payment with event_id:', newEvent.id);
-
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`, {
       method: 'POST',
       headers: {
