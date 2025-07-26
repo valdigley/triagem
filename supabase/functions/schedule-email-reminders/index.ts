@@ -189,6 +189,26 @@ async function sendDayBeforeReminder(event: any) {
 }
 
 async function sendDayOfReminder(event: any) {
+  // Carregar configurações de email do fotógrafo
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  )
+
+  const { data: photographer } = await supabase
+    .from('photographers')
+    .select('watermark_config')
+    .eq('id', event.photographer_id)
+    .single();
+
+  const emailTemplates = photographer?.watermark_config?.emailTemplates;
+  
+  // Verificar se o email está habilitado
+  if (!emailTemplates?.dayOfReminder?.enabled) {
+    console.log('Day of reminder email is disabled');
+    return;
+  }
+
   const sessionTypeLabels: Record<string, string> = {
     'gestante': 'Sessão Gestante',
     'aniversario': 'Aniversário',
@@ -207,7 +227,41 @@ async function sendDayOfReminder(event: any) {
     phone: event.photographers.phone,
     email: event.photographers.watermark_config?.email || '',
     address: event.photographers.watermark_config?.address || '',
+    website: event.photographers.watermark_config?.website || '',
   };
+
+  // Usar template personalizado
+  let subject = emailTemplates.dayOfReminder.subject;
+  let message = emailTemplates.dayOfReminder.message;
+
+  // Substituir variáveis no assunto
+  subject = subject
+    .replace(/\{\{clientName\}\}/g, event.client_name)
+    .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
+    .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
+    .replace(/\{\{eventDate\}\}/g, new Date(event.event_date).toLocaleDateString('pt-BR'))
+    .replace(/\{\{eventTime\}\}/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
+    .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
+    .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
+    .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+
+  // Substituir variáveis na mensagem
+  message = message
+    .replace(/\{\{clientName\}\}/g, event.client_name)
+    .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
+    .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
+    .replace(/\{\{eventDate\}\}/g, new Date(event.event_date).toLocaleDateString('pt-BR', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    }))
+    .replace(/\{\{eventTime\}\}/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
+    .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
+    .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
+    .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
 
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -216,34 +270,8 @@ async function sendDayOfReminder(event: any) {
       </div>
       
       <div style="padding: 30px; background: #f8f9fa;">
-        <p style="font-size: 18px; color: #333;">Bom dia, <strong>${event.client_name}</strong>!</p>
-        
-        <p style="color: #666; line-height: 1.6;">
-          Hoje é o dia da sua sessão de fotos! Esperamos você no estúdio.
-        </p>
-        
-        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00f2fe;">
-          <h3 style="color: #333; margin-top: 0;">📅 Sua Sessão Hoje:</h3>
-          <p><strong>Tipo:</strong> ${sessionTypeLabel}</p>
-          <p><strong>Horário:</strong> ${new Date(event.event_date).toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}</p>
-          <p><strong>Local:</strong> ${studioSettings.address}</p>
-          <p><strong>Contato:</strong> ${studioSettings.phone}</p>
-        </div>
-        
-        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="color: #f57c00; margin-top: 0;">⚡ Últimas Dicas:</h3>
-          <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
-            <li>Chegue 10 minutos antes</li>
-            <li>Traga suas referências</li>
-            <li>Relaxe e divirta-se!</li>
-          </ul>
-        </div>
-        
-        <div style="text-align: center; margin: 30px 0;">
-          <p style="color: #666; font-size: 18px;">Nos vemos em breve! 📸✨</p>
+        <div style="white-space: pre-line; color: #333; line-height: 1.6;">
+          ${message}
         </div>
       </div>
     </div>
@@ -257,7 +285,7 @@ async function sendDayOfReminder(event: any) {
     },
     body: JSON.stringify({
       to: event.client_email,
-      subject: `🎉 Hoje é o dia da sua sessão! - ${studioSettings.businessName}`,
+      subject: subject,
       html: emailHtml,
       type: 'session_reminder_day_of',
       eventData: event,

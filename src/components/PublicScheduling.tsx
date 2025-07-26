@@ -118,10 +118,59 @@ const PublicScheduling: React.FC = () => {
   // Função para enviar email de confirmação
   const sendBookingConfirmationEmail = async (eventData: any, studioSettings: any) => {
     try {
+      // Carregar template personalizado das configurações
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .eq('id', photographerId)
+        .single();
+
+      const emailTemplates = photographer?.watermark_config?.emailTemplates;
+      
+      // Verificar se o email de confirmação está habilitado
+      if (!emailTemplates?.bookingConfirmation?.enabled) {
+        console.log('Booking confirmation email is disabled');
+        return;
+      }
+
       const sessionTypeLabel = eventData.session_type ? 
         sessionTypeLabels[eventData.session_type] || eventData.session_type : 
         'Sessão';
 
+      // Usar template personalizado
+      let subject = emailTemplates.bookingConfirmation.subject;
+      let message = emailTemplates.bookingConfirmation.message;
+
+      // Substituir variáveis no assunto
+      subject = subject
+        .replace(/\{\{clientName\}\}/g, eventData.client_name)
+        .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
+        .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
+        .replace(/\{\{eventDate\}\}/g, new Date(eventData.event_date).toLocaleDateString('pt-BR'))
+        .replace(/\{\{eventTime\}\}/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+        .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
+        .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
+        .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
+        .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+
+      // Substituir variáveis na mensagem
+      message = message
+        .replace(/\{\{clientName\}\}/g, eventData.client_name)
+        .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
+        .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
+        .replace(/\{\{eventDate\}\}/g, new Date(eventData.event_date).toLocaleDateString('pt-BR', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        }))
+        .replace(/\{\{eventTime\}\}/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+        .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
+        .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
+        .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
+        .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+
+      // Converter quebras de linha para HTML
       const emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
@@ -129,51 +178,8 @@ const PublicScheduling: React.FC = () => {
           </div>
           
           <div style="padding: 30px; background: #f8f9fa;">
-            <p style="font-size: 18px; color: #333;">Olá <strong>${eventData.client_name}</strong>!</p>
-            
-            <p style="color: #666; line-height: 1.6;">
-              Obrigado por escolher nosso estúdio! Seu agendamento foi confirmado com sucesso.
-            </p>
-            
-            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-              <h3 style="color: #333; margin-top: 0;">📅 Detalhes da Sessão:</h3>
-              <p><strong>Tipo:</strong> ${sessionTypeLabel}</p>
-              <p><strong>Data:</strong> ${new Date(eventData.event_date).toLocaleDateString('pt-BR', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              })}</p>
-              <p><strong>Horário:</strong> ${new Date(eventData.event_date).toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })}</p>
-              <p><strong>Local:</strong> ${studioSettings.address || 'Estúdio Fotográfico'}</p>
-            </div>
-            
-            <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #1976d2; margin-top: 0;">📍 Localização do Estúdio:</h3>
-              <p style="margin: 0;"><strong>${studioSettings.businessName}</strong></p>
-              <p style="margin: 5px 0;">${studioSettings.address}</p>
-              <p style="margin: 5px 0;">📞 ${studioSettings.phone}</p>
-              ${studioSettings.website ? `<p style="margin: 5px 0;">🌐 <a href="${studioSettings.website}">${studioSettings.website}</a></p>` : ''}
-            </div>
-            
-            <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #f57c00; margin-top: 0;">📋 Importante - Leia com Atenção:</h3>
-              <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
-                <li><strong>Referências:</strong> Traga fotos de referência ou ideias que gostaria de reproduzir</li>
-                <li><strong>Portfólio:</strong> As fotos poderão ser usadas em nosso portfólio e redes sociais. Caso não concorde, informe ao fotógrafo no dia da sessão</li>
-                <li><strong>Pontualidade:</strong> Chegue 10 minutos antes do horário agendado</li>
-                <li><strong>Seleção:</strong> Após a sessão, você receberá um link para selecionar suas fotos favoritas</li>
-              </ul>
-            </div>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <p style="color: #666;">Estamos ansiosos para criar memórias incríveis com você!</p>
-              <p style="color: #999; font-size: 14px;">
-                Dúvidas? Entre em contato: ${studioSettings.phone} | ${studioSettings.email}
-              </p>
+            <div style="white-space: pre-line; color: #333; line-height: 1.6;">
+              ${message}
             </div>
           </div>
           
@@ -184,7 +190,6 @@ const PublicScheduling: React.FC = () => {
           </div>
         </div>
       `;
-
       await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
         method: 'POST',
         headers: {
@@ -193,7 +198,7 @@ const PublicScheduling: React.FC = () => {
         },
         body: JSON.stringify({
           to: eventData.client_email,
-          subject: `📸 Agendamento Confirmado - ${sessionTypeLabel} - ${studioSettings.businessName}`,
+          subject: subject,
           html: emailHtml,
           type: 'booking_confirmation',
           eventData,

@@ -999,6 +999,258 @@ Nos vemos em breve! 📸✨`
           </div>
         )}
 
+        {/* Templates de Email */}
+        {activeTab === 'emails' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Templates de Email Automáticos</h3>
+            <p className="text-gray-600">Configure os emails que serão enviados automaticamente aos clientes</p>
+            
+            {/* Email de Confirmação */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900">📧 Email de Confirmação</h4>
+                  <p className="text-sm text-gray-600">Enviado imediatamente após o agendamento ser confirmado</p>
+                </div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.emailTemplates.bookingConfirmation.enabled}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        bookingConfirmation: {
+                          ...prev.emailTemplates.bookingConfirmation,
+                          enabled: e.target.checked
+                        }
+                      }
+                    }))}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium">Ativo</span>
+                </label>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assunto do Email
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.emailTemplates.bookingConfirmation.subject}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        bookingConfirmation: {
+                          ...prev.emailTemplates.bookingConfirmation,
+                          subject: e.target.value
+                        }
+                      }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Assunto do email..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mensagem do Email
+                  </label>
+                  <textarea
+                    value={settings.emailTemplates.bookingConfirmation.message}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        bookingConfirmation: {
+                          ...prev.emailTemplates.bookingConfirmation,
+                          message: e.target.value
+                        }
+                      }
+                    }))}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Mensagem do email..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Email de Lembrete 1 Dia Antes */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900">⏰ Lembrete 1 Dia Antes</h4>
+                  <p className="text-sm text-gray-600">Enviado automaticamente 1 dia antes da sessão</p>
+                </div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.emailTemplates.dayBeforeReminder.enabled}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayBeforeReminder: {
+                          ...prev.emailTemplates.dayBeforeReminder,
+                          enabled: e.target.checked
+                        }
+                      }
+                    }))}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium">Ativo</span>
+                </label>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assunto do Email
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.emailTemplates.dayBeforeReminder.subject}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayBeforeReminder: {
+                          ...prev.emailTemplates.dayBeforeReminder,
+                          subject: e.target.value
+                        }
+                      }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Assunto do email..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mensagem do Email
+                  </label>
+                  <textarea
+                    value={settings.emailTemplates.dayBeforeReminder.message}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayBeforeReminder: {
+                          ...prev.emailTemplates.dayBeforeReminder,
+                          message: e.target.value
+                        }
+                      }
+                    }))}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Mensagem do email..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Email do Dia da Sessão */}
+            <div className="bg-gray-50 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="font-semibold text-gray-900">🎉 Lembrete do Dia</h4>
+                  <p className="text-sm text-gray-600">Enviado pela manhã no dia da sessão (8h-10h)</p>
+                </div>
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={settings.emailTemplates.dayOfReminder.enabled}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayOfReminder: {
+                          ...prev.emailTemplates.dayOfReminder,
+                          enabled: e.target.checked
+                        }
+                      }
+                    }))}
+                    className="mr-2"
+                  />
+                  <span className="text-sm font-medium">Ativo</span>
+                </label>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Assunto do Email
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.emailTemplates.dayOfReminder.subject}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayOfReminder: {
+                          ...prev.emailTemplates.dayOfReminder,
+                          subject: e.target.value
+                        }
+                      }
+                    }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Assunto do email..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Mensagem do Email
+                  </label>
+                  <textarea
+                    value={settings.emailTemplates.dayOfReminder.message}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      emailTemplates: {
+                        ...prev.emailTemplates,
+                        dayOfReminder: {
+                          ...prev.emailTemplates.dayOfReminder,
+                          message: e.target.value
+                        }
+                      }
+                    }))}
+                    rows={8}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Mensagem do email..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Variáveis Disponíveis */}
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h4 className="font-semibold text-blue-900 mb-3">📝 Variáveis Disponíveis</h4>
+              <p className="text-sm text-blue-800 mb-3">
+                Use essas variáveis nos seus templates. Elas serão substituídas automaticamente:
+              </p>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{clientName}}`}}</code> - Nome do cliente</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{sessionType}}`}}</code> - Tipo da sessão</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{eventDate}}`}}</code> - Data da sessão</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{eventTime}}`}}</code> - Horário da sessão</p>
+                </div>
+                <div>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioName}}`}}</code> - Nome do estúdio</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioAddress}}`}}</code> - Endereço</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioPhone}}`}}</code> - Telefone</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioEmail}}`}}</code> - Email</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Botão Salvar */}
         <div className="flex justify-end pt-6 border-t border-gray-200">
           <button
