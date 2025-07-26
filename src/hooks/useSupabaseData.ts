@@ -79,16 +79,23 @@ export const useSupabaseData = () => {
     if (!user) return null;
 
     try {
-      // Primeiro, tentar buscar o perfil existente
+      // Primeiro, verificar se há múltiplos perfis e limpar duplicatas
       const { data: existingProfile, error: fetchError } = await supabase
         .from('photographers')
         .select('*')
         .eq('user_id', user.id);
 
       if (existingProfile && existingProfile.length > 0) {
-        // Se existem múltiplos perfis, usar o primeiro e logar o problema
         if (existingProfile.length > 1) {
-          console.warn(`Multiple photographer profiles found for user ${user.id}. Using the first one.`);
+          // Limpar perfis duplicados, manter apenas o primeiro
+          const profilesToDelete = existingProfile.slice(1);
+          for (const profile of profilesToDelete) {
+            await supabase
+              .from('photographers')
+              .delete()
+              .eq('id', profile.id);
+          }
+          console.log(`Cleaned up ${profilesToDelete.length} duplicate photographer profiles for user ${user.id}`);
         }
         setPhotographerId(existingProfile[0].id);
         return existingProfile[0].id;
