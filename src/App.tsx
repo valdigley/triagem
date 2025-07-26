@@ -69,9 +69,22 @@ const AppContent: React.FC = () => {
       case 'settings':
         return <Settings />;
       case 'gallery':
+        if (!selectedAlbumId) {
+          return (
+            <div className="p-6 text-center">
+              <p className="text-gray-600 mb-4">Nenhum álbum selecionado.</p>
+              <button
+                onClick={() => setCurrentView('albums')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Voltar para Álbuns
+              </button>
+            </div>
+          );
+        }
         return (
           <PhotoGallery
-            albumId={selectedAlbumId || "album_1"}
+            albumId={selectedAlbumId}
             isClientView={false}
             onBackToAlbums={() => setCurrentView('albums')}
           />
