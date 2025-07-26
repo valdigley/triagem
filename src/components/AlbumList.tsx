@@ -365,10 +365,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </button>
                   <button 
                     onClick={() => onViewAlbum?.(album.id)}
-                    className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
-                    Visualizar
+                    Ver Fotos
                   </button>
                   {selectedCount > 0 && (
                     <button className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">

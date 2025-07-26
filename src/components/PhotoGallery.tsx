@@ -16,33 +16,31 @@ interface Photo {
 
 interface PhotoGalleryProps {
   albumId: string;
-  isClientView?: boolean;
+  isClientView: boolean;
   onBackToAlbums?: () => void;
 }
 
 const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   albumId,
-  isClientView = false,
+  isClientView,
   onBackToAlbums,
 }) => {
   const { photos, updatePhoto, loading } = useSupabaseData();
   const albumPhotos = photos.filter(photo => photo.album_id === albumId);
   
-  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
-    new Set()
-  );
+  // Estados apenas para visualização do cliente
+  const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
-  const [showWatermarkSettings, setShowWatermarkSettings] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
 
-  // Inicializar seleções quando as fotos carregarem (apenas uma vez)
+  // Inicializar seleções quando as fotos carregarem (apenas para cliente)
   React.useEffect(() => {
-    if (albumPhotos.length > 0) {
+    if (albumPhotos.length > 0 && isClientView) {
       const selected = new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id));
       setSelectedPhotos(selected);
     }
-  }, [albumId, photos.length]); // Dependências mais específicas
+  }, [albumId, photos.length, isClientView]);
 
   // Carregar configuração de marca d'água
   React.useEffect(() => {
@@ -77,6 +75,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       }
     }
   };
+  
   const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
     const isSelected = newSelected.has(photoId);
@@ -211,7 +210,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">
-            {isClientView ? 'Suas Fotos' : 'Galeria do Álbum'}
+            {isClientView ? 'Suas Fotos' : 'Fotos da Sessão'}
           </h2>
           <p className="text-gray-600">
             {albumPhotos.length} fotos disponíveis
@@ -220,16 +219,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         </div>
 
         <div className="flex items-center gap-4">
-          {!isClientView && (
-            <button
-              onClick={() => setShowWatermarkSettings(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <Settings className="w-4 h-4" />
-              Marca D'água
-            </button>
-          )}
-          
           {isClientView && selectedPhotos.size > 0 && (
             <div className="flex items-center gap-4">
               <div className="text-right">
@@ -284,15 +273,13 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               />
 
               {/* Watermark overlay for client view */}
-              {isClientView && (
+              {isClientView && watermarkConfig && watermarkConfig.file && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {watermarkConfig && watermarkConfig.file && (
                     <img
                       src={watermarkConfig.file}
                       alt="Watermark"
                       style={getWatermarkStyle()}
                     />
-                  )}
                 </div>
               )}
 
@@ -425,11 +412,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Watermark Settings Modal */}
-      {showWatermarkSettings && (
-        <WatermarkSettings onClose={() => setShowWatermarkSettings(false)} />
       )}
     </div>
   );
