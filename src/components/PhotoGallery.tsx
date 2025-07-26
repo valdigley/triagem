@@ -136,10 +136,14 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             >
               {/* Photo */}
               <img
-                src={`https://picsum.photos/400/400?random=${photo.id.slice(-6)}`}
+                src={photo.thumbnail_path}
                 alt={photo.filename}
                 className="w-full h-full object-cover"
                 loading="lazy"
+                onError={(e) => {
+                  // Fallback para imagem de demonstração se a real falhar
+                  e.currentTarget.src = `https://picsum.photos/400/400?random=${photo.id.slice(-6)}`;
+                }}
               />
 
               {/* Watermark overlay for client view */}
@@ -213,9 +217,13 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             </button>
 
             <img
-              src={`https://picsum.photos/1200/800?random=${lightboxPhoto.id.slice(-6)}`}
+              src={lightboxPhoto.original_path}
               alt={lightboxPhoto.filename}
               className="max-w-full max-h-full object-contain rounded-lg"
+              onError={(e) => {
+                // Fallback para imagem de demonstração se a real falhar
+                e.currentTarget.src = `https://picsum.photos/1200/800?random=${lightboxPhoto.id.slice(-6)}`;
+              }}
             />
 
             {/* Photo info */}

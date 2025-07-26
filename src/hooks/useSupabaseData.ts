@@ -274,16 +274,45 @@ export const useSupabaseData = () => {
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
     try {
+      // Upload real para Supabase Storage
       const photoPromises = files.map(async (file, index) => {
-        // Em produção, aqui faria upload para Supabase Storage
-        const photoId = `${albumId}_${Date.now()}_${index}`;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${albumId}_${Date.now()}_${index}.${fileExt}`;
         
+        // Upload para o bucket 'photos'
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('photos')
+          .upload(`original/${fileName}`, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (uploadError) {
+          console.error('Error uploading file:', uploadError);
+          throw uploadError;
+        }
+
+        // Gerar URLs públicas
+        const { data: { publicUrl: originalUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(`original/${fileName}`);
+
+        // Para thumbnail e watermark, por enquanto usar a mesma imagem
+        // Em produção, você processaria a imagem para criar versões menores
+        const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(`original/${fileName}`);
+
+        const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+          .from('photos')
+          .getPublicUrl(`original/${fileName}`);
+
         return {
           album_id: albumId,
           filename: file.name,
-          original_path: `/photos/original/${photoId}.jpg`,
-          thumbnail_path: `/photos/thumbnails/${photoId}.jpg`,
-          watermarked_path: `/photos/watermarked/${photoId}.jpg`,
+          original_path: originalUrl,
+          thumbnail_path: thumbnailUrl,
+          watermarked_path: watermarkedUrl,
           is_selected: false,
           price: 25.00,
           metadata: {
@@ -309,11 +338,10 @@ export const useSupabaseData = () => {
       }
 
       setPhotos(prev => [...prev, ...data]);
-      toast.success(`${files.length} fotos adicionadas com sucesso!`);
       return true;
     } catch (error) {
       console.error('Error uploading photos:', error);
-      toast.error('Erro ao fazer upload das fotos');
+      toast.error('Erro ao fazer upload das fotos: ' + error.message);
       return false;
     }
   };

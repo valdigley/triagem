@@ -245,9 +245,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       {albumPhotos.slice(0, 6).map((photo) => (
                         <div key={photo.id} className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
                           <img
-                            src={`https://picsum.photos/200/200?random=${photo.id.slice(-6)}`}
+                            src={photo.thumbnail_path}
                             alt={photo.filename}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback para imagem de demonstração se a real falhar
+                              e.currentTarget.src = `https://picsum.photos/200/200?random=${photo.id.slice(-6)}`;
+                            }}
                           />
                         </div>
                       ))}
