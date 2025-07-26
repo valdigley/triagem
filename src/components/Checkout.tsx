@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Check, Download, Mail } from 'lucide-react';
+import { ArrowLeft, Check, Download, Mail, Copy } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -25,6 +25,10 @@ const Checkout: React.FC<CheckoutProps> = ({
   const [clientEmail, setClientEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
+  const [showPaymentScreen, setShowPaymentScreen] = useState(false);
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [isWaitingPayment, setIsWaitingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   const [mercadoPagoConfig, setMercadoPagoConfig] = useState<{
     accessToken?: string;
     publicKey?: string;
@@ -120,9 +124,96 @@ const Checkout: React.FC<CheckoutProps> = ({
     return result;
   };
 
+  // Função para verificar status do pagamento
+  const checkPaymentStatus = async (paymentId: string) => {
+    try {
+      // Verificar no banco de dados
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('payment_intent_id', paymentId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (orders && orders.length > 0) {
+        const order = orders[0];
+        if (order.status === 'paid') {
+          setPaymentStatus('approved');
+          return 'approved';
+        } else if (order.status === 'cancelled') {
+          setPaymentStatus('rejected');
+          return 'rejected';
+        }
+      }
+      
+      return 'pending';
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      return 'pending';
+    }
+  };
+
+  // Polling para verificar status do pagamento
+  React.useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isWaitingPayment && paymentData?.id) {
+      interval = setInterval(async () => {
+        const status = await checkPaymentStatus(paymentData.id);
+        if (status === 'approved') {
+          setIsWaitingPayment(false);
+          setPaymentStatus('approved');
+          setOrderCompleted(true);
+          toast.success('Pagamento confirmado!');
+        } else if (status === 'rejected') {
+          setIsWaitingPayment(false);
+          setPaymentStatus('rejected');
+          toast.error('Pagamento rejeitado. Tente novamente.');
+        }
+      }, 3000);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isWaitingPayment, paymentData?.id]);
+
   const handlePayment = async () => {
     if (!clientEmail.trim()) {
       toast.error('Digite seu e-mail para continuar');
+      return;
+    }
+
+    // Se o valor for 0, apenas confirmar seleção
+    if (totalAmount === 0) {
+      setIsProcessing(true);
+      try {
+        // Salvar pedido sem pagamento
+        const { error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            event_id: album?.event_id,
+            client_email: clientEmail,
+            selected_photos: selectedPhotos,
+            total_amount: 0,
+            status: 'paid', // Já considerado pago pois não há cobrança
+            payment_intent_id: `free_${Date.now()}`,
+          });
+
+        if (orderError) {
+          console.error('Error saving order:', orderError);
+          toast.error('Erro ao salvar pedido');
+          return;
+        }
+
+        setOrderCompleted(true);
+        toast.success('Seleção confirmada com sucesso!');
+      } catch (error) {
+        console.error('Error confirming selection:', error);
+        toast.error('Erro ao confirmar seleção');
+      } finally {
+        setIsProcessing(false);
+      }
       return;
     }
 
@@ -136,27 +227,25 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       if (mercadoPagoConfig.accessToken) {
         console.log('Using MercadoPago payment method');
-        console.log('Using MercadoPago payment method');
         // Processar com Mercado Pago
         paymentResult = await createMercadoPagoPayment();
+        setPaymentData(paymentResult);
         
         if (paymentResult.status === 'pending' && paymentResult.qr_code) {
-          // Para PIX, mostrar QR code
-          toast.success('PIX gerado! Use o QR code para pagar.');
-          // Você pode implementar um modal com o QR code aqui
-          console.log('QR Code:', paymentResult.qr_code);
-          console.log('QR Code Base64:', paymentResult.qr_code_base64);
-          console.log('QR Code:', paymentResult.qr_code);
-          console.log('QR Code Base64:', paymentResult.qr_code_base64);
+          setShowPaymentScreen(true);
+          setIsWaitingPayment(true);
+          toast.success('PIX gerado! Escaneie o código para pagar.');
         } else if (paymentResult.status === 'approved') {
+          setOrderCompleted(true);
           toast.success('Pagamento aprovado!');
         } else if (paymentResult.status === 'pending') {
+          setShowPaymentScreen(true);
+          setIsWaitingPayment(true);
           toast.success('Pagamento criado! Aguardando confirmação...');
         } else {
           toast.error(`Status do pagamento: ${paymentResult.status}`);
         }
       } else {
-        console.log('Using simulated payment method');
         console.log('Using simulated payment method');
         // Simular processamento para outros métodos
         await new Promise(resolve => setTimeout(resolve, 3000));
@@ -164,6 +253,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           id: `local_${Date.now()}`,
           status: 'approved',
         };
+        setOrderCompleted(true);
       }
 
       // Salvar pedido no banco de dados
@@ -174,24 +264,19 @@ const Checkout: React.FC<CheckoutProps> = ({
           client_email: clientEmail,
           selected_photos: selectedPhotos,
           total_amount: totalAmount,
-          status: 'pending', // Sempre começar como pending, webhook vai atualizar
+          status: totalAmount === 0 ? 'paid' : 'pending',
           payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
         });
 
       if (orderError) {
         console.error('Error saving order:', orderError);
         toast.error('Erro ao salvar pedido');
+        return;
       }
 
-      setOrderCompleted(true);
-      
-      // Sempre mostrar como pendente inicialmente
-      toast.success('Pedido criado! Aguardando confirmação do pagamento.');
-      
-      // Enviar e-mail com links de download (simulado)
-      setTimeout(() => {
-        toast('Você receberá um e-mail quando o pagamento for confirmado.');
-      }, 1000);
+      if (!showPaymentScreen && !orderCompleted) {
+        toast.success('Pedido criado! Aguardando confirmação do pagamento.');
+      }
 
     } catch (error) {
       console.error('Payment error:', error);
@@ -200,6 +285,116 @@ const Checkout: React.FC<CheckoutProps> = ({
       setIsProcessing(false);
     }
   };
+
+  const copyPixCode = () => {
+    if (paymentData?.qr_code) {
+      navigator.clipboard.writeText(paymentData.qr_code);
+      toast.success('Código PIX copiado!');
+    }
+  };
+
+  // Tela de pagamento PIX
+  if (showPaymentScreen && paymentData) {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className={`w-8 h-8 text-blue-600 ${paymentStatus === 'pending' ? 'animate-spin' : ''}`}>
+                {paymentStatus === 'approved' ? '✓' : '⟳'}
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              {paymentStatus === 'approved' ? 'Pagamento Confirmado!' : 'Finalize seu Pagamento'}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {paymentStatus === 'approved' 
+                ? 'Suas fotos estão sendo processadas'
+                : 'Escaneie o QR Code ou copie o código PIX'
+              }
+            </p>
+
+            {paymentStatus !== 'approved' && (
+              <>
+                {/* QR Code */}
+                {paymentData.qr_code_base64 && (
+                  <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                    <img 
+                      src={`data:image/png;base64,${paymentData.qr_code_base64}`}
+                      alt="QR Code PIX"
+                      className="mx-auto mb-4 max-w-full h-auto"
+                      style={{ maxWidth: '250px' }}
+                    />
+                    <p className="text-sm text-gray-600">
+                      Escaneie com o app do seu banco
+                    </p>
+                  </div>
+                )}
+
+                {/* Código PIX para copiar */}
+                {paymentData.qr_code && (
+                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Ou copie o código PIX:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={paymentData.qr_code}
+                        readOnly
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono"
+                      />
+                      <button
+                        onClick={copyPixCode}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Informações do pagamento */}
+                <div className="bg-blue-50 p-6 rounded-lg mb-6">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-blue-900 mb-2">
+                      R$ {totalAmount.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-blue-700">
+                      {selectedPhotos.length} fotos extras
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-center text-sm text-gray-500 mb-6">
+                  <p>⏱️ Verificando pagamento automaticamente...</p>
+                  <p>Não feche esta página até a confirmação.</p>
+                </div>
+              </>
+            )}
+
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={onBack}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Voltar
+              </button>
+              {paymentStatus === 'approved' && (
+                <button
+                  onClick={() => setOrderCompleted(true)}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  Continuar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (orderCompleted) {
     return (
@@ -221,34 +416,28 @@ const Checkout: React.FC<CheckoutProps> = ({
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo do Pedido</h3>
             <div className="flex justify-between items-center mb-2">
-                Mercado Pago
               <span className="font-semibold">{selectedPhotos.length} foto{selectedPhotos.length > 1 ? 's' : ''}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Valor unitário:</span>
-              <span className="font-semibold">R$ {selectedPhotoObjects[0]?.price?.toFixed(2) || '25,00'}</span>
+              <span className="font-semibold">
+                {totalAmount > 0 ? `R$ ${(totalAmount / selectedPhotos.length).toFixed(2)}` : 'Incluído no pacote'}
+              </span>
             </div>
-            {selectedPhotos.length > 10 && (
-              <div className="text-sm text-green-600 mb-2">
-                <div className="flex justify-between">
-                  <span>Primeiras 10 fotos:</span>
-                  <span>Preço normal</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>{selectedPhotos.length - 10} fotos extras:</span>
-                  <span>20% desconto</span>
-                </div>
-              </div>
-            )}
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Valor total:</span>
-              <span className="text-xl font-bold text-green-600">R$ {totalAmount.toFixed(2)}</span>
+              <span className="text-xl font-bold text-green-600">
+                {totalAmount > 0 ? `R$ ${totalAmount.toFixed(2)}` : 'Gratuito'}
+              </span>
             </div>
             <div className="border-t pt-3 mt-3">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Método de pagamento:</span>
                 <span className="font-semibold capitalize">
-                  {mercadoPagoConfig.accessToken ? 'Mercado Pago' : 'Simulado'}
+                  {totalAmount > 0 
+                    ? (mercadoPagoConfig.accessToken ? 'Mercado Pago' : 'Simulado')
+                    : 'Não aplicável'
+                  }
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
@@ -476,15 +665,21 @@ const Checkout: React.FC<CheckoutProps> = ({
             <button
               onClick={handlePayment}
               disabled={isProcessing || !clientEmail.trim()}
-              className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+              className={`w-full py-3 px-4 rounded-lg focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium ${
+                totalAmount > 0 
+                  ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+                  : 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500'
+              }`}
             >
               {isProcessing ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Criando pagamento...
+                  {totalAmount > 0 ? 'Criando pagamento...' : 'Confirmando seleção...'}
                 </div>
               ) : (
-                `Pagar R$ ${totalAmount.toFixed(2)} via Mercado Pago`
+                totalAmount > 0 
+                  ? `Pagar R$ ${totalAmount.toFixed(2)} via Mercado Pago`
+                  : 'Confirmar Seleção Gratuita'
               )}
             </button>
 
