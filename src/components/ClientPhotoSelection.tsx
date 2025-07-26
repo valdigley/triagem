@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail } from 'lucide-react';
+import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import Checkout from './Checkout';
@@ -220,7 +220,44 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       toast.error('Selecione pelo menos uma foto');
       return;
     }
-    setShowCheckout(true);
+    
+    if (priceCalculation.total > 0) {
+      setShowCheckout(true);
+    } else {
+      // Fotos gratuitas - confirmar seleção diretamente
+      confirmFreeSelection();
+    }
+  };
+
+  const confirmFreeSelection = async () => {
+    setIsSubmitting(true);
+    try {
+      // Salvar seleção no banco sem pagamento
+      const { error } = await supabase
+        .from('orders')
+        .insert({
+          event_id: album?.event_id,
+          client_email: 'cliente@email.com', // Seria obtido do contexto
+          selected_photos: Array.from(selectedPhotos),
+          total_amount: 0,
+          status: 'paid', // Considerado pago pois não há cobrança
+          payment_intent_id: `free_${Date.now()}`,
+        });
+
+      if (error) {
+        console.error('Error saving free selection:', error);
+        toast.error('Erro ao confirmar seleção');
+        return;
+      }
+
+      toast.success('Seleção confirmada com sucesso!');
+      setSelectedPhotos(new Set());
+    } catch (error) {
+      console.error('Error confirming free selection:', error);
+      toast.error('Erro ao confirmar seleção');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getWatermarkStyle = () => {
@@ -303,7 +340,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         </div>
 
         {/* Selection Summary */}
-        {selectedPhotos.size > 0 && (
+        {selectedPhotos.size > 0 && priceCalculation.total > 0 && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div>
@@ -311,24 +348,85 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
                 </h3>
                 <div className="text-gray-600">
-                  {priceCalculation.total === 0 ? (
-                    <div>
-                      <p className="text-green-600 font-medium">{priceCalculation.message}</p>
-                      <p className="text-sm text-gray-500">Sem custo adicional</p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
-                      <p className="text-sm">
-                        {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 ml-2">
-                            (5% desconto aplicado)
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                  <div>
+                    <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
+                    <p className="text-sm">
+                      {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
+                      {priceCalculation.hasDiscount && (
+                        <span className="text-green-600 ml-2">
+                          (5% desconto aplicado)
+                        </span>
+                      )}
+                    </p>
+                    <p className="font-semibold text-lg">
+                      Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                      {priceCalculation.hasDiscount && (
+                        <span className="text-green-600 text-sm ml-2">
+                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={handleFinishSelection}
+                disabled={isSubmitting}
+                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Message for free photos */}
+        {selectedPhotos.size > 0 && priceCalculation.total === 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center justify-center">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-green-900 mb-2">
+                  {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
+                </h3>
+                <div className="text-green-700">
+                  <p className="font-medium mb-1">{priceCalculation.message}</p>
+                  <p className="text-sm">Suas fotos estão incluídas no pacote já pago!</p>
+                </div>
+                <button
+                  onClick={handleFinishSelection}
+                  disabled={isSubmitting}
+                  className="mt-4 flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium mx-auto"
+                >
+                  <Check className="w-5 h-5" />
+                  {isSubmitting ? 'Confirmando...' : 'Confirmar Seleção'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Instructions when no photos selected */}
+        {selectedPhotos.size === 0 && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">
+                Selecione suas fotos favoritas
+              </h3>
+              <div className="text-blue-700">
+                <p className="mb-2">
+                  <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
+                </p>
+                <p className="text-sm">
+                  Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
+                  {pricingConfig.packagePhotos > 5 && (
+                    <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
                         {priceCalculation.hasDiscount && (
                           <span className="text-green-600 text-sm ml-2">
                             (Economia: R$ {priceCalculation.discount.toFixed(2)})
