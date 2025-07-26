@@ -12,7 +12,7 @@ const eventSchema = z.object({
   clientPhone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
   sessionType: z.string().min(1, 'Tipo de sessão é obrigatório'),
   eventDate: z.string().min(1, 'Data é obrigatória').refine((date) => {
-    const selectedDate = new Date(date);
+    const selectedDate = new Date(date + 'T00:00:00');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return selectedDate >= today;
