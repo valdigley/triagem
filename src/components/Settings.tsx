@@ -148,6 +148,11 @@ const Settings: React.FC = () => {
           business_name: settings.businessName,
           phone: settings.phone,
           watermark_config: {
+            logo: settings.logo,
+            email: settings.email,
+            address: settings.address,
+            website: settings.website,
+            instagram: settings.instagram,
             position: settings.watermarkPosition,
             opacity: settings.watermarkOpacity,
             size: settings.watermarkSize,
