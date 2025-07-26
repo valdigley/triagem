@@ -17,7 +17,9 @@ interface StudioSettings {
   watermarkSize: number;
   mercadoPagoAccessToken?: string;
   mercadoPagoPublicKey?: string;
-  photoPrice: number;
+  minimumPackagePrice: number;
+  extraPhotoPrice: number;
+  advancePaymentPercentage: number;
   paymentMethods: {
     pix: boolean;
     creditCard: boolean;
@@ -37,7 +39,9 @@ const Settings: React.FC = () => {
     watermarkPosition: 'bottom-right',
     watermarkOpacity: 0.7,
     watermarkSize: 20,
-    photoPrice: 25.00,
+    minimumPackagePrice: 300.00,
+    extraPhotoPrice: 30.00,
+    advancePaymentPercentage: 50,
     paymentMethods: {
       pix: true,
       creditCard: true,
@@ -77,7 +81,9 @@ const Settings: React.FC = () => {
           watermarkSize: photographer.watermark_config?.size || 20,
           mercadoPagoAccessToken: photographer.watermark_config?.mercadoPagoAccessToken || '',
           mercadoPagoPublicKey: photographer.watermark_config?.mercadoPagoPublicKey || '',
-          photoPrice: photographer.watermark_config?.photoPrice || 25.00,
+          minimumPackagePrice: photographer.watermark_config?.minimumPackagePrice || 300.00,
+          extraPhotoPrice: photographer.watermark_config?.extraPhotoPrice || 30.00,
+          advancePaymentPercentage: photographer.watermark_config?.advancePaymentPercentage || 50,
           paymentMethods: photographer.watermark_config?.paymentMethods || {
             pix: true,
             creditCard: true,
@@ -158,7 +164,9 @@ const Settings: React.FC = () => {
             watermarkFile: watermarkPreview,
             mercadoPagoAccessToken: settings.mercadoPagoAccessToken,
             mercadoPagoPublicKey: settings.mercadoPagoPublicKey,
-            photoPrice: settings.photoPrice,
+            minimumPackagePrice: settings.minimumPackagePrice,
+            extraPhotoPrice: settings.extraPhotoPrice,
+            advancePaymentPercentage: settings.advancePaymentPercentage,
             paymentMethods: settings.paymentMethods,
           },
         })
@@ -486,16 +494,68 @@ const Settings: React.FC = () => {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preço por Foto (R$)
+                    Preço da Sessão Mínima (10 fotos) - R$
                   </label>
                   <input
                     type="number"
                     min="0"
                     step="0.01"
-                    value={settings.photoPrice}
-                    onChange={(e) => setSettings(prev => ({ ...prev, photoPrice: parseFloat(e.target.value) || 0 }))}
+                    value={settings.minimumPackagePrice}
+                    onChange={(e) => setSettings(prev => ({ ...prev, minimumPackagePrice: parseFloat(e.target.value) || 0 }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="300.00"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Valor fixo para as primeiras 10 fotos da sessão
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preço por Foto Extra (R$)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={settings.extraPhotoPrice}
+                    onChange={(e) => setSettings(prev => ({ ...prev, extraPhotoPrice: parseFloat(e.target.value) || 0 }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="30.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Valor unitário para fotos acima das 10 incluídas no pacote
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Pagamento Antecipado na Sessão
+                  </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="advancePayment"
+                        value="50"
+                        checked={settings.advancePaymentPercentage === 50}
+                        onChange={(e) => setSettings(prev => ({ ...prev, advancePaymentPercentage: 50 }))}
+                        className="mr-3"
+                      />
+                      <span>50% antecipado (R$ {(settings.minimumPackagePrice * 0.5).toFixed(2)})</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="advancePayment"
+                        value="100"
+                        checked={settings.advancePaymentPercentage === 100}
+                        onChange={(e) => setSettings(prev => ({ ...prev, advancePaymentPercentage: 100 }))}
+                        className="mr-3"
+                      />
+                      <span>100% antecipado (R$ {settings.minimumPackagePrice.toFixed(2)})</span>
+                    </label>
+                  </div>
                 </div>
 
                 <div>
@@ -626,8 +686,16 @@ const Settings: React.FC = () => {
                 <h4 className="font-medium text-gray-900 mb-4">Resumo da Configuração</h4>
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Preço por foto:</span>
-                    <span className="font-medium">R$ {settings.photoPrice.toFixed(2)}</span>
+                    <span className="text-gray-600">Pacote mínimo (10 fotos):</span>
+                    <span className="font-medium">R$ {settings.minimumPackagePrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Foto extra:</span>
+                    <span className="font-medium">R$ {settings.extraPhotoPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Pagamento antecipado:</span>
+                    <span className="font-medium">{settings.advancePaymentPercentage}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">PIX:</span>

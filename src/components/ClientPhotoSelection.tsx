@@ -142,18 +142,52 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
     return total + (photo?.price || 0);
   }, 0);
 
-  // Calcular desconto progressivo
+  // Calcular preços com sistema de pacote mínimo e desconto progressivo
   const calculateTotalWithDiscount = () => {
     const selectedCount = selectedPhotos.size;
-    let baseTotal = totalPrice;
+    const minimumPackagePrice = 300.00; // Será carregado das configurações
+    const extraPhotoPrice = 30.00; // Será carregado das configurações
     
-    if (selectedCount > 10) {
-      // Primeiras 10 fotos: preço normal
-      const firstTenPhotos = Array.from(selectedPhotos).slice(0, 10);
-      const firstTenTotal = firstTenPhotos.reduce((total, photoId) => {
-        const photo = photos.find(p => p.id === photoId);
-        return total + (photo?.price || 0);
-      }, 0);
+    if (selectedCount <= 10) {
+      // Até 10 fotos: preço do pacote mínimo proporcional
+      const proportionalPrice = (minimumPackagePrice / 10) * selectedCount;
+      return {
+        total: proportionalPrice,
+        discount: 0,
+        hasDiscount: false,
+        extraPhotosCount: 0,
+        packagePhotos: selectedCount,
+        isMinimumPackage: selectedCount === 10
+      };
+    }
+    
+    // Mais de 10 fotos: pacote mínimo + fotos extras com desconto
+    const extraPhotosCount = selectedCount - 10;
+    let extraPhotosTotal = extraPhotosCount * extraPhotoPrice;
+    let discount = 0;
+    
+    // Aplicar desconto progressivo nas fotos extras
+    if (extraPhotosCount > 10) {
+      // Mais de 10 extras: 10% desconto
+      discount = extraPhotosTotal * 0.10;
+    } else if (extraPhotosCount > 5) {
+      // Mais de 5 extras: 5% desconto
+      discount = extraPhotosTotal * 0.05;
+    }
+    
+    const finalExtraTotal = extraPhotosTotal - discount;
+    const finalTotal = minimumPackagePrice + finalExtraTotal;
+    
+    return {
+      total: finalTotal,
+      discount: discount,
+      hasDiscount: discount > 0,
+      extraPhotosCount: extraPhotosCount,
+      packagePhotos: 10,
+      extraPhotosOriginalTotal: extraPhotosTotal,
+      minimumPackagePrice: minimumPackagePrice
+    };
+  };
       
       // Fotos extras (acima de 10): 20% de desconto
       const extraPhotos = Array.from(selectedPhotos).slice(10);
@@ -279,26 +313,38 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
                   {priceCalculation.hasDiscount ? (
                     <div>
                       <p className="text-sm">
-                        Primeiras 10 fotos: R$ {(totalPrice - (priceCalculation.extraPhotosCount * (photos[0]?.price || 0))).toFixed(2)}
+                        Pacote mínimo (10 fotos): R$ {priceCalculation.minimumPackagePrice.toFixed(2)}
                       </p>
-                      <p className="text-sm">
-                        {priceCalculation.extraPhotosCount} fotos extras (20% desconto): 
-                        <span className="line-through text-gray-400 ml-1">
-                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0)).toFixed(2)}
-                        </span>
-                        <span className="text-green-600 ml-1 font-medium">
-                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0) * 0.8).toFixed(2)}
-                        </span>
-                      </p>
+                      {priceCalculation.extraPhotosCount > 0 && (
+                        <p className="text-sm">
+                          {priceCalculation.extraPhotosCount} fotos extras 
+                          {priceCalculation.extraPhotosCount > 10 ? ' (10% desconto)' : 
+                           priceCalculation.extraPhotosCount > 5 ? ' (5% desconto)' : ''}: 
+                          <span className="line-through text-gray-400 ml-1">
+                            R$ {priceCalculation.extraPhotosOriginalTotal.toFixed(2)}
+                          </span>
+                          <span className="text-green-600 ml-1 font-medium">
+                            R$ {(priceCalculation.extraPhotosOriginalTotal - priceCalculation.discount).toFixed(2)}
+                          </span>
+                        </p>
+                      )}
                       <p className="font-semibold text-lg">
                         Total: R$ {priceCalculation.total.toFixed(2)}
-                        <span className="text-green-600 text-sm ml-2">
-                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                        </span>
+                        {priceCalculation.discount > 0 && (
+                          <span className="text-green-600 text-sm ml-2">
+                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                          </span>
+                        )}
                       </p>
                     </div>
                   ) : (
-                    <p>Total: R$ {priceCalculation.total.toFixed(2)}</p>
+                    <div>
+                      {selectedPhotos.size === 10 ? (
+                        <p>Pacote mínimo completo: R$ {priceCalculation.total.toFixed(2)}</p>
+                      ) : (
+                        <p>Pacote proporcional ({selectedPhotos.size}/10 fotos): R$ {priceCalculation.total.toFixed(2)}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

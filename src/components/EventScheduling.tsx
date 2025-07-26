@@ -37,6 +37,14 @@ const sessionTypes = [
 ];
 const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState({
+    pix: true,
+    creditCard: true,
+    mercadoPago: false,
+  });
+  const [minimumPackagePrice, setMinimumPackagePrice] = useState(300.00);
+  const [advancePaymentPercentage, setAdvancePaymentPercentage] = useState(50);
+  const [mercadoPagoConfigured, setMercadoPagoConfigured] = useState(false);
   const { addEvent } = useSupabaseData();
   
   const {
