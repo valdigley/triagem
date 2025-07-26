@@ -1241,15 +1241,16 @@ Nos vemos em breve! 📸✨`
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{eventTime}}`}</code> - Horário da sessão</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioName}}`}</code> - Nome do estúdio</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioAddress}}`}</code> - Endereço do estúdio</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioName}}`}}</code> - Nome do estúdio</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioAddress}}`}}</code> - Endereço</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioPhone}}`}}</code> - Telefone</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioEmail}}`}}</code> - Email</p>
                 </div>
-              </div>
+                <div>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioPhone}}`}</code> - Telefone do estúdio</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioEmail}}`}</code> - Email do estúdio</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioWebsite}}`}</code> - Website do estúdio</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Botão Salvar */}
         <div className="flex justify-end pt-6 border-t border-gray-200">
