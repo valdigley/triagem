@@ -1235,21 +1235,21 @@ Nos vemos em breve! 📸✨`
               </p>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{clientName}}`}}</code> - Nome do cliente</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{sessionType}}`}}</code> - Tipo da sessão</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{eventDate}}`}}</code> - Data da sessão</p>
-                  <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{eventTime}}`}}</code> - Horário da sessão</p>
-                </div>
-                <div>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{clientName}}`}</code> - Nome do cliente</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{sessionType}}`}</code> - Tipo da sessão</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{eventDate}}`}</code> - Data da sessão</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{eventTime}}`}</code> - Horário da sessão</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioName}}`}</code> - Nome do estúdio</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioAddress}}`}</code> - Endereço do estúdio</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioName}}`}}</code> - Nome do estúdio</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioAddress}}`}}</code> - Endereço</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioPhone}}`}}</code> - Telefone</p>
                   <p><code className="bg-blue-100 px-2 py-1 rounded">{{`{{studioEmail}}`}}</code> - Email</p>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioPhone}}`}</code> - Telefone do estúdio</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioEmail}}`}</code> - Email do estúdio</p>
+                  <p><code className="bg-blue-100 px-2 py-1 rounded">{`{{studioWebsite}}`}</code> - Website do estúdio</p>
 
         {/* Botão Salvar */}
         <div className="flex justify-end pt-6 border-t border-gray-200">
