@@ -13,7 +13,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const Dashboard: React.FC = () => {
-  const { events, albums, photos, loading } = useSupabaseData();
+  const { events, albums, photos, orders, loading } = useSupabaseData();
 
   // Calcular estatísticas reais baseadas nos dados do banco
   const currentMonth = new Date().getMonth();
