@@ -33,11 +33,6 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
   const [settings, setSettings] = useState({
     minimumPackagePrice: 300.00,
     advancePaymentPercentage: 50,
-    paymentMethods: {
-      pix: true,
-      creditCard: true,
-      mercadoPago: false,
-    },
     mercadoPagoAccessToken: '',
   });
 
@@ -61,7 +56,6 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
           ...prev,
           minimumPackagePrice: config.minimumPackagePrice || 300.00,
           advancePaymentPercentage: config.advancePaymentPercentage || 50,
-          paymentMethods: config.paymentMethods || prev.paymentMethods,
           mercadoPagoAccessToken: config.mercadoPagoAccessToken || '',
         }));
       }

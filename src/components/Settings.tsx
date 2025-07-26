@@ -20,11 +20,6 @@ interface StudioSettings {
   minimumPackagePrice: number;
   extraPhotoPrice: number;
   advancePaymentPercentage: number;
-  paymentMethods: {
-    pix: boolean;
-    creditCard: boolean;
-    mercadoPago: boolean;
-  };
 }
 
 const Settings: React.FC = () => {
@@ -42,11 +37,6 @@ const Settings: React.FC = () => {
     minimumPackagePrice: 300.00,
     extraPhotoPrice: 30.00,
     advancePaymentPercentage: 50,
-    paymentMethods: {
-      pix: true,
-      creditCard: true,
-      mercadoPago: false,
-    },
   });
   
   const [watermarkFile, setWatermarkFile] = useState<File | null>(null);
@@ -88,7 +78,6 @@ const Settings: React.FC = () => {
             pix: true,
             creditCard: true,
             mercadoPago: false,
-          },
         }));
 
         if (photographer.watermark_config?.watermarkFile) {
@@ -167,7 +156,6 @@ const Settings: React.FC = () => {
             minimumPackagePrice: settings.minimumPackagePrice,
             extraPhotoPrice: settings.extraPhotoPrice,
             advancePaymentPercentage: settings.advancePaymentPercentage,
-            paymentMethods: settings.paymentMethods,
           },
         })
         .eq('user_id', user.id);
@@ -560,126 +548,94 @@ const Settings: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Métodos de Pagamento Disponíveis
+                    Configuração do Mercado Pago
                   </label>
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={settings.paymentMethods.pix}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          paymentMethods: { ...prev.paymentMethods, pix: e.target.checked }
-                        }))}
-                        className="mr-3"
-                      />
-                      <span>PIX</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={settings.paymentMethods.creditCard}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          paymentMethods: { ...prev.paymentMethods, creditCard: e.target.checked }
-                        }))}
-                        className="mr-3"
-                      />
-                      <span>Cartão de Crédito</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={settings.paymentMethods.mercadoPago}
-                        onChange={(e) => setSettings(prev => ({
-                          ...prev,
-                          paymentMethods: { ...prev.paymentMethods, mercadoPago: e.target.checked }
-                        }))}
-                        className="mr-3"
-                      />
-                      <span>Mercado Pago</span>
-                    </label>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <p className="text-blue-800 text-sm mb-2">
+                      <strong>💡 Sistema de Pagamento Integrado</strong>
+                    </p>
+                    <p className="text-blue-700 text-xs">
+                      O sistema utiliza o Mercado Pago para processar todos os pagamentos (PIX, Cartão, etc.)
+                    </p>
                   </div>
                 </div>
 
-                {settings.paymentMethods.mercadoPago && (
-                  <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <h4 className="font-medium text-gray-900">Configuração Mercado Pago</h4>
-                    <div className="text-sm text-gray-600 mb-4">
-                      <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-3">
-                        <p className="text-blue-800"><strong>💡 Modo de Teste Ativo</strong></p>
-                        <p className="text-blue-700 text-xs mt-1">
-                          Use credenciais de <strong>teste</strong> que começam com <code>TEST-</code>
-                        </p>
-                      </div>
-                      <p><strong>Produção:</strong> Credenciais começam com <code>APP_USR-</code></p>
-                      <p><strong>Teste:</strong> Credenciais começam com <code>TEST-</code></p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Access Token *
-                      </label>
-                      <input
-                        type="password"
-                        value={settings.mercadoPagoAccessToken}
-                        onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoAccessToken: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="TEST-... ou APP_USR-..."
-                      />
-                      {settings.mercadoPagoAccessToken && (
-                        <p className={`text-xs mt-1 ${
-                          settings.mercadoPagoAccessToken.startsWith('TEST-') 
-                            ? 'text-blue-600' 
-                            : settings.mercadoPagoAccessToken.startsWith('APP_USR-')
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
-                          {settings.mercadoPagoAccessToken.startsWith('TEST-') && '🧪 Modo TESTE - '}
-                          {settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
-                          {!settings.mercadoPagoAccessToken.startsWith('TEST-') && !settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
-                          Token configurado ({settings.mercadoPagoAccessToken.length} caracteres)
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Public Key *
-                      </label>
-                      <input
-                        type="text"
-                        value={settings.mercadoPagoPublicKey}
-                        onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoPublicKey: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="TEST-... ou APP_USR-..."
-                      />
-                      {settings.mercadoPagoPublicKey && (
-                        <p className={`text-xs mt-1 ${
-                          settings.mercadoPagoPublicKey.startsWith('TEST-') 
-                            ? 'text-blue-600' 
-                            : settings.mercadoPagoPublicKey.startsWith('APP_USR-')
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
-                          {settings.mercadoPagoPublicKey.startsWith('TEST-') && '🧪 Modo TESTE - '}
-                          {settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
-                          {!settings.mercadoPagoPublicKey.startsWith('TEST-') && !settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
-                          Chave configurada ({settings.mercadoPagoPublicKey.length} caracteres)
-                        </p>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-600">
-                      Obtenha suas credenciais em: 
-                      <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
-                        Mercado Pago Developers
-                      </a>
-                    </p>
-                    <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                      <p className="text-xs text-blue-800">
-                        <strong>Dica:</strong> Após configurar, teste com um pagamento pequeno para verificar se está funcionando.
+                <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <h4 className="font-medium text-gray-900">Credenciais do Mercado Pago</h4>
+                  <div className="text-sm text-gray-600 mb-4">
+                    <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-3">
+                      <p className="text-blue-800"><strong>💡 Modo de Teste Ativo</strong></p>
+                      <p className="text-blue-700 text-xs mt-1">
+                        Use credenciais de <strong>teste</strong> que começam com <code>TEST-</code>
                       </p>
                     </div>
+                    <p><strong>Produção:</strong> Credenciais começam com <code>APP_USR-</code></p>
+                    <p><strong>Teste:</strong> Credenciais começam com <code>TEST-</code></p>
                   </div>
-                )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Access Token *
+                    </label>
+                    <input
+                      type="password"
+                      value={settings.mercadoPagoAccessToken}
+                      onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoAccessToken: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="TEST-... ou APP_USR-..."
+                    />
+                    {settings.mercadoPagoAccessToken && (
+                      <p className={`text-xs mt-1 ${
+                        settings.mercadoPagoAccessToken.startsWith('TEST-') 
+                          ? 'text-blue-600' 
+                          : settings.mercadoPagoAccessToken.startsWith('APP_USR-')
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}>
+                        {settings.mercadoPagoAccessToken.startsWith('TEST-') && '🧪 Modo TESTE - '}
+                        {settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
+                        {!settings.mercadoPagoAccessToken.startsWith('TEST-') && !settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
+                        Token configurado ({settings.mercadoPagoAccessToken.length} caracteres)
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Public Key *
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.mercadoPagoPublicKey}
+                      onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoPublicKey: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="TEST-... ou APP_USR-..."
+                    />
+                    {settings.mercadoPagoPublicKey && (
+                      <p className={`text-xs mt-1 ${
+                        settings.mercadoPagoPublicKey.startsWith('TEST-') 
+                          ? 'text-blue-600' 
+                          : settings.mercadoPagoPublicKey.startsWith('APP_USR-')
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                      }`}>
+                        {settings.mercadoPagoPublicKey.startsWith('TEST-') && '🧪 Modo TESTE - '}
+                        {settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
+                        {!settings.mercadoPagoPublicKey.startsWith('TEST-') && !settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
+                        Chave configurada ({settings.mercadoPagoPublicKey.length} caracteres)
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Obtenha suas credenciais em: 
+                    <a href="https://www.mercadopago.com.br/developers" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline ml-1">
+                      Mercado Pago Developers
+                    </a>
+                  </p>
+                  <div className="bg-blue-50 p-3 rounded border border-blue-200">
+                    <p className="text-xs text-blue-800">
+                      <strong>Dica:</strong> Após configurar, teste com um pagamento pequeno para verificar se está funcionando.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div className="bg-gray-50 rounded-lg p-6">
@@ -698,21 +654,9 @@ const Settings: React.FC = () => {
                     <span className="font-medium">{settings.advancePaymentPercentage}%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">PIX:</span>
-                    <span className={settings.paymentMethods.pix ? 'text-green-600' : 'text-red-600'}>
-                      {settings.paymentMethods.pix ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Cartão:</span>
-                    <span className={settings.paymentMethods.creditCard ? 'text-green-600' : 'text-red-600'}>
-                      {settings.paymentMethods.creditCard ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
                     <span className="text-gray-600">Mercado Pago:</span>
-                    <span className={settings.paymentMethods.mercadoPago ? 'text-green-600' : 'text-red-600'}>
-                      {settings.paymentMethods.mercadoPago ? 'Ativo' : 'Inativo'}
+                    <span className={settings.mercadoPagoAccessToken ? 'text-green-600' : 'text-red-600'}>
+                      {settings.mercadoPagoAccessToken ? 'Configurado' : 'Não configurado'}
                     </span>
                   </div>
                 </div>
