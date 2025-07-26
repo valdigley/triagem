@@ -136,8 +136,21 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     }
   };
   const togglePhotoSelection = async (photoId: string) => {
+    // Verificar se excedeu o limite do pacote e não há pagamento confirmado
+    const currentSelectedCount = selectedPhotos.size;
+    const isSelecting = !selectedPhotos.has(photoId);
+    
+    if (isSelecting && currentSelectedCount >= pricingConfig.packagePhotos) {
+      // Verificar se há pagamento confirmado para fotos extras
+      const hasExtraPayment = await checkExtraPhotosPayment();
+      if (!hasExtraPayment) {
+        toast.error(`Você pode selecionar até ${pricingConfig.packagePhotos} fotos gratuitamente. Para mais fotos, é necessário pagamento.`);
+        return;
+      }
+    }
+    
     const newSelected = new Set(selectedPhotos);
-    const isSelected = newSelected.has(photoId);
+    const isSelected = selectedPhotos.has(photoId);
     
     if (isSelected) {
       newSelected.delete(photoId);
@@ -163,6 +176,25 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     } catch (error) {
       console.error('Error updating photo selection:', error);
       toast.error('Erro ao atualizar seleção');
+    }
+  };
+
+  const checkExtraPhotosPayment = async () => {
+    try {
+      if (!album) return false;
+      
+      // Buscar pedidos pagos para este evento
+      const { data: paidOrders } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('event_id', album.event_id)
+        .eq('status', 'paid')
+        .gt('total_amount', 0); // Apenas pedidos com valor > 0 (fotos extras)
+      
+      return paidOrders && paidOrders.length > 0;
+    } catch (error) {
+      console.error('Error checking extra photos payment:', error);
+      return false;
     }
   };
 

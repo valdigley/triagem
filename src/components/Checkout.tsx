@@ -158,19 +158,26 @@ const Checkout: React.FC<CheckoutProps> = ({
     let interval: NodeJS.Timeout;
     
     if (isWaitingPayment && paymentData?.id) {
+      console.log('Starting payment polling for:', paymentData.id);
+      
       interval = setInterval(async () => {
         const status = await checkPaymentStatus(paymentData.id);
+        console.log('Payment status check result:', status);
+        
         if (status === 'approved') {
           setIsWaitingPayment(false);
           setPaymentStatus('approved');
           setOrderCompleted(true);
           toast.success('Pagamento confirmado!');
+          
+          // Forçar atualização da página de pagamentos
+          window.dispatchEvent(new CustomEvent('paymentStatusUpdated'));
         } else if (status === 'rejected') {
           setIsWaitingPayment(false);
           setPaymentStatus('rejected');
           toast.error('Pagamento rejeitado. Tente novamente.');
         }
-      }, 3000);
+      }, 2000); // Verificar a cada 2 segundos
     }
 
     return () => {
