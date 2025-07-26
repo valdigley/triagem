@@ -77,27 +77,31 @@ const Checkout: React.FC<CheckoutProps> = ({
       throw new Error('Mercado Pago não configurado');
     }
 
-    const paymentData = {
+    const paymentRequest = {
       transaction_amount: totalAmount,
       description: `Fotos selecionadas - ${selectedPhotos.length} fotos`,
       payment_method_id: 'pix', // ou 'visa', 'master', etc.
       payer: {
         email: clientEmail,
       },
-      notification_url: `${window.location.origin}/webhook/mercadopago`,
+      access_token: mercadoPagoConfig.accessToken,
+      selected_photos: selectedPhotos,
+      event_id: album?.event_id,
     };
 
-    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+    // Usar edge function para processar pagamento de forma segura
+    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${mercadoPagoConfig.accessToken}`,
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify(paymentData),
+      body: JSON.stringify(paymentRequest),
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao criar pagamento no Mercado Pago');
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao criar pagamento no Mercado Pago');
     }
 
     return await response.json();
@@ -118,11 +122,18 @@ const Checkout: React.FC<CheckoutProps> = ({
         // Processar com Mercado Pago
         paymentResult = await createMercadoPagoPayment();
         
-        if (paymentResult.status === 'pending') {
-          toast.success('Pagamento criado! Aguardando confirmação...');
-          // Aqui você pode mostrar o QR code do PIX ou redirecionar para pagamento
+        if (paymentResult.status === 'pending' && paymentResult.qr_code) {
+          // Para PIX, mostrar QR code
+          toast.success('PIX gerado! Use o QR code para pagar.');
+          // Você pode implementar um modal com o QR code aqui
+          console.log('QR Code:', paymentResult.qr_code);
+          console.log('QR Code Base64:', paymentResult.qr_code_base64);
         } else if (paymentResult.status === 'approved') {
           toast.success('Pagamento aprovado!');
+        } else if (paymentResult.status === 'pending') {
+          toast.success('Pagamento criado! Aguardando confirmação...');
+        } else {
+          toast.error(`Status do pagamento: ${paymentResult.status}`);
         }
       } else {
         // Simular processamento para outros métodos
@@ -137,20 +148,28 @@ const Checkout: React.FC<CheckoutProps> = ({
           client_email: clientEmail,
           selected_photos: selectedPhotos,
           total_amount: totalAmount,
-          status: 'paid',
+          status: paymentResult?.status === 'approved' ? 'paid' : 'pending',
           payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
         });
 
       if (orderError) {
         console.error('Error saving order:', orderError);
+        toast.error('Erro ao salvar pedido');
       }
 
       setOrderCompleted(true);
-      toast.success('Pagamento processado com sucesso!');
+      
+      if (paymentResult?.status === 'approved') {
+        toast.success('Pagamento aprovado com sucesso!');
+      } else {
+        toast.success('Pedido criado! Aguardando confirmação do pagamento.');
+      }
       
       // Enviar e-mail com links de download (simulado)
       setTimeout(() => {
-        toast.success('E-mail com links de download enviado!');
+        if (paymentResult?.status === 'approved') {
+          toast.success('E-mail com links de download enviado!');
+        }
       }, 1000);
 
     } catch (error) {
@@ -360,9 +379,9 @@ const Checkout: React.FC<CheckoutProps> = ({
                     <input
                       type="radio"
                       name="payment"
-                      value="mercadopago"
-                      checked={paymentMethod === 'mercadopago'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'mercadopago')}
+                      value="card"
+                      checked={paymentMethod === 'card'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'card')}
                       className="mr-3"
                     />
                     <div className="w-5 h-5 mr-2 bg-blue-500 rounded flex items-center justify-center">
