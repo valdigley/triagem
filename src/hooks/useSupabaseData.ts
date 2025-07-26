@@ -255,6 +255,19 @@ export const useSupabaseData = () => {
   // Excluir evento
   const deleteEvent = async (id: string) => {
     try {
+      // Primeiro, buscar álbuns relacionados ao evento para limpar fotos
+      const { data: relatedAlbums } = await supabase
+        .from('albums')
+        .select('id')
+        .eq('event_id', id);
+
+      // Excluir fotos dos álbuns relacionados
+      if (relatedAlbums && relatedAlbums.length > 0) {
+        for (const album of relatedAlbums) {
+          await deleteAlbumPhotos(album.id);
+        }
+      }
+
       const { error } = await supabase
         .from('events')
         .delete()
@@ -267,12 +280,71 @@ export const useSupabaseData = () => {
       }
 
       setEvents(prev => prev.filter(event => event.id !== id));
-      toast.success('Agendamento excluído!');
+      toast.success('Agendamento e fotos relacionadas excluídos!');
       return true;
     } catch (error) {
       console.error('Error deleting event:', error);
-      toast.error('Erro ao excluir agendamento');
+      toast.error('Erro ao excluir agendamento e fotos');
       return false;
+    }
+  };
+
+  // Função para excluir fotos do Storage
+  const deleteAlbumPhotos = async (albumId: string) => {
+    try {
+      // Buscar todas as fotos do álbum
+      const { data: albumPhotos } = await supabase
+        .from('photos')
+        .select('original_path, thumbnail_path, watermarked_path, filename')
+        .eq('album_id', albumId);
+
+      if (albumPhotos && albumPhotos.length > 0) {
+        console.log(`Excluindo ${albumPhotos.length} fotos do Storage para álbum ${albumId}`);
+        
+        // Extrair nomes dos arquivos das URLs
+        const filesToDelete: string[] = [];
+        
+        albumPhotos.forEach(photo => {
+          // Extrair nome do arquivo da URL (assumindo formato: /storage/v1/object/public/photos/original/filename)
+          if (photo.original_path && photo.original_path.includes('/photos/')) {
+            const originalFile = photo.original_path.split('/photos/')[1];
+            if (originalFile) filesToDelete.push(originalFile);
+          }
+          
+          if (photo.thumbnail_path && photo.thumbnail_path.includes('/photos/')) {
+            const thumbnailFile = photo.thumbnail_path.split('/photos/')[1];
+            if (thumbnailFile && !filesToDelete.includes(thumbnailFile)) {
+              filesToDelete.push(thumbnailFile);
+            }
+          }
+          
+          if (photo.watermarked_path && photo.watermarked_path.includes('/photos/')) {
+            const watermarkedFile = photo.watermarked_path.split('/photos/')[1];
+            if (watermarkedFile && !filesToDelete.includes(watermarkedFile)) {
+              filesToDelete.push(watermarkedFile);
+            }
+          }
+        });
+
+        // Excluir arquivos do Storage
+        if (filesToDelete.length > 0) {
+          console.log('Arquivos a serem excluídos:', filesToDelete);
+          
+          const { error: storageError } = await supabase.storage
+            .from('photos')
+            .remove(filesToDelete);
+
+          if (storageError) {
+            console.error('Erro ao excluir arquivos do Storage:', storageError);
+            // Não falhar a operação se o Storage der erro
+          } else {
+            console.log(`${filesToDelete.length} arquivos excluídos do Storage com sucesso`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao excluir fotos do Storage:', error);
+      // Não falhar a operação principal se a limpeza do Storage falhar
     }
   };
 
@@ -491,6 +563,9 @@ export const useSupabaseData = () => {
   // Excluir álbum
   const deleteAlbum = async (albumId: string) => {
     try {
+      // Primeiro, excluir fotos do Storage
+      await deleteAlbumPhotos(albumId);
+
       const { error } = await supabase
         .from('albums')
         .delete()
@@ -504,11 +579,11 @@ export const useSupabaseData = () => {
 
       setAlbums(prev => prev.filter(album => album.id !== albumId));
       setPhotos(prev => prev.filter(photo => photo.album_id !== albumId));
-      toast.success('Álbum excluído com sucesso!');
+      toast.success('Álbum e fotos excluídos com sucesso!');
       return true;
     } catch (error) {
       console.error('Error deleting album:', error);
-      toast.error('Erro ao excluir álbum');
+      toast.error('Erro ao excluir álbum e fotos');
       return false;
     }
   };

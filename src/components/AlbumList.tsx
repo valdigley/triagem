@@ -71,14 +71,14 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   };
 
   const handleDeleteAlbum = async (albumId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este álbum? Esta ação não pode ser desfeita.')) {
+    if (!confirm('Tem certeza que deseja excluir este álbum? Todas as fotos serão permanentemente removidas. Esta ação não pode ser desfeita.')) {
       return;
     }
 
     try {
       const success = await deleteAlbum(albumId);
       if (success) {
-        toast.success('Álbum excluído com sucesso!');
+        toast.success('Álbum e todas as fotos excluídos com sucesso!');
       }
     } catch (error) {
       console.error('Error deleting album:', error);

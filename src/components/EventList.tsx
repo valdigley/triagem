@@ -38,7 +38,7 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
   };
 
   const handleDelete = async (eventId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este agendamento?')) {
+    if (!confirm('Tem certeza que deseja excluir este agendamento? Todos os álbuns e fotos relacionados serão permanentemente removidos. Esta ação não pode ser desfeita.')) {
       return;
     }
 
