@@ -29,18 +29,20 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const albumPhotos = photos.filter(photo => photo.album_id === albumId);
   
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
-    new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id))
+    new Set()
   );
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showWatermarkSettings, setShowWatermarkSettings] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
 
-  // Atualizar seleções quando as fotos carregarem
+  // Inicializar seleções quando as fotos carregarem (apenas uma vez)
   React.useEffect(() => {
-    const selected = new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id));
-    setSelectedPhotos(selected);
-  }, [albumPhotos]);
+    if (albumPhotos.length > 0) {
+      const selected = new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id));
+      setSelectedPhotos(selected);
+    }
+  }, [albumId, photos.length]); // Dependências mais específicas
 
   // Carregar configuração de marca d'água
   React.useEffect(() => {
@@ -50,6 +52,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const loadWatermarkConfig = async () => {
     try {
       // Tentar carregar do banco de dados primeiro
+      const { supabase } = await import('../lib/supabase');
       const { data: photographer } = await supabase
         .from('photographers')
         .select('watermark_config')
