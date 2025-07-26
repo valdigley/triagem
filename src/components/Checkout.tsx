@@ -225,19 +225,97 @@ const Checkout: React.FC<CheckoutProps> = ({
           </h2>
           
           <p className="text-gray-600 mb-6">
-            Suas {selectedPhotos.length} fotos selecionadas estão sendo processadas.
+            Suas {selectedPhotos.length} foto{selectedPhotos.length > 1 ? 's' : ''} selecionada{selectedPhotos.length > 1 ? 's' : ''} estão sendo processadas.
             Você receberá um e-mail com os links de download em breve.
           </p>
 
-          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo do Pedido</h3>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Fotos selecionadas:</span>
-              <span className="font-semibold">{selectedPhotos.length}</span>
+              <span className="font-semibold">{selectedPhotos.length} foto{selectedPhotos.length > 1 ? 's' : ''}</span>
+            </div>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Valor unitário:</span>
+              <span className="font-semibold">R$ 25,00</span>
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Valor total:</span>
-              <span className="font-semibold">R$ {totalAmount.toFixed(2)}</span>
+              <span className="text-xl font-bold text-green-600">R$ {totalAmount.toFixed(2)}</span>
             </div>
+            <div className="border-t pt-3 mt-3">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Método de pagamento:</span>
+                <span className="font-semibold capitalize">
+                  {paymentMethods.mercadoPago && mercadoPagoConfig.accessToken ? 'Mercado Pago' : paymentMethod.toUpperCase()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Status:</span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Confirmado
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Preview das fotos compradas */}
+          <div className="mb-6">
+            <h4 className="text-sm font-medium text-gray-700 mb-3">Fotos Adquiridas:</h4>
+            <div className="grid grid-cols-4 gap-2">
+              {selectedPhotoObjects.slice(0, 8).map((photo) => (
+                <div key={photo.id} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative">
+                  <img
+                    src={photo.thumbnail_path}
+                    alt={photo.filename}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://picsum.photos/200/200?random=${photo.id.slice(-6)}`;
+                    }}
+                  />
+                  <div className="absolute top-1 right-1">
+                    <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {selectedPhotoObjects.length > 8 && (
+                <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xs text-gray-500 font-medium">
+                    +{selectedPhotoObjects.length - 8}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4 mb-6">
+            <div className="flex items-start">
+              <Mail className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div className="text-left">
+                <h4 className="font-medium text-blue-900">E-mail de confirmação enviado</h4>
+                <p className="text-sm text-blue-700 mt-1">
+                  Enviamos um e-mail para <strong>{clientEmail}</strong> com:
+                </p>
+                <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                  <li>• Links para download das fotos em alta resolução</li>
+                  <li>• Comprovante de pagamento</li>
+                  <li>• Instruções para download</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-500 mb-6">
+            <p><strong>Número do pedido:</strong> #{Date.now().toString().slice(-8)}</p>
+            <p><strong>Data:</strong> {new Date().toLocaleDateString('pt-BR', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</p>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">E-mail:</span>
               <span className="font-semibold">{clientEmail}</span>
@@ -247,15 +325,25 @@ const Checkout: React.FC<CheckoutProps> = ({
           <div className="flex gap-3 justify-center">
             <button
               onClick={onComplete}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
             >
               Voltar à Galeria
             </button>
             <button
               onClick={() => window.print()}
-              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
             >
               Imprimir Recibo
+            </button>
+            <button
+              onClick={() => {
+                const subject = encodeURIComponent('Dúvida sobre minha compra de fotos');
+                const body = encodeURIComponent(`Olá! Tenho uma dúvida sobre minha compra:\n\nPedido: #${Date.now().toString().slice(-8)}\nE-mail: ${clientEmail}\nValor: R$ ${totalAmount.toFixed(2)}\n\nDúvida: `);
+                window.open(`mailto:${clientEmail}?subject=${subject}&body=${body}`);
+              }}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Suporte
             </button>
           </div>
         </div>
