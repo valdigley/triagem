@@ -367,33 +367,36 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 )}
 
                 {/* Upload de fotos */}
-                <div className="mb-3">
-                  <label className="flex items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex flex-col items-center justify-center">
-                      {uploadingAlbumId === album.id ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mb-1"></div>
-                          <p className="text-xs text-gray-600">Enviando...</p>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                          <p className="text-xs text-gray-600">
-                            <span className="font-semibold">Adicionar fotos</span>
-                          </p>
-                        </>
-                      )}
-                    </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => e.target.files && handlePhotoUpload(album.id, e.target.files)}
-                      disabled={uploadingAlbumId === album.id}
-                    />
-                  </label>
-                </div>
+                {/* Upload de fotos - apenas quando não há seleção */}
+                {selectedCount === 0 && (
+                  <div className="mb-3">
+                    <label className="flex items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                      <div className="flex flex-col items-center justify-center">
+                        {uploadingAlbumId === album.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mb-1"></div>
+                            <p className="text-xs text-gray-600">Enviando...</p>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                            <p className="text-xs text-gray-600">
+                              <span className="font-semibold">Adicionar fotos</span>
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => e.target.files && handlePhotoUpload(album.id, e.target.files)}
+                        disabled={uploadingAlbumId === album.id}
+                      />
+                    </label>
+                  </div>
+                )}
 
                 <div className="flex justify-end gap-1 flex-wrap">
                   {event && (
