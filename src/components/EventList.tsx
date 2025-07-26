@@ -216,7 +216,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
         setShowCreateForm(false);
         setShowPayment(false);
         setPendingEventData(null);
-        toast.success('Agendamento confirmado após pagamento!');
+        toast.success('Sua sessão foi agendada com sucesso!');
       }
     } catch (error) {
       console.error('Error creating event:', error);

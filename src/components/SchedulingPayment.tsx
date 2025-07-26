@@ -113,12 +113,11 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
         const status = await checkPaymentStatus(paymentData.id);
         if (status === 'approved') {
           setIsWaitingPayment(false);
+          setPaymentStatus('approved');
           toast.success('Pagamento confirmado!');
-          setTimeout(() => {
-            onComplete();
-          }, 2000);
         } else if (status === 'rejected') {
           setIsWaitingPayment(false);
+          setPaymentStatus('rejected');
           toast.error('Pagamento rejeitado. Tente novamente.');
         }
       }, 3000); // Verificar a cada 3 segundos
@@ -127,7 +126,7 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isWaitingPayment, paymentData?.id]);
+  }, [isWaitingPayment, paymentData?.id, onComplete]);
 
   const createMercadoPagoPayment = async () => {
     if (!settings.mercadoPagoAccessToken) {
@@ -173,43 +172,13 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
         setPaymentData(paymentResult);
         
         if (paymentResult.status === 'pending' && paymentResult.qr_code) {
-          // Salvar pedido no banco como pending
-          await supabase
-            .from('orders')
-            .insert({
-              event_id: null, // Será preenchido após criar o evento
-              client_email: eventData.client_email,
-              selected_photos: [],
-              total_amount: advanceAmount,
-              status: 'pending',
-              payment_intent_id: paymentResult.id,
-            });
-
           setIsWaitingPayment(true);
           toast.success('PIX gerado! Escaneie o código para pagar.');
         }
       } else {
-        // Simulação para outros métodos
+        // Simulação para outros métodos - confirma imediatamente
         setPaymentStatus('approved');
-        setTimeout(() => onComplete(), 2000);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        paymentResult = {
-          id: `advance_${Date.now()}`,
-          status: 'approved',
-        };
         toast.success('Pagamento processado com sucesso!');
-        
-        // Salvar pedido como pago para métodos simulados
-        await supabase
-          .from('orders')
-          .insert({
-            event_id: null,
-            client_email: eventData.client_email,
-            selected_photos: [],
-            total_amount: advanceAmount,
-            status: 'paid',
-            payment_intent_id: paymentResult.id,
-          });
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -311,19 +280,17 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
           <Check className="w-8 h-8 text-green-600" />
         </div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          Sua sessão foi agendada!
+          Pagamento Confirmado!
         </h3>
         <p className="text-gray-600 mb-4">
-          Pagamento confirmado com sucesso. Você receberá um e-mail com os detalhes.
+          Agora vamos finalizar seu agendamento...
         </p>
-        <div className="bg-green-50 p-4 rounded-lg">
-          <p className="text-sm text-green-800">
-            <strong>Próximos passos:</strong><br/>
-            • Você receberá um e-mail de confirmação<br/>
-            • Após a sessão, enviaremos o link para seleção das fotos<br/>
-            • Você poderá escolher até 10 fotos incluídas no pacote
-          </p>
-        </div>
+        <button
+          onClick={onComplete}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+        >
+          Finalizar Agendamento
+        </button>
       </div>
     );
   }
