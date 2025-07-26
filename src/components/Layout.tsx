@@ -38,10 +38,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
           .from('photographers')
           .select('watermark_config')
           .eq('user_id', user.id)
-          .single();
+          .limit(1);
 
-        if (photographer?.watermark_config?.logo) {
-          setStudioLogo(photographer.watermark_config.logo);
+        if (photographer && photographer.length > 0 && photographer[0].watermark_config?.logo) {
+          setStudioLogo(photographer[0].watermark_config.logo);
         }
       } catch (error) {
         console.error('Error loading studio logo:', error);

@@ -73,10 +73,10 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         .from('photographers')
         .select('watermark_config')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (photographer?.watermark_config) {
-        setWatermarkConfig(photographer.watermark_config);
+      if (photographer && photographer.length > 0 && photographer[0].watermark_config) {
+        setWatermarkConfig(photographer[0].watermark_config);
       }
     } catch (error) {
       console.error('Error loading watermark from database:', error);

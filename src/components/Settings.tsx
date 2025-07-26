@@ -103,27 +103,29 @@ const Settings: React.FC = () => {
         .from('photographers')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error loading photographer:', error);
         return;
       }
 
-      if (photographer) {
+      if (photographer && photographer.length > 0) {
+        const photographerData = photographer[0];
+        
         // Carregar configurações gerais
         setGeneralSettings({
-          businessName: photographer.business_name || '',
-          email: photographer.watermark_config?.email || '',
-          phone: photographer.phone || '',
-          address: photographer.watermark_config?.address || '',
-          website: photographer.watermark_config?.website || '',
-          instagram: photographer.watermark_config?.instagram || '',
-          logo: photographer.watermark_config?.logo || '',
+          businessName: photographerData.business_name || '',
+          email: photographerData.watermark_config?.email || '',
+          phone: photographerData.phone || '',
+          address: photographerData.watermark_config?.address || '',
+          website: photographerData.watermark_config?.website || '',
+          instagram: photographerData.watermark_config?.instagram || '',
+          logo: photographerData.watermark_config?.logo || '',
         });
 
         // Carregar configurações de preços
-        const config = photographer.watermark_config || {};
+        const config = photographerData.watermark_config || {};
         setPricingSettings({
           photoPrice: config.photoPrice || 25.00,
           packagePhotos: config.packagePhotos || 10,
@@ -180,9 +182,9 @@ const Settings: React.FC = () => {
         .from('photographers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (existingPhotographer) {
+      if (existingPhotographer && existingPhotographer.length > 0) {
         // Atualizar fotógrafo existente
         const { error } = await supabase
           .from('photographers')

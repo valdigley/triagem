@@ -82,10 +82,10 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
         .from('photographers')
         .select('watermark_config')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (photographer?.watermark_config?.sessionTypes) {
-        setSessionTypes(photographer.watermark_config.sessionTypes);
+      if (photographer && photographer.length > 0 && photographer[0].watermark_config?.sessionTypes) {
+        setSessionTypes(photographer[0].watermark_config.sessionTypes);
       } else {
         // Tipos padrão se não houver configuração
         setSessionTypes([

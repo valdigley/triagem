@@ -53,10 +53,10 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
         .from('photographers')
         .select('watermark_config')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (photographer?.watermark_config) {
-        const config = photographer.watermark_config;
+      if (photographer && photographer.length > 0 && photographer[0].watermark_config) {
+        const config = photographer[0].watermark_config;
         setSettings(prev => ({
           ...prev,
           minimumPackagePrice: config.minimumPackagePrice || 300.00,

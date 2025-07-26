@@ -51,10 +51,10 @@ const Checkout: React.FC<CheckoutProps> = ({
         .from('photographers')
         .select('watermark_config')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (photographer?.watermark_config) {
-        const config = photographer.watermark_config;
+      if (photographer && photographer.length > 0 && photographer[0].watermark_config) {
+        const config = photographer[0].watermark_config;
         if (config.mercadoPagoAccessToken && config.mercadoPagoPublicKey) {
           setMercadoPagoConfig({
             accessToken: config.mercadoPagoAccessToken,

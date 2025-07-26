@@ -119,9 +119,9 @@ export const getGoogleCalendarConfig = async (userId: string): Promise<GoogleCal
       .from('photographers')
       .select('watermark_config')
       .eq('user_id', userId)
-      .single();
+      .limit(1);
 
-    const config = photographer?.watermark_config;
+    const config = photographer && photographer.length > 0 ? photographer[0].watermark_config : null;
     
     if (!config?.googleCalendarAccessToken) {
       console.warn('Google Calendar not configured for user:', userId);
