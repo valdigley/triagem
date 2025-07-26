@@ -196,8 +196,7 @@ serve(async (req) => {
         .from('orders')
         .update({ 
           status: newOrderStatus,
-          // Adicionar dados extras do pagamento
-          payment_intent_id: `${paymentId}_${status}` // Incluir status para histórico
+          payment_intent_id: paymentId.toString() // Manter ID original para consultas
         })
         .eq('id', order.id)
 

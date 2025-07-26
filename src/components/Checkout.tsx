@@ -126,8 +126,37 @@ const Checkout: React.FC<CheckoutProps> = ({
 
   // Função para verificar status do pagamento
   const checkPaymentStatus = async (paymentId: string) => {
+    console.log('Checking payment status for ID:', paymentId);
+    
     try {
-      // Verificar no banco de dados
+      // Primeiro verificar diretamente no MercadoPago se possível
+      if (mercadoPagoConfig.accessToken) {
+        try {
+          const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: {
+              'Authorization': `Bearer ${mercadoPagoConfig.accessToken}`,
+              'Content-Type': 'application/json',
+            }
+          });
+
+          if (mpResponse.ok) {
+            const paymentData = await mpResponse.json();
+            console.log('MercadoPago payment status:', paymentData.status);
+            
+            if (paymentData.status === 'approved') {
+              // Criar pedido no banco se ainda não existe
+              await createOrderIfNotExists(paymentId, paymentData);
+              return 'approved';
+            } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
+              return 'rejected';
+            }
+          }
+        } catch (mpError) {
+          console.log('MercadoPago API error, falling back to database check:', mpError);
+        }
+      }
+      
+      // Fallback: verificar no banco de dados
       const { data: orders } = await supabase
         .from('orders')
         .select('status')
@@ -135,8 +164,11 @@ const Checkout: React.FC<CheckoutProps> = ({
         .order('created_at', { ascending: false })
         .limit(1);
 
+      console.log('Database orders found:', orders);
+
       if (orders && orders.length > 0) {
         const order = orders[0];
+        console.log('Order status from database:', order.status);
         if (order.status === 'paid') {
           setPaymentStatus('approved');
           return 'approved';
@@ -150,6 +182,42 @@ const Checkout: React.FC<CheckoutProps> = ({
     } catch (error) {
       console.error('Error checking payment status:', error);
       return 'pending';
+    }
+  };
+
+  const createOrderIfNotExists = async (paymentId: string, paymentData: any) => {
+    try {
+      // Verificar se já existe pedido
+      const { data: existingOrders } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('payment_intent_id', paymentId);
+
+      if (existingOrders && existingOrders.length > 0) {
+        console.log('Order already exists for payment:', paymentId);
+        return;
+      }
+
+      // Criar novo pedido
+      console.log('Creating new order for payment:', paymentId);
+      const { error } = await supabase
+        .from('orders')
+        .insert({
+          event_id: album?.event_id,
+          client_email: clientEmail,
+          selected_photos: selectedPhotos,
+          total_amount: totalAmount,
+          status: 'paid',
+          payment_intent_id: paymentId,
+        });
+
+      if (error) {
+        console.error('Error creating order:', error);
+      } else {
+        console.log('Order created successfully for payment:', paymentId);
+      }
+    } catch (error) {
+      console.error('Error in createOrderIfNotExists:', error);
     }
   };
 

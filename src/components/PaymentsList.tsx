@@ -38,6 +38,19 @@ const PaymentsList: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<PaymentDetails | null>(null);
 
+  // Escutar eventos de atualização de pagamento
+  useEffect(() => {
+    const handlePaymentUpdate = () => {
+      console.log('Payment status updated, refreshing payments list');
+      loadPayments();
+    };
+
+    window.addEventListener('paymentStatusUpdated', handlePaymentUpdate);
+    return () => {
+      window.removeEventListener('paymentStatusUpdated', handlePaymentUpdate);
+    };
+  }, []);
+
   useEffect(() => {
     loadPayments();
   }, [events]);
