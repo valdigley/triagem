@@ -448,21 +448,16 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
       )}
 
       {events.length === 0 ? (
-        <div className="text-center py-12">
-          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
-          <p className="text-gray-600 mb-4">Comece criando seu primeiro agendamento</p>
-          <button 
-            onClick={() => setShowCreateForm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Criar Agendamento
-          </button>
-        </div>
+        !showCreateForm && (
+          <div className="text-center py-12">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
+            <p className="text-gray-600">Comece criando seu primeiro agendamento usando o botão "Novo Agendamento" acima</p>
+          </div>
+        )
       ) : (
         !showCreateForm && (
-        <div className="grid gap-6">
+        <div className="space-y-6">
           {events.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               {editingId === event.id ? (
@@ -663,7 +658,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
             </div>
           ))}
         </div>
-        )
+        </div>
       )}
     </div>
   );
