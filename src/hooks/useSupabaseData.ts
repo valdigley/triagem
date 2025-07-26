@@ -256,27 +256,29 @@ export const useSupabaseData = () => {
       
       if (user) {
         try {
-          // TESTE TEMPORÁRIO - Simular criação no Google Calendar
-          console.log('TESTE: Simulando criação no Google Calendar...');
-          console.log('Dados do evento para Google Calendar:', {
+          console.log('Tentando criar evento no Google Calendar...');
+          console.log('Dados do evento:', {
             client_name: eventData.client_name,
             session_type: eventData.session_type,
             event_date: eventData.event_date,
             location: eventData.location
           });
           
-          // Simular ID do Google Calendar
-          googleEventId = `gcal_test_${Date.now()}`;
-          console.log('TESTE: Google Calendar event ID simulado:', googleEventId);
+          // Tentar integração real com Google Calendar
+          const googleCalendarService = await createGoogleCalendarService(user.id);
           
-          // Simular delay da API
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (googleCalendarService) {
+            console.log('Google Calendar configurado, criando evento...');
+            googleEventId = await googleCalendarService.createEvent(eventData);
+            console.log('Google Calendar event criado:', googleEventId);
+          } else {
+            console.log('Google Calendar não configurado - pulando sincronização');
+          }
           
-          console.log('TESTE: Simulação do Google Calendar concluída com sucesso');
         } catch (error) {
           console.error('Failed to create Google Calendar event:', error);
           // Não falhar o processo se o Google Calendar der erro
-          toast.error('Evento criado, mas falha na sincronização com Google Calendar');
+          console.log('Continuando sem Google Calendar devido ao erro:', error.message);
         }
       }
 
@@ -321,15 +323,18 @@ export const useSupabaseData = () => {
       // Tentar atualizar no Google Calendar se configurado
       if (user && currentEvent?.google_calendar_event_id) {
         try {
-          // TESTE TEMPORÁRIO - Simular atualização no Google Calendar
-          console.log('TESTE: Simulando atualização no Google Calendar...');
+          console.log('Tentando atualizar evento no Google Calendar...');
           console.log('Google Calendar Event ID:', currentEvent.google_calendar_event_id);
-          console.log('Dados atualizados:', updates);
           
-          // Simular delay da API
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const googleCalendarService = await createGoogleCalendarService(user.id);
           
-          console.log('TESTE: Simulação de atualização concluída');
+          if (googleCalendarService) {
+            const eventDataForUpdate = { ...currentEvent, ...updates };
+            await googleCalendarService.updateEvent(currentEvent.google_calendar_event_id, eventDataForUpdate);
+            console.log('Google Calendar event atualizado com sucesso');
+          } else {
+            console.log('Google Calendar não configurado - pulando atualização');
+          }
         } catch (error) {
           console.error('Failed to update Google Calendar event:', error);
           // Não falhar o processo se o Google Calendar der erro
@@ -354,7 +359,11 @@ export const useSupabaseData = () => {
       ));
       
       if (currentEvent?.google_calendar_event_id) {
-        toast.success('Agendamento atualizado e sincronizado com Google Calendar!');
+        if (await createGoogleCalendarService(user.id)) {
+          toast.success('Agendamento atualizado e sincronizado com Google Calendar!');
+        } else {
+          toast.success('Agendamento atualizado!');
+        }
       } else {
         toast.success('Agendamento atualizado!');
       }
@@ -376,14 +385,17 @@ export const useSupabaseData = () => {
       // Tentar excluir do Google Calendar se configurado
       if (user && eventToDelete?.google_calendar_event_id) {
         try {
-          // TESTE TEMPORÁRIO - Simular exclusão no Google Calendar
-          console.log('TESTE: Simulando exclusão no Google Calendar...');
-          console.log('Google Calendar Event ID a ser excluído:', eventToDelete.google_calendar_event_id);
+          console.log('Tentando excluir evento do Google Calendar...');
+          console.log('Google Calendar Event ID:', eventToDelete.google_calendar_event_id);
           
-          // Simular delay da API
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const googleCalendarService = await createGoogleCalendarService(user.id);
           
-          console.log('TESTE: Simulação de exclusão concluída');
+          if (googleCalendarService) {
+            await googleCalendarService.deleteEvent(eventToDelete.google_calendar_event_id);
+            console.log('Google Calendar event excluído com sucesso');
+          } else {
+            console.log('Google Calendar não configurado - pulando exclusão');
+          }
         } catch (error) {
           console.error('Failed to delete Google Calendar event:', error);
           // Não falhar o processo se o Google Calendar der erro
@@ -416,10 +428,10 @@ export const useSupabaseData = () => {
 
       setEvents(prev => prev.filter(event => event.id !== id));
       
-      if (eventToDelete?.google_calendar_event_id) {
+      if (eventToDelete?.google_calendar_event_id && await createGoogleCalendarService(user.id)) {
         toast.success('Agendamento excluído do sistema e Google Calendar!');
       } else {
-        toast.success('Agendamento e fotos relacionadas excluídos!');
+        toast.success('Agendamento excluído!');
       }
       
       return true;

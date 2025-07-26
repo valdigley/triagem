@@ -644,13 +644,34 @@ const Settings: React.FC = () => {
             {pricingSettings.googleCalendarAccessToken && (
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium text-gray-900 mb-2">🔧 Status da Configuração:</h4>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">Google Calendar configurado</span>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-sm text-gray-700">Google Calendar configurado</span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Novos agendamentos serão sincronizados automaticamente
+                  </p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { createGoogleCalendarService } = await import('../lib/googleCalendar');
+                        const service = await createGoogleCalendarService(user?.id || '');
+                        if (service) {
+                          toast.success('✅ Google Calendar está funcionando!');
+                        } else {
+                          toast.error('❌ Erro na configuração do Google Calendar');
+                        }
+                      } catch (error) {
+                        console.error('Test error:', error);
+                        toast.error('❌ Erro ao testar Google Calendar: ' + error.message);
+                      }
+                    }}
+                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  >
+                    Testar Configuração
+                  </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  Novos agendamentos serão sincronizados automaticamente
-                </p>
               </div>
             )}
           </div>
