@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Check, ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import Checkout from './Checkout';
 
 interface Photo {
   id: string;
