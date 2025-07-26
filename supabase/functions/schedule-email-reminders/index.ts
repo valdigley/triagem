@@ -97,7 +97,7 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true,
         dayBeforeReminders: eventsForDayBefore?.length || 0,
-        dayOfReminders: (currentHour >= 8 && currentHour <= 10) ? (eventsForToday?.length || 0) : 0
+        dayOfReminders: (currentHour >= 8 && currentHour <= 10) ? (eventsForToday?.length || 0) : 0,
         currentHour: currentHour,
         message: `Processed reminders at ${new Date().toISOString()}`
       }),
