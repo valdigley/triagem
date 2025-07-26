@@ -19,6 +19,7 @@ interface Album {
   name: string;
   shareToken: string;
   isActive: boolean;
+  event_id?: string;
 }
 
 interface ClientPhotoSelectionProps {
@@ -220,7 +221,44 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       toast.error('Selecione pelo menos uma foto');
       return;
     }
-    setShowCheckout(true);
+    
+    if (priceCalculation.total > 0) {
+      setShowCheckout(true);
+    } else {
+      // Fotos gratuitas - confirmar seleção diretamente
+      confirmFreeSelection();
+    }
+  };
+
+  const confirmFreeSelection = async () => {
+    setIsSubmitting(true);
+    try {
+      // Salvar seleção no banco sem pagamento
+      const { error } = await supabase
+        .from('orders')
+        .insert({
+          event_id: album?.event_id,
+          client_email: 'cliente@email.com', // Seria obtido do contexto
+          selected_photos: Array.from(selectedPhotos),
+          total_amount: 0,
+          status: 'paid', // Considerado pago pois não há cobrança
+          payment_intent_id: `free_${Date.now()}`,
+        });
+
+      if (error) {
+        console.error('Error saving free selection:', error);
+        toast.error('Erro ao confirmar seleção');
+        return;
+      }
+
+      toast.success('Seleção confirmada com sucesso!');
+      setSelectedPhotos(new Set());
+    } catch (error) {
+      console.error('Error confirming free selection:', error);
+      toast.error('Erro ao confirmar seleção');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getWatermarkStyle = () => {
