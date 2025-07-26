@@ -115,6 +115,98 @@ const PublicScheduling: React.FC = () => {
 
   const advanceAmount = (studioSettings.minimumPackagePrice * studioSettings.advancePaymentPercentage) / 100;
 
+  // Função para enviar email de confirmação
+  const sendBookingConfirmationEmail = async (eventData: any, studioSettings: any) => {
+    try {
+      const sessionTypeLabel = eventData.session_type ? 
+        sessionTypeLabels[eventData.session_type] || eventData.session_type : 
+        'Sessão';
+
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">📸 Agendamento Confirmado!</h1>
+          </div>
+          
+          <div style="padding: 30px; background: #f8f9fa;">
+            <p style="font-size: 18px; color: #333;">Olá <strong>${eventData.client_name}</strong>!</p>
+            
+            <p style="color: #666; line-height: 1.6;">
+              Obrigado por escolher nosso estúdio! Seu agendamento foi confirmado com sucesso.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+              <h3 style="color: #333; margin-top: 0;">📅 Detalhes da Sessão:</h3>
+              <p><strong>Tipo:</strong> ${sessionTypeLabel}</p>
+              <p><strong>Data:</strong> ${new Date(eventData.event_date).toLocaleDateString('pt-BR', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}</p>
+              <p><strong>Horário:</strong> ${new Date(eventData.event_date).toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })}</p>
+              <p><strong>Local:</strong> ${studioSettings.address || 'Estúdio Fotográfico'}</p>
+            </div>
+            
+            <div style="background: #e3f2fd; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #1976d2; margin-top: 0;">📍 Localização do Estúdio:</h3>
+              <p style="margin: 0;"><strong>${studioSettings.businessName}</strong></p>
+              <p style="margin: 5px 0;">${studioSettings.address}</p>
+              <p style="margin: 5px 0;">📞 ${studioSettings.phone}</p>
+              ${studioSettings.website ? `<p style="margin: 5px 0;">🌐 <a href="${studioSettings.website}">${studioSettings.website}</a></p>` : ''}
+            </div>
+            
+            <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="color: #f57c00; margin-top: 0;">📋 Importante - Leia com Atenção:</h3>
+              <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
+                <li><strong>Referências:</strong> Traga fotos de referência ou ideias que gostaria de reproduzir</li>
+                <li><strong>Portfólio:</strong> As fotos poderão ser usadas em nosso portfólio e redes sociais. Caso não concorde, informe ao fotógrafo no dia da sessão</li>
+                <li><strong>Pontualidade:</strong> Chegue 10 minutos antes do horário agendado</li>
+                <li><strong>Seleção:</strong> Após a sessão, você receberá um link para selecionar suas fotos favoritas</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <p style="color: #666;">Estamos ansiosos para criar memórias incríveis com você!</p>
+              <p style="color: #999; font-size: 14px;">
+                Dúvidas? Entre em contato: ${studioSettings.phone} | ${studioSettings.email}
+              </p>
+            </div>
+          </div>
+          
+          <div style="background: #333; padding: 20px; text-align: center;">
+            <p style="color: #ccc; margin: 0; font-size: 14px;">
+              ${studioSettings.businessName} - Capturando seus melhores momentos
+            </p>
+          </div>
+        </div>
+      `;
+
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          to: eventData.client_email,
+          subject: `📸 Agendamento Confirmado - ${sessionTypeLabel} - ${studioSettings.businessName}`,
+          html: emailHtml,
+          type: 'booking_confirmation',
+          eventData,
+          studioData: studioSettings,
+        }),
+      });
+
+      console.log('Booking confirmation email sent');
+    } catch (error) {
+      console.error('Error sending booking confirmation email:', error);
+    }
+  };
+
   // Função para criar evento após confirmação do pagamento
   const createEventAfterPayment = async (paymentData: any) => {
     if (!pendingEventData || !photographerId) {
@@ -141,9 +233,6 @@ const PublicScheduling: React.FC = () => {
       }
 
       console.log('Event created successfully:', newEvent.id);
-
-      // Enviar email de confirmação de agendamento
-      await sendBookingConfirmationEmail(newEvent, studioSettings);
 
       // Criar álbum automaticamente para o evento
       const sessionTypeLabel = newEvent.session_type ? 

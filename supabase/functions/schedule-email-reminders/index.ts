@@ -1,0 +1,267 @@
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  console.log('Email reminder scheduler called');
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Buscar eventos que precisam de lembrete
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+
+    const dayAfterTomorrow = new Date(tomorrow);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1);
+
+    // Eventos para lembrete de 1 dia antes
+    const { data: eventsForDayBefore } = await supabase
+      .from('events')
+      .select(`
+        *,
+        photographers!inner(*)
+      `)
+      .gte('event_date', tomorrow.toISOString())
+      .lt('event_date', dayAfterTomorrow.toISOString())
+      .eq('status', 'scheduled');
+
+    // Eventos para lembrete do dia (manhã)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(today);
+    endOfToday.setDate(endOfToday.getDate() + 1);
+
+    const { data: eventsForToday } = await supabase
+      .from('events')
+      .select(`
+        *,
+        photographers!inner(*)
+      `)
+      .gte('event_date', today.toISOString())
+      .lt('event_date', endOfToday.toISOString())
+      .eq('status', 'scheduled');
+
+    console.log(`Found ${eventsForDayBefore?.length || 0} events for day-before reminders`);
+    console.log(`Found ${eventsForToday?.length || 0} events for day-of reminders`);
+
+    // Enviar lembretes de 1 dia antes
+    if (eventsForDayBefore) {
+      for (const event of eventsForDayBefore) {
+        await sendDayBeforeReminder(event);
+      }
+    }
+
+    // Enviar lembretes do dia (apenas pela manhã, entre 8h e 10h)
+    const currentHour = new Date().getHours();
+    if (eventsForToday && currentHour >= 8 && currentHour <= 10) {
+      for (const event of eventsForToday) {
+        await sendDayOfReminder(event);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        dayBeforeReminders: eventsForDayBefore?.length || 0,
+        dayOfReminders: (currentHour >= 8 && currentHour <= 10) ? (eventsForToday?.length || 0) : 0
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+
+  } catch (error) {
+    console.error('Error in email reminder scheduler:', error)
+    
+    return new Response(
+      JSON.stringify({ 
+        error: 'Failed to process email reminders', 
+        message: error.message 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
+  }
+})
+
+async function sendDayBeforeReminder(event: any) {
+  const sessionTypeLabels: Record<string, string> = {
+    'gestante': 'Sessão Gestante',
+    'aniversario': 'Aniversário',
+    'comerciais': 'Comerciais',
+    'pre-wedding': 'Pré Wedding',
+    'formatura': 'Formatura',
+    'revelacao-sexo': 'Revelação de Sexo',
+  };
+
+  const sessionTypeLabel = event.session_type ? 
+    sessionTypeLabels[event.session_type] || event.session_type : 
+    'Sessão';
+
+  const studioSettings = {
+    businessName: event.photographers.business_name,
+    phone: event.photographers.phone,
+    email: event.photographers.watermark_config?.email || '',
+    address: event.photographers.watermark_config?.address || '',
+  };
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">⏰ Lembrete da Sessão</h1>
+      </div>
+      
+      <div style="padding: 30px; background: #f8f9fa;">
+        <p style="font-size: 18px; color: #333;">Olá <strong>${event.client_name}</strong>!</p>
+        
+        <p style="color: #666; line-height: 1.6;">
+          Sua sessão de fotos está chegando! Amanhã será o grande dia.
+        </p>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f5576c;">
+          <h3 style="color: #333; margin-top: 0;">📅 Detalhes da Sessão:</h3>
+          <p><strong>Tipo:</strong> ${sessionTypeLabel}</p>
+          <p><strong>Data:</strong> ${new Date(event.event_date).toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })}</p>
+          <p><strong>Horário:</strong> ${new Date(event.event_date).toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}</p>
+          <p><strong>Local:</strong> ${studioSettings.address}</p>
+        </div>
+        
+        <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #2e7d32; margin-top: 0;">✅ Checklist para Amanhã:</h3>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
+            <li>Chegue 10 minutos antes do horário</li>
+            <li>Traga suas fotos de referência</li>
+            <li>Vista roupas confortáveis e adequadas ao tipo de sessão</li>
+            <li>Tenha uma boa noite de sono</li>
+            <li>Venha com energia positiva! 😊</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #666;">Estamos ansiosos para te ver amanhã!</p>
+          <p style="color: #999; font-size: 14px;">
+            Dúvidas? Entre em contato: ${studioSettings.phone}
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+    },
+    body: JSON.stringify({
+      to: event.client_email,
+      subject: `⏰ Lembrete: Sua sessão é amanhã! - ${studioSettings.businessName}`,
+      html: emailHtml,
+      type: 'session_reminder_day_before',
+      eventData: event,
+      studioData: studioSettings,
+    }),
+  });
+}
+
+async function sendDayOfReminder(event: any) {
+  const sessionTypeLabels: Record<string, string> = {
+    'gestante': 'Sessão Gestante',
+    'aniversario': 'Aniversário',
+    'comerciais': 'Comerciais',
+    'pre-wedding': 'Pré Wedding',
+    'formatura': 'Formatura',
+    'revelacao-sexo': 'Revelação de Sexo',
+  };
+
+  const sessionTypeLabel = event.session_type ? 
+    sessionTypeLabels[event.session_type] || event.session_type : 
+    'Sessão';
+
+  const studioSettings = {
+    businessName: event.photographers.business_name,
+    phone: event.photographers.phone,
+    email: event.photographers.watermark_config?.email || '',
+    address: event.photographers.watermark_config?.address || '',
+  };
+
+  const emailHtml = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 28px;">🎉 Hoje é o Dia!</h1>
+      </div>
+      
+      <div style="padding: 30px; background: #f8f9fa;">
+        <p style="font-size: 18px; color: #333;">Bom dia, <strong>${event.client_name}</strong>!</p>
+        
+        <p style="color: #666; line-height: 1.6;">
+          Hoje é o dia da sua sessão de fotos! Esperamos você no estúdio.
+        </p>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #00f2fe;">
+          <h3 style="color: #333; margin-top: 0;">📅 Sua Sessão Hoje:</h3>
+          <p><strong>Tipo:</strong> ${sessionTypeLabel}</p>
+          <p><strong>Horário:</strong> ${new Date(event.event_date).toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}</p>
+          <p><strong>Local:</strong> ${studioSettings.address}</p>
+          <p><strong>Contato:</strong> ${studioSettings.phone}</p>
+        </div>
+        
+        <div style="background: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #f57c00; margin-top: 0;">⚡ Últimas Dicas:</h3>
+          <ul style="color: #666; line-height: 1.8; padding-left: 20px;">
+            <li>Chegue 10 minutos antes</li>
+            <li>Traga suas referências</li>
+            <li>Relaxe e divirta-se!</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <p style="color: #666; font-size: 18px;">Nos vemos em breve! 📸✨</p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+    },
+    body: JSON.stringify({
+      to: event.client_email,
+      subject: `🎉 Hoje é o dia da sua sessão! - ${studioSettings.businessName}`,
+      html: emailHtml,
+      type: 'session_reminder_day_of',
+      eventData: event,
+      studioData: studioSettings,
+    }),
+  });
+}
