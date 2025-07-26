@@ -83,12 +83,15 @@ export const useSupabaseData = () => {
       const { data: existingProfile, error: fetchError } = await supabase
         .from('photographers')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
+        .eq('user_id', user.id);
 
-      if (existingProfile) {
-        setPhotographerId(existingProfile.id);
-        return existingProfile.id;
+      if (existingProfile && existingProfile.length > 0) {
+        // Se existem múltiplos perfis, usar o primeiro e logar o problema
+        if (existingProfile.length > 1) {
+          console.warn(`Multiple photographer profiles found for user ${user.id}. Using the first one.`);
+        }
+        setPhotographerId(existingProfile[0].id);
+        return existingProfile[0].id;
       }
 
       // Se não existe, criar um novo perfil
