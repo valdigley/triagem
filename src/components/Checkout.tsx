@@ -127,15 +127,7 @@ const Checkout: React.FC<CheckoutProps> = ({
     }
 
     console.log('Starting payment process:', {
-      paymentMethods,
       mercadoPagoConfigExists: !!mercadoPagoConfig.accessToken,
-      selectedMethod: paymentMethod,
-    });
-
-    console.log('Starting payment process:', {
-      paymentMethods,
-      mercadoPagoConfigExists: !!mercadoPagoConfig.accessToken,
-      selectedMethod: paymentMethod,
     });
     setIsProcessing(true);
 
