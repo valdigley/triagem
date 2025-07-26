@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings, MessageSquare, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
@@ -25,8 +25,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   isClientView,
   onBackToAlbums,
 }) => {
-  const { photos, updatePhoto, loading } = useSupabaseData();
-  const albumPhotos = photos.filter(photo => photo.album_id === albumId);
+  const { photos, updatePhoto, loading, albums } = useSupabaseData();
+  const [albumPhotos, setAlbumPhotos] = useState<any[]>([]);
+  const [albumLoading, setAlbumLoading] = useState(true);
   
   // Estados apenas para visualização do cliente
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
@@ -37,6 +38,36 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [tempComment, setTempComment] = useState('');
+
+  // Carregar fotos do álbum específico
+  useEffect(() => {
+    const loadAlbumPhotos = async () => {
+      if (!albumId) return;
+      
+      setAlbumLoading(true);
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const { data: photosData, error } = await supabase
+          .from('photos')
+          .select('*')
+          .eq('album_id', albumId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error loading album photos:', error);
+        } else {
+          console.log(`Loaded ${photosData?.length || 0} photos for album ${albumId}`);
+          setAlbumPhotos(photosData || []);
+        }
+      } catch (error) {
+        console.error('Error loading album photos:', error);
+      } finally {
+        setAlbumLoading(false);
+      }
+    };
+
+    loadAlbumPhotos();
+  }, [albumId]);
 
   // Inicializar seleções quando as fotos carregarem (apenas para cliente)
   React.useEffect(() => {
@@ -55,7 +86,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       });
       setPhotoComments(comments);
     }
-  }, [albumId, photos.length, isClientView]);
+  }, [albumPhotos.length, isClientView]);
 
   // Carregar configuração de marca d'água
   React.useEffect(() => {
@@ -190,11 +221,13 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         return baseStyle;
     }
   };
-  if (loading) {
+  if (loading || albumLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Carregando fotos...</span>
+        <span className="ml-2 text-gray-600">
+          {loading ? 'Carregando dados...' : 'Carregando fotos do álbum...'}
+        </span>
       </div>
     );
   }

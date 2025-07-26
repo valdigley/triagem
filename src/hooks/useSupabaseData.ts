@@ -172,6 +172,8 @@ export const useSupabaseData = () => {
       // Carregar todas as fotos dos álbuns do fotógrafo
       if (albumsData && albumsData.length > 0) {
         const albumIds = albumsData.map(album => album.id);
+        console.log('Loading photos for albums:', albumIds);
+        
         const { data: photosData, error: photosError } = await supabase
           .from('photos')
           .select('*')
@@ -182,9 +184,11 @@ export const useSupabaseData = () => {
           console.error('Error loading photos:', photosError);
           toast.error('Erro ao carregar fotos');
         } else {
+          console.log(`Loaded ${photosData?.length || 0} total photos`);
           setPhotos(photosData || []);
         }
       } else {
+        console.log('No albums found, setting empty photos array');
         setPhotos([]);
       }
 
