@@ -13,6 +13,7 @@ import EventList from './components/EventList';
 import AlbumList from './components/AlbumList';
 import Settings from './components/Settings';
 import PaymentsList from './components/PaymentsList';
+import ClientsList from './components/ClientsList';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -60,6 +61,8 @@ const AppContent: React.FC = () => {
           setCurrentView('gallery');
           setSelectedAlbumId(albumId);
         }} />;
+      case 'clients':
+        return <ClientsList />;
       case 'payments':
         return <PaymentsList />;
       case 'settings':

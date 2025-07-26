@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Upload, Eye, X, CreditCard, Building, Mail, Phone, MapPin } from 'lucide-react';
+import { Save, Upload, Eye, X, CreditCard, Building, Mail, Phone, MapPin, Plus, Trash2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -21,6 +21,7 @@ interface StudioSettings {
   minimumPackagePrice: number;
   extraPhotoPrice: number;
   advancePaymentPercentage: number;
+  sessionTypes: Array<{ value: string; label: string }>;
 }
 
 const Settings: React.FC = () => {
@@ -38,13 +39,25 @@ const Settings: React.FC = () => {
     minimumPackagePrice: 300.00,
     extraPhotoPrice: 30.00,
     advancePaymentPercentage: 50,
+    sessionTypes: [
+      { value: 'gestante', label: 'Sessão Gestante' },
+      { value: 'aniversario', label: 'Aniversário' },
+      { value: 'comerciais', label: 'Comerciais' },
+      { value: 'pre-wedding', label: 'Pré Wedding' },
+      { value: 'formatura', label: 'Formatura' },
+      { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+    ],
   });
   
   const [watermarkFile, setWatermarkFile] = useState<File | null>(null);
   const [watermarkPreview, setWatermarkPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'studio' | 'watermark' | 'payment'>('studio');
+  const [activeTab, setActiveTab] = useState<'studio' | 'watermark' | 'payment' | 'sessions'>('studio');
+  
+  // Estados para gerenciar tipos de sessão
+  const [newSessionType, setNewSessionType] = useState({ value: '', label: '' });
+  const [editingSessionType, setEditingSessionType] = useState<{ index: number; value: string; label: string } | null>(null);
 
   // Carregar configurações
   useEffect(() => {
@@ -80,6 +93,14 @@ const Settings: React.FC = () => {
           minimumPackagePrice: photographer.watermark_config?.minimumPackagePrice || 300.00,
           extraPhotoPrice: photographer.watermark_config?.extraPhotoPrice || 30.00,
           advancePaymentPercentage: photographer.watermark_config?.advancePaymentPercentage || 50,
+          sessionTypes: photographer.watermark_config?.sessionTypes || [
+            { value: 'gestante', label: 'Sessão Gestante' },
+            { value: 'aniversario', label: 'Aniversário' },
+            { value: 'comerciais', label: 'Comerciais' },
+            { value: 'pre-wedding', label: 'Pré Wedding' },
+            { value: 'formatura', label: 'Formatura' },
+            { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+          ],
         }));
         if (photographer.watermark_config?.watermarkFile) {
           setWatermarkPreview(photographer.watermark_config.watermarkFile);
@@ -116,6 +137,82 @@ const Settings: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // Funções para gerenciar tipos de sessão
+  const addSessionType = () => {
+    if (!newSessionType.value.trim() || !newSessionType.label.trim()) {
+      toast.error('Preencha o código e o nome da sessão');
+      return;
+    }
+
+    // Verificar se já existe
+    if (settings.sessionTypes.some(type => type.value === newSessionType.value)) {
+      toast.error('Já existe uma sessão com este código');
+      return;
+    }
+
+    setSettings(prev => ({
+      ...prev,
+      sessionTypes: [...prev.sessionTypes, { ...newSessionType }]
+    }));
+
+    setNewSessionType({ value: '', label: '' });
+    toast.success('Tipo de sessão adicionado!');
+  };
+
+  const removeSessionType = (index: number) => {
+    if (settings.sessionTypes.length <= 1) {
+      toast.error('Deve haver pelo menos um tipo de sessão');
+      return;
+    }
+
+    setSettings(prev => ({
+      ...prev,
+      sessionTypes: prev.sessionTypes.filter((_, i) => i !== index)
+    }));
+    toast.success('Tipo de sessão removido!');
+  };
+
+  const startEditSessionType = (index: number) => {
+    setEditingSessionType({
+      index,
+      value: settings.sessionTypes[index].value,
+      label: settings.sessionTypes[index].label,
+    });
+  };
+
+  const saveEditSessionType = () => {
+    if (!editingSessionType) return;
+
+    if (!editingSessionType.value.trim() || !editingSessionType.label.trim()) {
+      toast.error('Preencha o código e o nome da sessão');
+      return;
+    }
+
+    // Verificar se já existe (exceto o atual)
+    if (settings.sessionTypes.some((type, i) => 
+      type.value === editingSessionType.value && i !== editingSessionType.index
+    )) {
+      toast.error('Já existe uma sessão com este código');
+      return;
+    }
+
+    setSettings(prev => ({
+      ...prev,
+      sessionTypes: prev.sessionTypes.map((type, i) => 
+        i === editingSessionType.index 
+          ? { value: editingSessionType.value, label: editingSessionType.label }
+          : type
+      )
+    }));
+
+    setEditingSessionType(null);
+    toast.success('Tipo de sessão atualizado!');
+  };
+
+  const cancelEditSessionType = () => {
+    setEditingSessionType(null);
+  };
+
   const handleSave = async () => {
     if (!user) return;
 
@@ -149,6 +246,7 @@ const Settings: React.FC = () => {
             minimumPackagePrice: settings.minimumPackagePrice,
             extraPhotoPrice: settings.extraPhotoPrice,
             advancePaymentPercentage: settings.advancePaymentPercentage,
+            sessionTypes: settings.sessionTypes,
           },
         })
         .eq('user_id', user.id);
@@ -214,7 +312,7 @@ const Settings: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Configurações do Sistema</h1>
-        <p className="text-gray-600">Configure seu estúdio, marca d'água e formas de pagamento</p>
+        <p className="text-gray-600">Configure seu estúdio, marca d'água, tipos de sessão e formas de pagamento</p>
       </div>
 
       {/* Tabs */}
@@ -222,6 +320,7 @@ const Settings: React.FC = () => {
         <nav className="-mb-px flex space-x-8">
           {[
             { key: 'studio', label: 'Dados do Estúdio', icon: Building },
+            { key: 'sessions', label: 'Tipos de Sessão', icon: CreditCard },
             { key: 'watermark', label: 'Marca D\'água', icon: Eye },
             { key: 'payment', label: 'Pagamentos', icon: CreditCard },
           ].map(({ key, label, icon: Icon }) => (
@@ -379,6 +478,117 @@ const Settings: React.FC = () => {
                     </p>
                   </label>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tipos de Sessão */}
+        {activeTab === 'sessions' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Gerenciar Tipos de Sessão</h3>
+            
+            {/* Adicionar novo tipo */}
+            <div className="bg-blue-50 rounded-lg p-6">
+              <h4 className="font-medium text-blue-900 mb-4">Adicionar Novo Tipo de Sessão</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Código (interno)
+                  </label>
+                  <input
+                    type="text"
+                    value={newSessionType.value}
+                    onChange={(e) => setNewSessionType(prev => ({ ...prev, value: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="ex: casamento"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome (exibido)
+                  </label>
+                  <input
+                    type="text"
+                    value={newSessionType.label}
+                    onChange={(e) => setNewSessionType(prev => ({ ...prev, label: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="ex: Casamento"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <button
+                    onClick={addSessionType}
+                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Adicionar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Lista de tipos existentes */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-4">Tipos de Sessão Cadastrados</h4>
+              <div className="space-y-3">
+                {settings.sessionTypes.map((type, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                    {editingSessionType?.index === index ? (
+                      <div className="flex items-center gap-4 flex-1">
+                        <input
+                          type="text"
+                          value={editingSessionType.value}
+                          onChange={(e) => setEditingSessionType(prev => prev ? { ...prev, value: e.target.value } : null)}
+                          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Código"
+                        />
+                        <input
+                          type="text"
+                          value={editingSessionType.label}
+                          onChange={(e) => setEditingSessionType(prev => prev ? { ...prev, label: e.target.value } : null)}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="Nome"
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={saveEditSessionType}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            <Save className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={cancelEditSessionType}
+                            className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{type.label}</div>
+                          <div className="text-sm text-gray-500">Código: {type.value}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => startEditSessionType(index)}
+                            className="px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => removeSessionType(index)}
+                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -574,20 +784,6 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Configuração do Mercado Pago
-                  </label>
-                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <p className="text-blue-800 text-sm mb-2">
-                      <strong>💡 Sistema de Pagamento Integrado</strong>
-                    </p>
-                    <p className="text-blue-700 text-xs">
-                      O sistema utiliza o Mercado Pago para processar todos os pagamentos (PIX, Cartão, etc.)
-                    </p>
-                  </div>
-                </div>
-
                 <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                   <h4 className="font-medium text-gray-900">Credenciais do Mercado Pago</h4>
                   <div className="text-sm text-gray-600 mb-4">
@@ -658,11 +854,6 @@ const Settings: React.FC = () => {
                       Mercado Pago Developers
                     </a>
                   </p>
-                  <div className="bg-blue-50 p-3 rounded border border-blue-200">
-                    <p className="text-xs text-blue-800">
-                      <strong>Dica:</strong> Após configurar, teste com um pagamento pequeno para verificar se está funcionando.
-                    </p>
-                  </div>
                 </div>
               </div>
 
@@ -680,6 +871,10 @@ const Settings: React.FC = () => {
                   <div className="flex justify-between">
                     <span className="text-gray-600">Pagamento antecipado:</span>
                     <span className="font-medium">{settings.advancePaymentPercentage}%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Tipos de sessão:</span>
+                    <span className="font-medium">{settings.sessionTypes.length} cadastrados</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Mercado Pago:</span>

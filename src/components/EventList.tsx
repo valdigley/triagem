@@ -6,6 +6,8 @@ import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -38,23 +40,16 @@ const sessionTypeLabels: Record<string, string> = {
 };
 
 const sessionTypes = [
-  { value: 'gestante', label: 'Sessão Gestante' },
-  { value: 'aniversario', label: 'Aniversário' },
-  { value: 'comerciais', label: 'Comerciais' },
-  { value: 'pre-wedding', label: 'Pré Wedding' },
-  { value: 'formatura', label: 'Formatura' },
-  { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+  // Será carregado dinamicamente das configurações
 ];
 
 const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   const { events, updateEvent, deleteEvent, addEvent, loading } = useSupabaseData();
+  const { user } = useAuth();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [pendingEventData, setPendingEventData] = useState<any>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
   const [editForm, setEditForm] = useState({
     client_name: '',
     client_email: '',
@@ -74,6 +69,38 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
     resolver: zodResolver(eventSchema),
   });
 
+  // Carregar tipos de sessão das configurações
+  useEffect(() => {
+    loadSessionTypes();
+  }, [user]);
+
+  const loadSessionTypes = async () => {
+    if (!user) return;
+
+    try {
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .eq('user_id', user.id)
+        .single();
+
+      if (photographer?.watermark_config?.sessionTypes) {
+        setSessionTypes(photographer.watermark_config.sessionTypes);
+      } else {
+        // Tipos padrão se não houver configuração
+        setSessionTypes([
+          { value: 'gestante', label: 'Sessão Gestante' },
+          { value: 'aniversario', label: 'Aniversário' },
+          { value: 'comerciais', label: 'Comerciais' },
+          { value: 'pre-wedding', label: 'Pré Wedding' },
+          { value: 'formatura', label: 'Formatura' },
+          { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading session types:', error);
+    }
+  };
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
@@ -243,218 +270,17 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Agendamentos</h1>
-          <p className="text-gray-600">Gerencie suas sessões de fotos ({events.length} agendamentos)</p>
+          <p className="text-gray-600">Visualize e gerencie seus agendamentos ({events.length} agendamentos)</p>
         </div>
-        <button 
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Novo Agendamento
-        </button>
       </div>
 
-      {/* Formulário de criação */}
-      {showCreateForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Novo Agendamento</h3>
-            <button
-              onClick={() => setShowCreateForm(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          {showPayment && (
-            <div className="absolute inset-0 bg-white rounded-lg z-10">
-              {/* <SchedulingPayment
-                eventData={pendingEventData}
-                onComplete={handlePaymentComplete}
-                onCancel={handlePaymentCancel}
-              /> */}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Client Information */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-gray-900 flex items-center">
-                <User className="w-4 h-4 mr-2" />
-                Informações do Cliente
-              </h4>
-              
-              <div>
-                <label htmlFor="clientName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome Completo *
-                </label>
-                <input
-                  {...register('clientName')}
-                  type="text"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Digite o nome completo do cliente"
-                />
-                {errors.clientName && (
-                  <p className="text-red-600 text-sm mt-1">{errors.clientName.message}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="clientEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                    E-mail *
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <input
-                      {...register('clientEmail')}
-                      type="email"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="cliente@email.com"
-                    />
-                  </div>
-                  {errors.clientEmail && (
-                    <p className="text-red-600 text-sm mt-1">{errors.clientEmail.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Telefone *
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <input
-                      {...register('clientPhone')}
-                      type="tel"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="(11) 99999-9999"
-                    />
-                  </div>
-                  {errors.clientPhone && (
-                    <p className="text-red-600 text-sm mt-1">{errors.clientPhone.message}</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Session Type */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-gray-900 flex items-center">
-                <Camera className="w-4 h-4 mr-2" />
-                Tipo de Sessão
-              </h4>
-              
-              <div>
-                <label htmlFor="sessionType" className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoria da Sessão *
-                </label>
-                <select
-                  {...register('sessionType')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Selecione o tipo de sessão...</option>
-                  {sessionTypes.map((type) => (
-                    <option key={type.value} value={type.value}>
-                      {type.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.sessionType && (
-                  <p className="text-red-600 text-sm mt-1">{errors.sessionType.message}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Event Details */}
-            <div className="space-y-4">
-              <h4 className="text-md font-semibold text-gray-900 flex items-center">
-                <Calendar className="w-4 h-4 mr-2" />
-                Detalhes do Evento
-              </h4>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="eventDate" className="block text-sm font-medium text-gray-700 mb-1">
-                    Data *
-                  </label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <input
-                      {...register('eventDate')}
-                      type="date"
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  {errors.eventDate && (
-                    <p className="text-red-600 text-sm mt-1">{errors.eventDate.message}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="eventTime" className="block text-sm font-medium text-gray-700 mb-1">
-                    Horário *
-                  </label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                    <input
-                      {...register('eventTime')}
-                      type="time"
-                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                  {errors.eventTime && (
-                    <p className="text-red-600 text-sm mt-1">{errors.eventTime.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Observações
-                </label>
-                <textarea
-                  {...register('notes')}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Informações adicionais sobre a sessão..."
-                />
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSubmitting ? 'Processando...' : 'Prosseguir para Pagamento'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       {events.length === 0 ? (
-        !showCreateForm && (
-          <div className="text-center py-12">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
-            <p className="text-gray-600">Comece criando seu primeiro agendamento usando o botão "Novo Agendamento" acima</p>
-          </div>
-        )
+        <div className="text-center py-12">
+          <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento encontrado</h3>
+          <p className="text-gray-600">Os agendamentos feitos através do link público aparecerão aqui</p>
+        </div>
       ) : (
-        !showCreateForm && (
         <div className="space-y-6">
           {events.map((event) => (
             <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -656,7 +482,6 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
             </div>
           ))}
         </div>
-        )
       )}
     </div>
   );

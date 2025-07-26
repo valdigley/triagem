@@ -24,12 +24,7 @@ const eventSchema = z.object({
 type EventFormData = z.infer<typeof eventSchema>;
 
 const sessionTypes = [
-  { value: 'gestante', label: 'Sessão Gestante' },
-  { value: 'aniversario', label: 'Aniversário' },
-  { value: 'comerciais', label: 'Comerciais' },
-  { value: 'pre-wedding', label: 'Pré Wedding' },
-  { value: 'formatura', label: 'Formatura' },
-  { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+  // Será carregado dinamicamente das configurações
 ];
 
 const sessionTypeLabels: Record<string, string> = {
@@ -62,6 +57,7 @@ const PublicScheduling: React.FC = () => {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   const [pendingEventData, setPendingEventData] = useState<any>(null);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
+  const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
 
   const {
     register,
@@ -100,6 +96,17 @@ const PublicScheduling: React.FC = () => {
           website: photographer.watermark_config?.website || '',
           instagram: photographer.watermark_config?.instagram || '',
         }));
+        
+        // Carregar tipos de sessão das configurações
+        const configuredSessionTypes = photographer.watermark_config?.sessionTypes || [
+          { value: 'gestante', label: 'Sessão Gestante' },
+          { value: 'aniversario', label: 'Aniversário' },
+          { value: 'comerciais', label: 'Comerciais' },
+          { value: 'pre-wedding', label: 'Pré Wedding' },
+          { value: 'formatura', label: 'Formatura' },
+          { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+        ];
+        setSessionTypes(configuredSessionTypes);
       }
     } catch (error) {
       console.error('Error loading studio settings:', error);
