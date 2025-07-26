@@ -74,6 +74,9 @@ CREATE TABLE photographers (
   watermark_config jsonb,
   created_at timestamptz DEFAULT now()
 );
+
+-- Index for performance on user_id queries
+CREATE INDEX IF NOT EXISTS photographers_user_id_idx ON photographers(user_id);
 ```
 
 #### events
