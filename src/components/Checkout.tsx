@@ -118,7 +118,7 @@ const Checkout: React.FC<CheckoutProps> = ({
     try {
       let paymentResult;
 
-      if (paymentMethod === 'mercadopago' && paymentMethods.mercadoPago) {
+      if (paymentMethods.mercadoPago && mercadoPagoConfig.accessToken) {
         // Processar com Mercado Pago
         paymentResult = await createMercadoPagoPayment();
         
@@ -405,12 +405,10 @@ const Checkout: React.FC<CheckoutProps> = ({
               {isProcessing ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  {paymentMethod === 'mercadopago' ? 'Criando pagamento...' : 'Processando Pagamento...'}
+                  {paymentMethods.mercadoPago && mercadoPagoConfig.accessToken ? 'Criando pagamento...' : 'Processando Pagamento...'}
                 </div>
               ) : (
-                `Pagar R$ ${totalAmount.toFixed(2)} via ${
-                  paymentMethod === 'mercadopago' ? 'Mercado Pago' : paymentMethod.toUpperCase()
-                }`
+                `Pagar R$ ${totalAmount.toFixed(2)} via ${paymentMethod.toUpperCase()}`
               )}
             </button>
 
