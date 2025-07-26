@@ -64,17 +64,19 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
   const loadWatermarkConfig = async () => {
     try {
-      // Tentar carregar do banco de dados primeiro
       const { supabase } = await import('../lib/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+
       const { data: photographer } = await supabase
         .from('photographers')
         .select('watermark_config')
-        .limit(1)
+        .eq('user_id', user.id)
         .single();
 
-      if (photographer?.watermark_config?.watermarkFile) {
+      if (photographer?.watermark_config) {
         setWatermarkConfig(photographer.watermark_config);
-        return;
       }
     } catch (error) {
       console.error('Error loading watermark from database:', error);
@@ -278,10 +280,10 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               />
 
               {/* Watermark overlay for client view */}
-              {isClientView && watermarkConfig && watermarkConfig.file && (
+              {isClientView && watermarkConfig && watermarkConfig.watermarkFile && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <img
-                      src={watermarkConfig.file}
+                      src={watermarkConfig.watermarkFile}
                       alt="Watermark"
                       style={getWatermarkStyle()}
                     />
@@ -377,9 +379,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               />
               
               {/* Watermark overlay for client view */}
-              {isClientView && watermarkConfig && watermarkConfig.file && (
+              {isClientView && watermarkConfig && watermarkConfig.watermarkFile && (
                 <img
-                  src={watermarkConfig.file}
+                  src={watermarkConfig.watermarkFile}
                   alt="Watermark"
                   style={getWatermarkStyle()}
                 />

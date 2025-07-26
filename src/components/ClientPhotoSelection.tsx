@@ -107,9 +107,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
 
   const loadWatermarkConfig = async () => {
     try {
+      // Buscar configuração do primeiro fotógrafo (assumindo um estúdio)
       const { data: photographer } = await supabase
         .from('photographers')
-        .select('watermark_config')
+        .select('watermark_config, user_id')
         .limit(1)
         .single();
 
@@ -513,15 +514,15 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
 
                 {/* Watermark overlay */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {watermarkConfig && watermarkConfig.file && (
+                  {watermarkConfig && watermarkConfig.watermarkFile && (
                     <img
-                      src={watermarkConfig.file}
+                      src={watermarkConfig.watermarkFile}
                       alt="Watermark"
                       style={getWatermarkStyle()}
                     />
                   )}
-                  {/* Fallback watermark se não houver configuração */}
-                  {!watermarkConfig?.file && (
+                  {/* Fallback watermark se não houver marca d'água configurada */}
+                  {!watermarkConfig?.watermarkFile && (
                     <div 
                       className="absolute inset-0 flex items-center justify-center"
                       style={{
@@ -640,15 +641,15 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 />
                 
                 {/* Watermark overlay */}
-                {watermarkConfig && watermarkConfig.file && (
+                {watermarkConfig && watermarkConfig.watermarkFile && (
                   <img
-                    src={watermarkConfig.file}
+                    src={watermarkConfig.watermarkFile}
                     alt="Watermark"
                     style={getWatermarkStyle()}
                   />
                 )}
-                {/* Fallback watermark para lightbox */}
-                {!watermarkConfig?.file && (
+                {/* Fallback watermark para lightbox se não houver marca d'água */}
+                {!watermarkConfig?.watermarkFile && (
                   <div 
                     className="absolute inset-0 flex items-center justify-center pointer-events-none"
                     style={{
