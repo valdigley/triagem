@@ -248,7 +248,7 @@ const Checkout: React.FC<CheckoutProps> = ({
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-600">Método de pagamento:</span>
                 <span className="font-semibold capitalize">
-                  {paymentMethods.mercadoPago && mercadoPagoConfig.accessToken ? 'Mercado Pago' : paymentMethod.toUpperCase()}
+                  {mercadoPagoConfig.accessToken ? 'Mercado Pago' : 'Simulado'}
                 </span>
               </div>
               <div className="flex justify-between items-center mb-2">
