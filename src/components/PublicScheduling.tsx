@@ -235,12 +235,39 @@ const PublicScheduling: React.FC = () => {
     try {
       console.log('Creating event after payment confirmation...');
       
+      // Tentar criar evento no Google Calendar primeiro
+      let googleEventId: string | null = null;
+      
+      try {
+        // Buscar configuração do Google Calendar do fotógrafo
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('user_id')
+          .eq('id', photographerId)
+          .single();
+
+        if (photographer?.user_id) {
+          const googleCalendarService = await createGoogleCalendarService(photographer.user_id);
+          if (googleCalendarService) {
+            console.log('Creating Google Calendar event...');
+            googleEventId = await googleCalendarService.createEvent(pendingEventData);
+            console.log('Google Calendar event created:', googleEventId);
+          } else {
+            console.log('Google Calendar not configured for this photographer');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to create Google Calendar event:', error);
+        // Não falhar o processo se o Google Calendar der erro
+      }
+
       // Criar o evento
       const { data: newEvent, error: eventError } = await supabase
         .from('events')
         .insert({
           ...pendingEventData,
           photographer_id: photographerId,
+          google_calendar_event_id: googleEventId,
         })
         .select()
         .single();

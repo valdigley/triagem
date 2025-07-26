@@ -19,14 +19,15 @@ import {
   MapPin,
   Globe,
   Instagram,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Calendar
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import WatermarkSettings from './WatermarkSettings';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'general' | 'pricing' | 'watermark' | 'emails' | 'sessions'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'pricing' | 'watermark' | 'emails' | 'sessions' | 'calendar'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showWatermarkModal, setShowWatermarkModal] = useState(false);
@@ -564,6 +565,92 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'calendar' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Integração com Google Calendar</h3>
+            
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium text-blue-900 mb-2">📅 Como Configurar:</h4>
+              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                <li>Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                <li>Crie um projeto ou selecione um existente</li>
+                <li>Ative a API do Google Calendar</li>
+                <li>Crie credenciais OAuth 2.0</li>
+                <li>Obtenha o Access Token e configure abaixo</li>
+              </ol>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Google Calendar Access Token *
+                </label>
+                <textarea
+                  value={pricingSettings.googleCalendarAccessToken}
+                  onChange={(e) => setPricingSettings(prev => ({ ...prev, googleCalendarAccessToken: e.target.value }))}
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                  placeholder="ya29.a0AfH6SMC..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Token de acesso OAuth 2.0 do Google Calendar
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ID do Calendário (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={pricingSettings.googleCalendarId}
+                  onChange={(e) => setPricingSettings(prev => ({ ...prev, googleCalendarId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="primary"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Deixe vazio para usar o calendário principal
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-medium text-green-900 mb-2">✅ Funcionalidades:</h4>
+              <ul className="text-sm text-green-800 space-y-1">
+                <li>• Agendamentos criados automaticamente no Google Calendar</li>
+                <li>• Atualizações sincronizadas em tempo real</li>
+                <li>• Exclusões removem eventos do calendário</li>
+                <li>• Lembretes automáticos (1 dia, 1 hora, 15 min antes)</li>
+                <li>• Cliente adicionado como participante</li>
+                <li>• Descrição completa com dados da sessão</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 p-4 rounded-lg">
+              <h4 className="font-medium text-yellow-900 mb-2">⚠️ Importante:</h4>
+              <ul className="text-sm text-yellow-800 space-y-1">
+                <li>• O Access Token expira periodicamente e precisa ser renovado</li>
+                <li>• Configure os escopos: calendar.events</li>
+                <li>• Teste a integração após configurar</li>
+                <li>• Eventos são criados com duração de 2 horas por padrão</li>
+              </ul>
+            </div>
+
+            {pricingSettings.googleCalendarAccessToken && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">🔧 Status da Configuração:</h4>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Google Calendar configurado</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Novos agendamentos serão sincronizados automaticamente
+                </p>
+              </div>
+            )}
           </div>
         )}
 
