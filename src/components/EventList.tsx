@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import SchedulingPayment from './SchedulingPayment';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -54,6 +55,8 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingEventData, setPendingEventData] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     client_name: '',
     client_email: '',
@@ -183,35 +186,49 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   };
 
   const onSubmit = async (data: EventFormData) => {
-    setIsSubmitting(true);
+    // Combine date and time
+    const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
     
-    try {
-      // Combine date and time
-      const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
-      
-      // Adiciona o evento
-      const success = await addEvent({
-        client_name: data.clientName,
-        client_email: data.clientEmail,
-        client_phone: data.clientPhone,
-        session_type: data.sessionType,
-        event_date: eventDateTime.toISOString(),
-        location: 'Estúdio Fotográfico',
-        notes: data.notes,
-        status: 'scheduled',
-      });
+    // Preparar dados do evento para pagamento
+    const eventData = {
+      client_name: data.clientName,
+      client_email: data.clientEmail,
+      client_phone: data.clientPhone,
+      session_type: data.sessionType,
+      event_date: eventDateTime.toISOString(),
+      location: 'Estúdio Fotográfico',
+      notes: data.notes,
+      status: 'scheduled',
+    };
+    
+    setPendingEventData(eventData);
+    setShowPayment(true);
+  };
 
+  const handlePaymentComplete = async () => {
+    if (!pendingEventData) return;
+    
+    setIsSubmitting(true);
+    try {
+      const success = await addEvent(pendingEventData);
       if (success) {
         reset();
         setShowCreateForm(false);
+        setShowPayment(false);
+        setPendingEventData(null);
+        toast.success('Agendamento confirmado após pagamento!');
       }
-      
     } catch (error) {
       console.error('Error creating event:', error);
-      toast.error('Erro ao criar agendamento. Tente novamente.');
+      toast.error('Erro ao confirmar agendamento.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPayment(false);
+    setPendingEventData(null);
   };
 
   if (loading) {
@@ -241,7 +258,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
 
       {/* Formulário de criação */}
       {showCreateForm && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Novo Agendamento</h3>
             <button
@@ -251,6 +268,16 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
               <X className="w-5 h-5" />
             </button>
           </div>
+
+          {showPayment && (
+            <div className="absolute inset-0 bg-white rounded-lg z-10">
+              <SchedulingPayment
+                eventData={pendingEventData}
+                onComplete={handlePaymentComplete}
+                onCancel={handlePaymentCancel}
+              />
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             {/* Client Information */}
@@ -413,7 +440,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                 disabled={isSubmitting}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {isSubmitting ? 'Criando...' : 'Criar Agendamento'}
+                {isSubmitting ? 'Processando...' : 'Prosseguir para Pagamento'}
               </button>
             </div>
           </form>
