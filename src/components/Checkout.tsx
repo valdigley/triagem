@@ -139,12 +139,19 @@ const Checkout: React.FC<CheckoutProps> = ({
       mercadoPagoConfigExists: !!mercadoPagoConfig.accessToken,
       selectedMethod: paymentMethod,
     });
+
+    console.log('Starting payment process:', {
+      paymentMethods,
+      mercadoPagoConfigExists: !!mercadoPagoConfig.accessToken,
+      selectedMethod: paymentMethod,
+    });
     setIsProcessing(true);
 
     try {
       let paymentResult;
 
       if (paymentMethods.mercadoPago && mercadoPagoConfig.accessToken) {
+        console.log('Using MercadoPago payment method');
         console.log('Using MercadoPago payment method');
         // Processar com Mercado Pago
         paymentResult = await createMercadoPagoPayment();
@@ -155,6 +162,8 @@ const Checkout: React.FC<CheckoutProps> = ({
           // Você pode implementar um modal com o QR code aqui
           console.log('QR Code:', paymentResult.qr_code);
           console.log('QR Code Base64:', paymentResult.qr_code_base64);
+          console.log('QR Code:', paymentResult.qr_code);
+          console.log('QR Code Base64:', paymentResult.qr_code_base64);
         } else if (paymentResult.status === 'approved') {
           toast.success('Pagamento aprovado!');
         } else if (paymentResult.status === 'pending') {
@@ -163,6 +172,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           toast.error(`Status do pagamento: ${paymentResult.status}`);
         }
       } else {
+        console.log('Using simulated payment method');
         console.log('Using simulated payment method');
         // Simular processamento para outros métodos
         await new Promise(resolve => setTimeout(resolve, 3000));
