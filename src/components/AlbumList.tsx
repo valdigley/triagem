@@ -169,10 +169,20 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const getSelectionStatusColor = (albumId: string) => {
     const status = getPaymentStatus(albumId);
     switch (status) {
-      case 'Selecionado!': return 'text-green-600';
-      case 'Não selecionado': return 'text-orange-600';
-      case 'Sem fotos': return 'text-gray-400';
+      case 'Selecionado!': return 'text-green-800';
+      case 'Não selecionado': return 'text-yellow-800';
+      case 'Sem fotos': return 'text-gray-600';
       default: return 'text-gray-500';
+    }
+  };
+
+  const getSessionBackgroundColor = (albumId: string) => {
+    const status = getPaymentStatus(albumId);
+    switch (status) {
+      case 'Selecionado!': return 'bg-green-50 border-green-200';
+      case 'Não selecionado': return 'bg-yellow-50 border-yellow-200';
+      case 'Sem fotos': return 'bg-gray-50 border-gray-200';
+      default: return 'bg-white border-gray-200';
     }
   };
 
@@ -234,7 +244,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const selectedCount = getSelectedPhotosCount(album.id);
             
             return (
-              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div key={album.id} className={`rounded-lg shadow-sm border p-6 ${getSessionBackgroundColor(album.id)}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
@@ -444,8 +454,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </button>
                 </div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Status da seleção:</span>
-                  <span className={`font-semibold ${getSelectionStatusColor(album.id)}`}>
+                  <span className="text-gray-700 font-medium">Status da seleção:</span>
+                  <span className={`font-bold text-lg ${getSelectionStatusColor(album.id)}`}>
                     {getPaymentStatus(album.id)}
                   </span>
                 </div>
