@@ -388,6 +388,20 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                       style={getWatermarkStyle()}
                     />
                   )}
+                  {/* Fallback watermark se não houver configuração */}
+                  {!watermarkConfig?.file && (
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center"
+                      style={{
+                        background: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.1) 35px, rgba(255,255,255,0.1) 70px)',
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      <div className="text-white text-opacity-30 text-lg font-bold transform rotate-45">
+                        PREVIEW
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Selection overlay */}
@@ -482,6 +496,19 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     alt="Watermark"
                     style={getWatermarkStyle()}
                   />
+                )}
+                {/* Fallback watermark para lightbox */}
+                {!watermarkConfig?.file && (
+                  <div 
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{
+                      background: 'repeating-linear-gradient(45deg, transparent, transparent 50px, rgba(255,255,255,0.1) 50px, rgba(255,255,255,0.1) 100px)',
+                    }}
+                  >
+                    <div className="text-white text-opacity-40 text-2xl font-bold transform rotate-45">
+                      PREVIEW
+                    </div>
+                  </div>
                 )}
               </div>
 

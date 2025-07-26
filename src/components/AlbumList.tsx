@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Share2, Eye, Download, Calendar, User, Plus, Upload, Trash2 } from 'lucide-react';
+import { Image, MessageCircle, Mail, Eye, Download, Calendar, User, Plus, Upload, Trash2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -21,12 +21,42 @@ const sessionTypeLabels: Record<string, string> = {
 const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const { events, albums, photos, orders, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
   const [uploadingAlbumId, setUploadingAlbumId] = useState<string | null>(null);
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
 
   // Forçar re-render quando álbuns mudarem
   React.useEffect(() => {
     // Este useEffect força o componente a re-renderizar quando os álbuns mudarem
   }, [albums]);
 
+  const deletePhoto = async (photoId: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta foto? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    setDeletingPhotoId(photoId);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('photos')
+        .delete()
+        .eq('id', photoId);
+
+      if (error) {
+        console.error('Error deleting photo:', error);
+        toast.error('Erro ao excluir foto');
+        return;
+      }
+
+      toast.success('Foto excluída com sucesso!');
+      // Forçar recarregamento dos dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      toast.error('Erro ao excluir foto');
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
   const handlePhotoUpload = async (albumId: string, files: FileList) => {
     if (!files || files.length === 0) return;
 
@@ -58,10 +88,27 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     }
   };
 
-  const copyShareLink = (shareToken: string) => {
+  const shareViaWhatsApp = (shareToken: string, clientName: string, clientPhone: string) => {
     const shareUrl = `${window.location.origin}/album/${shareToken}`;
-    navigator.clipboard.writeText(shareUrl);
-    toast.success('Link do cliente copiado! Envie para o cliente selecionar as fotos.');
+    const message = encodeURIComponent(`Olá ${clientName}! 📸 Suas fotos estão prontas para seleção! Acesse o link: ${shareUrl}`);
+    
+    // Limpar o telefone removendo caracteres especiais
+    const cleanPhone = clientPhone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    
+    const whatsappUrl = `https://wa.me/${fullPhone}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+    toast.success('Abrindo WhatsApp...');
+  };
+
+  const shareViaEmail = (shareToken: string, clientName: string, clientEmail: string) => {
+    const shareUrl = `${window.location.origin}/album/${shareToken}`;
+    const subject = encodeURIComponent('📸 Suas fotos estão prontas para seleção!');
+    const body = encodeURIComponent(`Olá ${clientName}!\n\nSuas fotos estão prontas para seleção! 📸\n\nAcesse o link abaixo para visualizar e selecionar suas fotos favoritas:\n${shareUrl}\n\nQualquer dúvida, entre em contato conosco.\n\nObrigado!`);
+    
+    const emailUrl = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
+    window.open(emailUrl, '_blank');
+    toast.success('Abrindo cliente de e-mail...');
   };
 
   const getAlbumPhotos = (albumId: string) => {
@@ -241,13 +288,24 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button 
-                    onClick={() => copyShareLink(album.share_token)}
-                    className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Compartilhar
-                  </button>
+                  {event && (
+                    <>
+                      <button 
+                        onClick={() => shareViaWhatsApp(album.share_token, event.client_name, event.client_phone)}
+                        className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </button>
+                      <button 
+                        onClick={() => shareViaEmail(album.share_token, event.client_name, event.client_email)}
+                        className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <Mail className="w-4 h-4" />
+                        E-mail
+                      </button>
+                    </>
+                  )}
                   <button 
                     onClick={() => onViewAlbum?.(album.id)}
                     className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
