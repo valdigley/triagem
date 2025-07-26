@@ -33,7 +33,12 @@ serve(async (req) => {
       .from('events')
       .select(`
         *,
-        photographers!inner(*)
+        photographers!inner(
+          id,
+          business_name,
+          phone,
+          watermark_config
+        )
       `)
       .gte('event_date', tomorrow.toISOString())
       .lt('event_date', dayAfterTomorrow.toISOString())
@@ -49,7 +54,12 @@ serve(async (req) => {
       .from('events')
       .select(`
         *,
-        photographers!inner(*)
+        photographers!inner(
+          id,
+          business_name,
+          phone,
+          watermark_config
+        )
       `)
       .gte('event_date', today.toISOString())
       .lt('event_date', endOfToday.toISOString())
@@ -61,7 +71,12 @@ serve(async (req) => {
     // Enviar lembretes de 1 dia antes
     if (eventsForDayBefore) {
       for (const event of eventsForDayBefore) {
-        await sendDayBeforeReminder(event);
+        try {
+          await sendDayBeforeReminder(event);
+          console.log(`Day-before reminder sent for event ${event.id}`);
+        } catch (error) {
+          console.error(`Failed to send day-before reminder for event ${event.id}:`, error);
+        }
       }
     }
 
@@ -69,7 +84,12 @@ serve(async (req) => {
     const currentHour = new Date().getHours();
     if (eventsForToday && currentHour >= 8 && currentHour <= 10) {
       for (const event of eventsForToday) {
-        await sendDayOfReminder(event);
+        try {
+          await sendDayOfReminder(event);
+          console.log(`Day-of reminder sent for event ${event.id}`);
+        } catch (error) {
+          console.error(`Failed to send day-of reminder for event ${event.id}:`, error);
+        }
       }
     }
 
@@ -78,6 +98,8 @@ serve(async (req) => {
         success: true,
         dayBeforeReminders: eventsForDayBefore?.length || 0,
         dayOfReminders: (currentHour >= 8 && currentHour <= 10) ? (eventsForToday?.length || 0) : 0
+        currentHour: currentHour,
+        message: `Processed reminders at ${new Date().toISOString()}`
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -101,6 +123,8 @@ serve(async (req) => {
 })
 
 async function sendDayBeforeReminder(event: any) {
+  console.log('Sending day-before reminder for:', event.client_name);
+  
   const sessionTypeLabels: Record<string, string> = {
     'gestante': 'Sessão Gestante',
     'aniversario': 'Aniversário',
@@ -117,8 +141,9 @@ async function sendDayBeforeReminder(event: any) {
   const studioSettings = {
     businessName: event.photographers.business_name,
     phone: event.photographers.phone,
-    email: event.photographers.watermark_config?.email || '',
-    address: event.photographers.watermark_config?.address || '',
+    email: event.photographers.watermark_config?.email || 'contato@estudio.com',
+    address: event.photographers.watermark_config?.address || 'Estúdio Fotográfico',
+    website: event.photographers.watermark_config?.website || '',
   };
 
   const emailHtml = `
@@ -166,12 +191,19 @@ async function sendDayBeforeReminder(event: any) {
           <p style="color: #999; font-size: 14px;">
             Dúvidas? Entre em contato: ${studioSettings.phone}
           </p>
+          ${studioSettings.website ? `<p style="color: #999; font-size: 14px;">Site: ${studioSettings.website}</p>` : ''}
+        </div>
+        
+        <div style="text-align: center; padding: 20px; background: #333; color: white; border-radius: 8px;">
+          <p style="margin: 0; font-size: 14px;">
+            ${studioSettings.businessName} - Capturando seus melhores momentos
+          </p>
         </div>
       </div>
     </div>
   `;
 
-  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+  const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -186,22 +218,26 @@ async function sendDayBeforeReminder(event: any) {
       studioData: studioSettings,
     }),
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to send day-before reminder email:', errorText);
+    throw new Error(`Email send failed: ${response.status}`);
+  }
+  
+  console.log('Day-before reminder email sent successfully');
 }
 
 async function sendDayOfReminder(event: any) {
+  console.log('Sending day-of reminder for:', event.client_name);
+  
   // Carregar configurações de email do fotógrafo
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   )
 
-  const { data: photographer } = await supabase
-    .from('photographers')
-    .select('watermark_config')
-    .eq('id', event.photographer_id)
-    .single();
-
-  const emailTemplates = photographer?.watermark_config?.emailTemplates;
+  const emailTemplates = event.photographers?.watermark_config?.emailTemplates;
   
   // Verificar se o email está habilitado
   if (!emailTemplates?.dayOfReminder?.enabled) {
@@ -225,8 +261,8 @@ async function sendDayOfReminder(event: any) {
   const studioSettings = {
     businessName: event.photographers.business_name,
     phone: event.photographers.phone,
-    email: event.photographers.watermark_config?.email || '',
-    address: event.photographers.watermark_config?.address || '',
+    email: event.photographers.watermark_config?.email || 'contato@estudio.com',
+    address: event.photographers.watermark_config?.address || 'Estúdio Fotográfico',
     website: event.photographers.watermark_config?.website || '',
   };
 
@@ -274,10 +310,16 @@ async function sendDayOfReminder(event: any) {
           ${message}
         </div>
       </div>
+      
+      <div style="text-align: center; padding: 20px; background: #333; color: white;">
+        <p style="margin: 0; font-size: 14px;">
+          ${studioSettings.businessName} - Capturando seus melhores momentos
+        </p>
+      </div>
     </div>
   `;
 
-  await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
+  const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-email`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -292,4 +334,12 @@ async function sendDayOfReminder(event: any) {
       studioData: studioSettings,
     }),
   });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Failed to send day-of reminder email:', errorText);
+    throw new Error(`Email send failed: ${response.status}`);
+  }
+  
+  console.log('Day-of reminder email sent successfully');
 }

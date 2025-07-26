@@ -190,7 +190,10 @@ const PublicScheduling: React.FC = () => {
           </div>
         </div>
       `;
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
+      
+      console.log('Sending booking confirmation email to:', eventData.client_email);
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,9 +209,19 @@ const PublicScheduling: React.FC = () => {
         }),
       });
 
-      console.log('Booking confirmation email sent');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to send booking confirmation email:', errorData);
+        throw new Error(`Email send failed: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log('Booking confirmation email sent successfully:', result);
+      
     } catch (error) {
       console.error('Error sending booking confirmation email:', error);
+      // Não falhar o processo de agendamento se o email falhar
+      console.log('Continuing with booking process despite email error');
     }
   };
 
