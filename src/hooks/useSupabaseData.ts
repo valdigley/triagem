@@ -181,16 +181,22 @@ export const useSupabaseData = () => {
       // Carregar pedidos
       if (eventsData && eventsData.length > 0) {
         const eventIds = eventsData.map(event => event.id);
-        const { data: ordersData, error: ordersError } = await supabase
-          .from('orders')
-          .select('*')
-          .in('event_id', eventIds)
-          .order('created_at', { ascending: false });
+        try {
+          const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('*')
+            .in('event_id', eventIds)
+            .order('created_at', { ascending: false });
 
-        if (ordersError) {
-          console.error('Error loading orders:', ordersError);
-        } else {
-          setOrders(ordersData || []);
+          if (ordersError) {
+            console.error('Error loading orders:', ordersError);
+            setOrders([]);
+          } else {
+            setOrders(ordersData || []);
+          }
+        } catch (error) {
+          console.error('Network error loading orders:', error);
+          setOrders([]);
         }
       } else {
         setOrders([]);
