@@ -142,6 +142,44 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
     return total + (photo?.price || 0);
   }, 0);
 
+  // Calcular desconto progressivo
+  const calculateTotalWithDiscount = () => {
+    const selectedCount = selectedPhotos.size;
+    let baseTotal = totalPrice;
+    
+    if (selectedCount > 10) {
+      // Primeiras 10 fotos: preço normal
+      const firstTenPhotos = Array.from(selectedPhotos).slice(0, 10);
+      const firstTenTotal = firstTenPhotos.reduce((total, photoId) => {
+        const photo = photos.find(p => p.id === photoId);
+        return total + (photo?.price || 0);
+      }, 0);
+      
+      // Fotos extras (acima de 10): 20% de desconto
+      const extraPhotos = Array.from(selectedPhotos).slice(10);
+      const extraTotal = extraPhotos.reduce((total, photoId) => {
+        const photo = photos.find(p => p.id === photoId);
+        return total + ((photo?.price || 0) * 0.8); // 20% desconto
+      }, 0);
+      
+      return {
+        total: firstTenTotal + extraTotal,
+        discount: baseTotal - (firstTenTotal + extraTotal),
+        hasDiscount: true,
+        extraPhotosCount: extraPhotos.length
+      };
+    }
+    
+    return {
+      total: baseTotal,
+      discount: 0,
+      hasDiscount: false,
+      extraPhotosCount: 0
+    };
+  };
+
+  const priceCalculation = calculateTotalWithDiscount();
+
   const handleFinishSelection = () => {
     if (selectedPhotos.size === 0) {
       toast.error('Selecione pelo menos uma foto');
@@ -206,7 +244,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
           <Checkout
             albumId={album.id}
             selectedPhotos={Array.from(selectedPhotos)}
-            totalAmount={totalPrice}
+            totalAmount={priceCalculation.total}
             onBack={() => setShowCheckout(false)}
             onComplete={() => {
               setShowCheckout(false);
@@ -237,9 +275,32 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
                 <h3 className="text-lg font-semibold text-gray-900">
                   {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
                 </h3>
-                <p className="text-gray-600">
-                  Total: R$ {totalPrice.toFixed(2)}
-                </p>
+                <div className="text-gray-600">
+                  {priceCalculation.hasDiscount ? (
+                    <div>
+                      <p className="text-sm">
+                        Primeiras 10 fotos: R$ {(totalPrice - (priceCalculation.extraPhotosCount * (photos[0]?.price || 0))).toFixed(2)}
+                      </p>
+                      <p className="text-sm">
+                        {priceCalculation.extraPhotosCount} fotos extras (20% desconto): 
+                        <span className="line-through text-gray-400 ml-1">
+                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0)).toFixed(2)}
+                        </span>
+                        <span className="text-green-600 ml-1 font-medium">
+                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0) * 0.8).toFixed(2)}
+                        </span>
+                      </p>
+                      <p className="font-semibold text-lg">
+                        Total: R$ {priceCalculation.total.toFixed(2)}
+                        <span className="text-green-600 text-sm ml-2">
+                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                        </span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p>Total: R$ {priceCalculation.total.toFixed(2)}</p>
+                  )}
+                </div>
               </div>
               <button
                 onClick={handleFinishSelection}

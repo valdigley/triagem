@@ -379,6 +379,25 @@ export const useSupabaseData = () => {
 
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
+    // Buscar preço atual das configurações
+    let currentPrice = 25.00; // Preço padrão
+    
+    try {
+      if (user) {
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('watermark_config')
+          .eq('user_id', user.id)
+          .single();
+
+        if (photographer?.watermark_config?.photoPrice) {
+          currentPrice = photographer.watermark_config.photoPrice;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading photo price:', error);
+    }
+
     try {
       // Tentar upload real para Supabase Storage
       const photoPromises = files.map(async (file, index) => {
@@ -432,7 +451,7 @@ export const useSupabaseData = () => {
             thumbnail_path: thumbnailUrl,
             watermarked_path: watermarkedUrl,
             is_selected: false,
-            price: 25.00,
+            price: currentPrice,
             metadata: {
               size: file.size,
               type: file.type,
@@ -452,7 +471,7 @@ export const useSupabaseData = () => {
               thumbnail_path: `https://picsum.photos/300/200?random=${Date.now()}_${index}`,
               watermarked_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
               is_selected: false,
-              price: 25.00,
+              price: currentPrice,
               metadata: {
                 size: file.size,
                 type: file.type,
@@ -523,6 +542,25 @@ export const useSupabaseData = () => {
 
   // Função de upload de demonstração melhorada
   const uploadPhotosDemo = async (albumId: string, files: File[]) => {
+    // Buscar preço atual das configurações
+    let currentPrice = 25.00; // Preço padrão
+    
+    try {
+      if (user) {
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('watermark_config')
+          .eq('user_id', user.id)
+          .single();
+
+        if (photographer?.watermark_config?.photoPrice) {
+          currentPrice = photographer.watermark_config.photoPrice;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading photo price:', error);
+    }
+
     try {
       const photosData = files.map((file, index) => ({
         album_id: albumId,
@@ -531,7 +569,7 @@ export const useSupabaseData = () => {
         thumbnail_path: `https://picsum.photos/300/200?random=${Date.now()}_${index}`,
         watermarked_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
         is_selected: false,
-        price: 25.00,
+        price: currentPrice,
         metadata: {
           size: file.size,
           type: file.type,
