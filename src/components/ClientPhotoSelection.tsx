@@ -220,44 +220,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       toast.error('Selecione pelo menos uma foto');
       return;
     }
-    
-    if (priceCalculation.total > 0) {
-      setShowCheckout(true);
-    } else {
-      // Fotos gratuitas - confirmar seleção diretamente
-      confirmFreeSelection();
-    }
-  };
-
-  const confirmFreeSelection = async () => {
-    setIsSubmitting(true);
-    try {
-      // Salvar seleção no banco sem pagamento
-      const { error } = await supabase
-        .from('orders')
-        .insert({
-          event_id: album?.event_id,
-          client_email: 'cliente@email.com', // Seria obtido do contexto
-          selected_photos: Array.from(selectedPhotos),
-          total_amount: 0,
-          status: 'paid', // Considerado pago pois não há cobrança
-          payment_intent_id: `free_${Date.now()}`,
-        });
-
-      if (error) {
-        console.error('Error saving free selection:', error);
-        toast.error('Erro ao confirmar seleção');
-        return;
-      }
-
-      toast.success('Seleção confirmada com sucesso!');
-      setSelectedPhotos(new Set());
-    } catch (error) {
-      console.error('Error confirming free selection:', error);
-      toast.error('Erro ao confirmar seleção');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setShowCheckout(true);
   };
 
   const getWatermarkStyle = () => {
@@ -424,32 +387,6 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   )}
                 </p>
               </div>
-            </div>
-          </div>
-        )}
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 text-sm ml-2">
-                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={handleFinishSelection}
-                disabled={isSubmitting}
-                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
-                  priceCalculation.total > 0 
-                    ? 'bg-green-600 text-white hover:bg-green-700' 
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {isSubmitting ? 'Finalizando...' : 
-                 priceCalculation.total > 0 ? 'Finalizar Seleção' : 'Confirmar Seleção'}
-              </button>
             </div>
           </div>
         )}
