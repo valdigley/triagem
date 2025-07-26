@@ -35,10 +35,16 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pricingConfig, setPricingConfig] = useState({
+    photoPrice: 25.00,
+    packagePhotos: 10,
+    minimumPackagePrice: 300.00
+  });
 
   useEffect(() => {
     loadAlbumData();
     loadWatermarkConfig();
+    loadPricingConfig();
   }, [shareToken]);
 
   const loadAlbumData = async () => {
@@ -109,6 +115,26 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     }
   };
 
+  const loadPricingConfig = async () => {
+    try {
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .limit(1)
+        .single();
+
+      if (photographer?.watermark_config) {
+        const config = photographer.watermark_config;
+        setPricingConfig({
+          photoPrice: config.photoPrice || 25.00,
+          packagePhotos: config.packagePhotos || 10,
+          minimumPackagePrice: config.minimumPackagePrice || 300.00
+        });
+      }
+    } catch (error) {
+      console.error('Error loading pricing config:', error);
+    }
+  };
   const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
     const isSelected = newSelected.has(photoId);
@@ -148,24 +174,23 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   // Calcular preços com sistema de pacote mínimo e desconto progressivo
   const calculateTotalWithDiscount = () => {
     const selectedCount = selectedPhotos.size;
-    const minimumPackagePrice = 300.00;
-    const photoPrice = 25.00; // Preço por foto
+    const { photoPrice, packagePhotos } = pricingConfig;
     
-    if (selectedCount <= 10) {
-      // Até 10 fotos: incluídas no pacote mínimo (já pago no agendamento)
+    if (selectedCount <= packagePhotos) {
+      // Até X fotos: incluídas no pacote mínimo (já pago no agendamento)
       return {
         total: 0, // Já pago no agendamento
         discount: 0,
         hasDiscount: false,
         extraPhotosCount: 0,
         packagePhotos: selectedCount,
-        isMinimumPackage: selectedCount <= 10,
+        isMinimumPackage: selectedCount <= packagePhotos,
         message: `${selectedCount} foto${selectedCount > 1 ? 's' : ''} incluída${selectedCount > 1 ? 's' : ''} no pacote já pago`
       };
     }
     
-    // Mais de 10 fotos: pacote mínimo + fotos extras com desconto
-    const extraPhotosCount = selectedCount - 10;
+    // Mais de X fotos: pacote mínimo + fotos extras com desconto
+    const extraPhotosCount = selectedCount - packagePhotos;
     let extraPhotosTotal = extraPhotosCount * photoPrice;
     let discount = 0;
     
@@ -182,7 +207,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       discount: discount,
       hasDiscount: discount > 0,
       extraPhotosCount: extraPhotosCount,
-      packagePhotos: 10,
+      packagePhotos: packagePhotos,
       extraPhotosOriginalTotal: extraPhotosTotal,
       photoPrice: photoPrice
     };
@@ -293,7 +318,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     </div>
                   ) : (
                     <div>
-                      <p className="text-sm text-green-600">10 fotos incluídas no pacote</p>
+                      <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
                       <p className="text-sm">
                         {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
                         {priceCalculation.hasDiscount && (
@@ -328,7 +353,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
           </div>
         )}
 
-        {/* Photo Grid */}
+        {selectedPhotos.size > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {photos.map((photo, index) => {
             const isSelected = selectedPhotos.has(photo.id);
@@ -388,10 +413,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   </div>
 
                   {/* Price tag */}
-                  {selectedPhotos.size >= 10 && (
+                  {selectedPhotos.size > pricingConfig.packagePhotos && (
                     <div className="absolute bottom-2 left-2">
                       <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                        R$ {photo.price.toFixed(2)}
+                        R$ {pricingConfig.photoPrice.toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -465,8 +490,8 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     <p className="font-semibold">{photos[lightboxPhotoIndex].filename}</p>
                     <p className="text-sm text-gray-300">
                       {lightboxPhotoIndex + 1} de {photos.length}
-                      {selectedPhotos.size >= 10 && (
-                        <span> • R$ {photos[lightboxPhotoIndex].price.toFixed(2)}</span>
+                      {selectedPhotos.size > pricingConfig.packagePhotos && (
+                        <span> • R$ {pricingConfig.photoPrice.toFixed(2)}</span>
                       )}
                     </p>
                   </div>
@@ -480,10 +505,15 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     }`}
                   >
                     {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
-                  </button>
+            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+              priceCalculation.total > 0 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
                 </div>
               </div>
-            </div>
+            {isSubmitting ? 'Finalizando...' : 
+             priceCalculation.total > 0 ? 'Finalizar Seleção' : 'Confirmar Seleção'}
           </div>
         )}
       </div>
