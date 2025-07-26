@@ -191,7 +191,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           client_email: clientEmail,
           selected_photos: selectedPhotos,
           total_amount: totalAmount,
-          status: paymentResult?.status === 'approved' ? 'paid' : 'pending',
+          status: 'pending', // Sempre começar como pending, webhook vai atualizar
           payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
         });
 
@@ -202,17 +202,12 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       setOrderCompleted(true);
       
-      if (paymentResult?.status === 'approved') {
-        toast.success('Pagamento aprovado com sucesso!');
-      } else {
-        toast.success('Pedido criado! Aguardando confirmação do pagamento.');
-      }
+      // Sempre mostrar como pendente inicialmente
+      toast.success('Pedido criado! Aguardando confirmação do pagamento.');
       
       // Enviar e-mail com links de download (simulado)
       setTimeout(() => {
-        if (paymentResult?.status === 'approved') {
-          toast.success('E-mail com links de download enviado!');
-        }
+        toast.info('Você receberá um e-mail quando o pagamento for confirmado.');
       }, 1000);
 
     } catch (error) {

@@ -79,6 +79,7 @@ serve(async (req) => {
       metadata: {
         selected_photos: selected_photos.join(','),
         event_id: event_id || '',
+        client_email: payer.email,
       }
     }
 

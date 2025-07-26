@@ -41,11 +41,23 @@ export interface Photo {
   created_at: string;
 }
 
+export interface Order {
+  id: string;
+  event_id: string;
+  client_email: string;
+  selected_photos: string[];
+  total_amount: number;
+  status: 'pending' | 'paid' | 'cancelled' | 'expired';
+  payment_intent_id?: string;
+  created_at: string;
+}
+
 export const useSupabaseData = () => {
   const { user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
 
@@ -151,6 +163,24 @@ export const useSupabaseData = () => {
         }
       } else {
         setPhotos([]);
+      }
+
+      // Carregar pedidos
+      if (eventsData && eventsData.length > 0) {
+        const eventIds = eventsData.map(event => event.id);
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select('*')
+          .in('event_id', eventIds)
+          .order('created_at', { ascending: false });
+
+        if (ordersError) {
+          console.error('Error loading orders:', ordersError);
+        } else {
+          setOrders(ordersData || []);
+        }
+      } else {
+        setOrders([]);
       }
 
     } catch (error) {
@@ -518,6 +548,7 @@ export const useSupabaseData = () => {
       setEvents([]);
       setAlbums([]);
       setPhotos([]);
+      setOrders([]);
       setPhotographerId(null);
       setLoading(false);
     }
@@ -527,6 +558,7 @@ export const useSupabaseData = () => {
     events,
     albums,
     photos,
+    orders,
     loading,
     photographerId,
     addEvent,

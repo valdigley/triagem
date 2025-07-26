@@ -10,7 +10,7 @@ interface AlbumListProps {
 }
 
 const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
-  const { events, albums, photos, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
+  const { events, albums, photos, orders, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState('');
   const [albumName, setAlbumName] = useState('');
@@ -101,6 +101,30 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
   const getEventForAlbum = (eventId: string) => {
     return events.find(event => event.id === eventId);
+  };
+
+  const getPaymentStatus = (albumId: string) => {
+    const album = albums.find(a => a.id === albumId);
+    if (!album) return 'Sem pedidos';
+    
+    const albumOrders = orders.filter(order => order.event_id === album.event_id);
+    if (albumOrders.length === 0) return 'Sem pedidos';
+    
+    const paidOrders = albumOrders.filter(order => order.status === 'paid');
+    const pendingOrders = albumOrders.filter(order => order.status === 'pending');
+    
+    if (paidOrders.length > 0) return 'Pago';
+    if (pendingOrders.length > 0) return 'Pendente';
+    return 'Sem pagamento';
+  };
+
+  const getPaymentStatusColor = (albumId: string) => {
+    const status = getPaymentStatus(albumId);
+    switch (status) {
+      case 'Pago': return 'text-green-600';
+      case 'Pendente': return 'text-yellow-600';
+      default: return 'text-gray-600';
+    }
   };
 
   if (loading) {
@@ -342,6 +366,12 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     Excluir
                   </button>
                 </div>
+              </div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Status do pagamento:</span>
+                <span className={`font-semibold ${getPaymentStatusColor(album.id)}`}>
+                  {getPaymentStatus(album.id)}
+                </span>
               </div>
             );
           })}
