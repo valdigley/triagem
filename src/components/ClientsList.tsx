@@ -246,9 +246,18 @@ const ClientsList: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-        <p className="text-gray-600">Gerencie seus clientes e entre em contato facilmente ({clients.length} clientes)</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-gray-600">Gerencie seus clientes e entre em contato facilmente ({supabaseClients.length} salvos, {clients.length} total)</p>
+        </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar Cliente
+        </button>
       </div>
 
       {/* Filtros e Busca */}
@@ -302,15 +311,8 @@ const ClientsList: React.FC = () => {
               R$ {clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-sm text-gray-600">Receita Total</div>
-          <p className="text-gray-600">Gerencie seus clientes e entre em contato facilmente ({supabaseClients.length} salvos, {clients.length} total)</p>
+          </div>
         </div>
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar Cliente
-        </button>
       </div>
 
       {/* Formulário de Adicionar/Editar Cliente */}
@@ -484,32 +486,6 @@ const ClientsList: React.FC = () => {
                     <MessageCircle className="w-4 h-4" />
                     WhatsApp
                   </button>
-
-                  {/* Botões de Ação */}
-                  <div className="flex gap-2">
-                    {!client.id.startsWith('temp_') ? (
-                      <>
-                        <button
-                          onClick={() => handleEdit(client)}
-                          className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Edit className="w-4 h-4" />
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDelete(client.id)}
-                          className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Excluir
-                        </button>
-                      </>
-                    ) : (
-                      <div className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm">
-                        Cliente temporário - adicione para gerenciar
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
 
