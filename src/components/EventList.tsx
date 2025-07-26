@@ -110,7 +110,7 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{event.clientName}</h3>
                     <p className="text-gray-600">
-                      {event.session_type ? sessionTypeLabels[event.session_type] || event.session_type : 'Tipo não definido'}
+                      {event.session_type ? `${sessionTypeLabels[event.session_type] || event.session_type} - ${event.client_name}` : `Tipo não definido - ${event.client_name}`}
                     </p>
                   </div>
                 </div>

@@ -119,6 +119,7 @@ const Dashboard: React.FC = () => {
         id: event.id,
         clientName: event.client_name,
         sessionType: event.session_type ? sessionTypeLabels[event.session_type] || event.session_type : 'Tipo não definido',
+        displayName: event.session_type ? `${sessionTypeLabels[event.session_type] || event.session_type} - ${event.client_name}` : `Tipo não definido - ${event.client_name}`,
         eventDate: event.event_date,
         status: event.status,
         photos: eventPhotos.length,
@@ -287,7 +288,7 @@ const Dashboard: React.FC = () => {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tipo de Sessão
+                  Sessão
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Data
@@ -313,7 +314,7 @@ const Dashboard: React.FC = () => {
                     {event.clientName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {event.sessionType}
+                    {event.displayName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(event.eventDate).toLocaleDateString('pt-BR')}
