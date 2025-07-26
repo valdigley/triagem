@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings, MessageSquare, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import Checkout from './Checkout';
@@ -33,12 +33,27 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
+  const [showComments, setShowComments] = useState(false);
+  const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
+  const [editingComment, setEditingComment] = useState<string | null>(null);
+  const [tempComment, setTempComment] = useState('');
 
   // Inicializar seleções quando as fotos carregarem (apenas para cliente)
   React.useEffect(() => {
     if (albumPhotos.length > 0 && isClientView) {
       const selected = new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id));
       setSelectedPhotos(selected);
+    }
+    
+    // Carregar comentários das fotos
+    if (albumPhotos.length > 0) {
+      const comments: Record<string, string> = {};
+      albumPhotos.forEach(photo => {
+        if (photo.metadata?.comment) {
+          comments[photo.id] = photo.metadata.comment;
+        }
+      });
+      setPhotoComments(comments);
     }
   }, [albumId, photos.length, isClientView]);
 

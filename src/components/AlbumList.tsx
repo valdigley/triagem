@@ -182,22 +182,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     
     if (selectedPhotos.length === 0) return '';
     
-    // Formato da data: DD.MM.YYYY
-    const eventDate = format(new Date(event.event_date), 'dd.MM.yyyy');
-    
-    // Tipo de sessão formatado
-    const sessionType = event.session_type ? 
-      sessionTypeLabels[event.session_type] || event.session_type : 
-      'Sessao';
-    
-    // Nome do cliente (primeiro nome)
-    const clientName = event.client_name.split(' ')[0];
-    
-    // Gerar lista de nomes de arquivos baseado nos índices das fotos selecionadas
-    const filenames = selectedPhotos.map((photo, index) => {
-      // Usar o índice da foto no álbum + 1 para numeração
-      const photoIndex = albumPhotos.findIndex(p => p.id === photo.id) + 1;
-      return `"${eventDate} ${sessionType} ${clientName}-${photoIndex}."`;
+    // Usar os nomes originais dos arquivos
+    const filenames = selectedPhotos.map((photo) => {
+      return `"${photo.filename}"`;
     });
     
     return filenames.join(' OR ');
@@ -362,8 +349,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         </div>
                         
                         <div className="mt-2 text-xs text-gray-500">
-                          <p><strong>Formato:</strong> DD.MM.YYYY TipoSessao NomeCliente-NumeroFoto</p>
-                          <p><strong>Exemplo:</strong> "08.07.2025 Pre Wedding Ingrid-3." OR "08.07.2025 Pre Wedding Ingrid-7."</p>
+                          <p><strong>Formato:</strong> Nomes originais dos arquivos enviados</p>
+                          <p><strong>Exemplo:</strong> "DSC_0001.jpg" OR "IMG_2345.jpg" OR "foto_sessao_01.jpg"</p>
                         </div>
                       </div>
                     )}
