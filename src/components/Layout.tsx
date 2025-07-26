@@ -29,7 +29,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     { name: 'Dashboard', key: 'dashboard', icon: Camera },
     { name: 'Agendamentos', key: 'events', icon: Calendar },
     { name: 'Álbuns', key: 'albums', icon: Image },
-    { name: 'Novo Agendamento', key: 'scheduling', icon: Calendar },
     { name: 'Configurações', key: 'settings', icon: Settings },
   ];
 

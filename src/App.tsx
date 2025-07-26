@@ -52,7 +52,6 @@ const AppContent: React.FC = () => {
         return <Dashboard />;
       case 'events':
         return <EventList 
-          onCreateNew={() => setCurrentView('scheduling')}
           onViewAlbum={(eventId) => setCurrentView('gallery')}
         />;
       case 'albums':
@@ -60,8 +59,6 @@ const AppContent: React.FC = () => {
           setCurrentView('gallery');
           setSelectedAlbumId(albumId);
         }} />;
-      case 'scheduling':
-        return <EventScheduling onBack={() => setCurrentView('events')} />;
       case 'settings':
         return <Settings />;
       case 'gallery':
