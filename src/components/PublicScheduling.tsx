@@ -368,6 +368,12 @@ const PublicScheduling: React.FC = () => {
         if (status === 'approved') {
           setIsWaitingPayment(false);
           setPaymentStatus('approved');
+          
+          // Enviar email de confirmação quando pagamento for aprovado
+          if (pendingEventData) {
+            await sendBookingConfirmationEmail(pendingEventData, studioSettings);
+          }
+          
           toast.success('Pagamento confirmado!');
           toast.success('Agendamento confirmado com sucesso!');
         } else if (status === 'rejected') {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, CreditCard, Smartphone, Check, Download, Mail } from 'lucide-react';
+import { ArrowLeft, Check, Download, Mail } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,15 +22,9 @@ const Checkout: React.FC<CheckoutProps> = ({
 }) => {
   const { photos, albums, events } = useSupabaseData();
   const { user } = useAuth();
-  const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix');
   const [clientEmail, setClientEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
-  const [paymentMethods, setPaymentMethods] = useState({
-    pix: true,
-    creditCard: true,
-    mercadoPago: false,
-  });
   const [mercadoPagoConfig, setMercadoPagoConfig] = useState<{
     accessToken?: string;
     publicKey?: string;
@@ -57,9 +51,6 @@ const Checkout: React.FC<CheckoutProps> = ({
 
       if (photographer?.watermark_config) {
         const config = photographer.watermark_config;
-        if (config.paymentMethods) {
-          setPaymentMethods(config.paymentMethods);
-        }
         if (config.mercadoPagoAccessToken && config.mercadoPagoPublicKey) {
           setMercadoPagoConfig({
             accessToken: config.mercadoPagoAccessToken,
@@ -151,7 +142,7 @@ const Checkout: React.FC<CheckoutProps> = ({
     try {
       let paymentResult;
 
-      if (paymentMethods.mercadoPago && mercadoPagoConfig.accessToken) {
+      if (mercadoPagoConfig.accessToken) {
         console.log('Using MercadoPago payment method');
         console.log('Using MercadoPago payment method');
         // Processar com Mercado Pago
@@ -238,7 +229,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           <div className="bg-gray-50 rounded-lg p-6 mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Resumo do Pedido</h3>
             <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-600">Fotos selecionadas:</span>
+                Mercado Pago
               <span className="font-semibold">{selectedPhotos.length} foto{selectedPhotos.length > 1 ? 's' : ''}</span>
             </div>
             <div className="flex justify-between items-center mb-2">
@@ -475,62 +466,17 @@ const Checkout: React.FC<CheckoutProps> = ({
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Método de Pagamento
               </label>
-              <div className="space-y-2">
-                {paymentMethods.pix && (
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="pix"
-                      checked={paymentMethod === 'pix'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'pix')}
-                      className="mr-3"
-                    />
-                    <Smartphone className="w-5 h-5 mr-2 text-green-600" />
-                    <div>
-                      <p className="font-medium">PIX</p>
-                      <p className="text-sm text-gray-500">Pagamento instantâneo</p>
-                    </div>
-                  </label>
-                )}
-                
-                {paymentMethods.creditCard && (
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'card')}
-                      className="mr-3"
-                    />
-                    <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
-                    <div>
-                      <p className="font-medium">Cartão de Crédito</p>
-                      <p className="text-sm text-gray-500">Visa, Mastercard, Elo</p>
-                    </div>
-                  </label>
-                )}
 
-                {paymentMethods.mercadoPago && (
-                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="card"
-                      checked={paymentMethod === 'card'}
-                      onChange={(e) => setPaymentMethod(e.target.value as 'card')}
-                      className="mr-3"
-                    />
-                    <div className="w-5 h-5 mr-2 bg-blue-500 rounded flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">MP</span>
-                    </div>
-                    <div>
-                      <p className="font-medium">Mercado Pago</p>
-                      <p className="text-sm text-gray-500">PIX, Cartão, Boleto</p>
-                    </div>
-                  </label>
-                )}
+              <div className="p-4 border-2 border-blue-200 rounded-lg bg-blue-50">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 mr-3 bg-blue-500 rounded flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">MP</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-blue-900">Mercado Pago</p>
+                    <p className="text-sm text-blue-700">PIX, Cartão de Crédito, Débito</p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -543,10 +489,10 @@ const Checkout: React.FC<CheckoutProps> = ({
               {isProcessing ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  {paymentMethods.mercadoPago && mercadoPagoConfig.accessToken ? 'Criando pagamento...' : 'Processando Pagamento...'}
+                  Criando pagamento...
                 </div>
               ) : (
-                `Pagar R$ ${totalAmount.toFixed(2)} via ${paymentMethod.toUpperCase()}`
+                `Pagar R$ ${totalAmount.toFixed(2)} via Mercado Pago`
               )}
             </button>
 

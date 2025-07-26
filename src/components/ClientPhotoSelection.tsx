@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Check, ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail } from 'lucide-react';
+import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import Checkout from './Checkout';
@@ -148,47 +148,43 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   // Calcular preços com sistema de pacote mínimo e desconto progressivo
   const calculateTotalWithDiscount = () => {
     const selectedCount = selectedPhotos.size;
-    const minimumPackagePrice = 300.00; // Será carregado das configurações
-    const extraPhotoPrice = 30.00; // Será carregado das configurações
+    const minimumPackagePrice = 300.00;
+    const photoPrice = 25.00; // Preço por foto
     
     if (selectedCount <= 10) {
-      // Até 10 fotos: preço do pacote mínimo proporcional
-      const proportionalPrice = (minimumPackagePrice / 10) * selectedCount;
+      // Até 10 fotos: incluídas no pacote mínimo (já pago no agendamento)
       return {
-        total: proportionalPrice,
+        total: 0, // Já pago no agendamento
         discount: 0,
         hasDiscount: false,
         extraPhotosCount: 0,
         packagePhotos: selectedCount,
-        isMinimumPackage: selectedCount === 10
+        isMinimumPackage: selectedCount <= 10,
+        message: `${selectedCount} foto${selectedCount > 1 ? 's' : ''} incluída${selectedCount > 1 ? 's' : ''} no pacote já pago`
       };
     }
     
     // Mais de 10 fotos: pacote mínimo + fotos extras com desconto
     const extraPhotosCount = selectedCount - 10;
-    let extraPhotosTotal = extraPhotosCount * extraPhotoPrice;
+    let extraPhotosTotal = extraPhotosCount * photoPrice;
     let discount = 0;
     
     // Aplicar desconto progressivo nas fotos extras
-    if (extraPhotosCount > 10) {
-      // Mais de 10 extras: 10% desconto
-      discount = extraPhotosTotal * 0.10;
-    } else if (extraPhotosCount > 5) {
+    if (extraPhotosCount > 5) {
       // Mais de 5 extras: 5% desconto
       discount = extraPhotosTotal * 0.05;
     }
     
     const finalExtraTotal = extraPhotosTotal - discount;
-    const finalTotal = minimumPackagePrice + finalExtraTotal;
     
     return {
-      total: finalTotal,
+      total: finalExtraTotal,
       discount: discount,
       hasDiscount: discount > 0,
       extraPhotosCount: extraPhotosCount,
       packagePhotos: 10,
       extraPhotosOriginalTotal: extraPhotosTotal,
-      minimumPackagePrice: minimumPackagePrice
+      photoPrice: photoPrice
     };
   };
 
@@ -290,40 +286,44 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
                 </h3>
                 <div className="text-gray-600">
-                  {priceCalculation.hasDiscount ? (
+                  {priceCalculation.total === 0 ? (
                     <div>
-                      <p className="text-sm">
-                        Primeiras 10 fotos: R$ {(totalPrice - (priceCalculation.extraPhotosCount * (photos[0]?.price || 0))).toFixed(2)}
-                      </p>
-                      <p className="text-sm">
-                        {priceCalculation.extraPhotosCount} fotos extras (20% desconto): 
-                        <span className="line-through text-gray-400 ml-1">
-                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0)).toFixed(2)}
-                        </span>
-                        <span className="text-green-600 ml-1 font-medium">
-                          R$ {(priceCalculation.extraPhotosCount * (photos[0]?.price || 0) * 0.8).toFixed(2)}
-                        </span>
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total: R$ {priceCalculation.total.toFixed(2)}
-                        <span className="text-green-600 text-sm ml-2">
-                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                        </span>
-                      </p>
+                      <p className="text-green-600 font-medium">{priceCalculation.message}</p>
+                      <p className="text-sm text-gray-500">Sem custo adicional</p>
                     </div>
                   ) : (
-                    <p>Total: R$ {priceCalculation.total.toFixed(2)}</p>
+                    <div>
+                      <p className="text-sm text-green-600">10 fotos incluídas no pacote</p>
+                      <p className="text-sm">
+                        {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 ml-2">
+                            (5% desconto aplicado)
+                          </span>
+                        )}
+                      </p>
+                      <p className="font-semibold text-lg">
+                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 text-sm ml-2">
+                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
-              <button
-                onClick={handleFinishSelection}
-               disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                <ShoppingCart className="w-5 h-5" />
-               {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
-              </button>
+              {priceCalculation.total > 0 && (
+                <button
+                  onClick={handleFinishSelection}
+                  disabled={isSubmitting}
+                  className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                >
+                  <ShoppingCart className="w-5 h-5" />
+                  {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -336,9 +336,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
             return (
               <div
                 key={photo.id}
-                className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+                className={`relative group bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
                   isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
                 }`}
+                style={{ aspectRatio: '1/1' }}
               >
                 {/* Photo */}
                 <img
@@ -378,27 +379,29 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                       onClick={() => togglePhotoSelection(photo.id)}
                       className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
                         isSelected
-                          ? 'bg-blue-500 text-white opacity-100'
+                          ? 'bg-green-500 text-white opacity-100'
                           : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
                       }`}
                     >
-                      <Check className="w-4 h-4" />
+                      {isSelected ? '✓' : '+'}
                     </button>
                   </div>
 
                   {/* Price tag */}
-                  <div className="absolute bottom-2 left-2">
-                    <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                      R$ {photo.price.toFixed(2)}
-                    </span>
-                  </div>
+                  {selectedPhotos.size >= 10 && (
+                    <div className="absolute bottom-2 left-2">
+                      <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                        R$ {photo.price.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Selection indicator */}
+                {/* Selection indicator - removido para evitar redundância */}
                 {isSelected && (
-                  <div className="absolute top-2 left-2">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
+                  <div className="absolute inset-0 border-4 border-green-500 rounded-lg pointer-events-none">
+                    <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                      {Array.from(selectedPhotos).indexOf(photo.id) + 1}
                     </div>
                   </div>
                 )}
@@ -439,7 +442,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 <img
                   src={photos[lightboxPhotoIndex].watermarkedPath}
                   alt={photos[lightboxPhotoIndex].filename}
-                  className="max-w-full max-h-full object-contain rounded-lg"
+                  className="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto"
                   onError={(e) => {
                     e.currentTarget.src = `https://picsum.photos/1200/800?random=${photos[lightboxPhotoIndex].id.slice(-6)}`;
                   }}
@@ -461,7 +464,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   <div>
                     <p className="font-semibold">{photos[lightboxPhotoIndex].filename}</p>
                     <p className="text-sm text-gray-300">
-                      {lightboxPhotoIndex + 1} de {photos.length} • R$ {photos[lightboxPhotoIndex].price.toFixed(2)}
+                      {lightboxPhotoIndex + 1} de {photos.length}
+                      {selectedPhotos.size >= 10 && (
+                        <span> • R$ {photos[lightboxPhotoIndex].price.toFixed(2)}</span>
+                      )}
                     </p>
                   </div>
                   
@@ -469,7 +475,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     onClick={() => togglePhotoSelection(photos[lightboxPhotoIndex].id)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                       selectedPhotos.has(photos[lightboxPhotoIndex].id)
-                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-white text-gray-900 hover:bg-gray-100'
                     }`}
                   >
