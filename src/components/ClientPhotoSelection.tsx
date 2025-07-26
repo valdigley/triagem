@@ -31,6 +31,9 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadAlbumData();
