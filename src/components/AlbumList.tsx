@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, MessageCircle, Mail, Eye, Download, Calendar, User, Plus, Upload, Trash2, X } from 'lucide-react';
+import { Image, MessageCircle, Mail, Eye, Download, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -23,6 +23,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [uploadingAlbumId, setUploadingAlbumId] = useState<string | null>(null);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [reactivatingAlbumId, setReactivatingAlbumId] = useState<string | null>(null);
+  const [showFilenames, setShowFilenames] = useState<Record<string, boolean>>({});
 
   // Forçar re-render quando álbuns mudarem
   React.useEffect(() => {
@@ -175,6 +176,45 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     }
   };
 
+  const generateSearchableFilenames = (albumId: string, event: any) => {
+    const albumPhotos = getAlbumPhotos(albumId);
+    const selectedPhotos = albumPhotos.filter(photo => photo.is_selected);
+    
+    if (selectedPhotos.length === 0) return '';
+    
+    // Formato da data: DD.MM.YYYY
+    const eventDate = format(new Date(event.event_date), 'dd.MM.yyyy');
+    
+    // Tipo de sessão formatado
+    const sessionType = event.session_type ? 
+      sessionTypeLabels[event.session_type] || event.session_type : 
+      'Sessao';
+    
+    // Nome do cliente (primeiro nome)
+    const clientName = event.client_name.split(' ')[0];
+    
+    // Gerar lista de nomes de arquivos baseado nos índices das fotos selecionadas
+    const filenames = selectedPhotos.map((photo, index) => {
+      // Usar o índice da foto no álbum + 1 para numeração
+      const photoIndex = albumPhotos.findIndex(p => p.id === photo.id) + 1;
+      return `"${eventDate} ${sessionType} ${clientName}-${photoIndex}."`;
+    });
+    
+    return filenames.join(' OR ');
+  };
+
+  const copyFilenames = (searchString: string) => {
+    navigator.clipboard.writeText(searchString);
+    toast.success('Nomes de arquivos copiados para a área de transferência!');
+  };
+
+  const toggleFilenames = (albumId: string) => {
+    setShowFilenames(prev => ({
+      ...prev,
+      [albumId]: !prev[albumId]
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -285,6 +325,51 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 )}
 
+                {/* Nomes de arquivos pesquisáveis */}
+                {selectedCount > 0 && event && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Nomes para Busca no PC ({selectedCount} fotos)
+                      </h4>
+                      <button
+                        onClick={() => toggleFilenames(album.id)}
+                        className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        {showFilenames[album.id] ? 'Ocultar' : 'Mostrar'}
+                      </button>
+                    </div>
+                    
+                    {showFilenames[album.id] && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <p className="text-xs text-gray-600 mb-2">
+                              Cole no Windows Explorer ou Finder para localizar as fotos:
+                            </p>
+                            <div className="bg-white border border-gray-300 rounded p-2 font-mono text-xs text-gray-800 break-all max-h-32 overflow-y-auto">
+                              {generateSearchableFilenames(album.id, event)}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => copyFilenames(generateSearchableFilenames(album.id, event))}
+                            className="flex-shrink-0 p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Copiar nomes de arquivos"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        </div>
+                        
+                        <div className="mt-2 text-xs text-gray-500">
+                          <p><strong>Formato:</strong> DD.MM.YYYY TipoSessao NomeCliente-NumeroFoto</p>
+                          <p><strong>Exemplo:</strong> "08.07.2025 Pre Wedding Ingrid-3." OR "08.07.2025 Pre Wedding Ingrid-7."</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Upload de fotos */}
                 <div className="mb-4">
                   <label className="flex items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
@@ -318,6 +403,16 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 <div className="flex justify-end gap-2">
                   {event && (
                     <>
+                      {selectedCount > 0 && (
+                        <button 
+                          onClick={() => copyFilenames(generateSearchableFilenames(album.id, event))}
+                          className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Copiar nomes para busca no PC"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copiar Nomes
+                        </button>
+                      )}
                       <button 
                         onClick={() => shareViaWhatsApp(album.share_token, event.client_name, event.client_phone)}
                         className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
