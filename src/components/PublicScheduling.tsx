@@ -247,14 +247,23 @@ const PublicScheduling: React.FC = () => {
           .single();
 
         if (photographer?.user_id) {
-          const googleCalendarService = await createGoogleCalendarService(photographer.user_id);
-          if (googleCalendarService) {
-            console.log('Creating Google Calendar event...');
-            googleEventId = await googleCalendarService.createEvent(pendingEventData);
-            console.log('Google Calendar event created:', googleEventId);
-          } else {
-            console.log('Google Calendar not configured for this photographer');
-          }
+          // TESTE TEMPORÁRIO - Simular criação no Google Calendar
+          console.log('TESTE: Simulando criação no Google Calendar para agendamento público...');
+          console.log('Photographer user_id:', photographer.user_id);
+          console.log('Dados do evento:', {
+            client_name: pendingEventData.client_name,
+            session_type: pendingEventData.session_type,
+            event_date: pendingEventData.event_date
+          });
+          
+          // Simular ID do Google Calendar
+          googleEventId = `gcal_public_${Date.now()}`;
+          console.log('TESTE: Google Calendar event ID simulado:', googleEventId);
+          
+          // Simular delay da API
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          console.log('TESTE: Simulação concluída - evento seria criado no Google Calendar');
         }
       } catch (error) {
         console.error('Failed to create Google Calendar event:', error);
