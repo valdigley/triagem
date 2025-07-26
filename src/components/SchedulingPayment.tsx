@@ -181,15 +181,17 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
               client_email: eventData.client_email,
               selected_photos: [],
               total_amount: advanceAmount,
-          setPaymentStatus('approved');
               status: 'pending',
-          setTimeout(() => onComplete(), 2000);
               payment_intent_id: paymentResult.id,
-          setIsWaitingPayment(true);
             });
 
           setIsWaitingPayment(true);
           toast.success('PIX gerado! Escaneie o código para pagar.');
+        }
+      } else {
+        // Simulação para outros métodos
+        setPaymentStatus('approved');
+        setTimeout(() => onComplete(), 2000);
         await new Promise(resolve => setTimeout(resolve, 3000));
         paymentResult = {
           id: `advance_${Date.now()}`,
@@ -201,6 +203,14 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
         await supabase
           .from('orders')
           .insert({
+            event_id: null,
+            client_email: eventData.client_email,
+            selected_photos: [],
+            total_amount: advanceAmount,
+            status: 'paid',
+            payment_intent_id: paymentResult.id,
+          });
+      }
     } catch (error) {
       console.error('Payment error:', error);
       toast.error(error.message || 'Erro no processamento do pagamento');
