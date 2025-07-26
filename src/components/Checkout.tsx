@@ -190,7 +190,7 @@ const Checkout: React.FC<CheckoutProps> = ({
       
       // Enviar e-mail com links de download (simulado)
       setTimeout(() => {
-        toast.info('Você receberá um e-mail quando o pagamento for confirmado.');
+        toast('Você receberá um e-mail quando o pagamento for confirmado.');
       }, 1000);
 
     } catch (error) {
