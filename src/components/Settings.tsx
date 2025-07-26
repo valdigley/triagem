@@ -50,6 +50,8 @@ const Settings: React.FC = () => {
     advancePaymentPercentage: 50,
     mercadoPagoAccessToken: '',
     mercadoPagoPublicKey: '',
+    googleCalendarAccessToken: '',
+    googleCalendarId: '',
   });
 
   // Estados para configurações de marca d'água
@@ -128,6 +130,8 @@ const Settings: React.FC = () => {
           advancePaymentPercentage: config.advancePaymentPercentage || 50,
           mercadoPagoAccessToken: config.mercadoPagoAccessToken || '',
           mercadoPagoPublicKey: config.mercadoPagoPublicKey || '',
+          googleCalendarAccessToken: config.googleCalendarAccessToken || '',
+          googleCalendarId: config.googleCalendarId || '',
         });
 
         // Carregar configurações de marca d'água
@@ -272,6 +276,7 @@ const Settings: React.FC = () => {
   const tabs = [
     { id: 'general', label: 'Geral', icon: Building },
     { id: 'pricing', label: 'Preços', icon: DollarSign },
+    { id: 'calendar', label: 'Google Calendar', icon: Calendar },
     { id: 'watermark', label: 'Marca D\'água', icon: ImageIcon },
     { id: 'emails', label: 'E-mails', icon: Mail },
     { id: 'sessions', label: 'Tipos de Sessão', icon: Camera },
