@@ -34,6 +34,11 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
     minimumPackagePrice: 300.00,
     advancePaymentPercentage: 50,
     mercadoPagoAccessToken: '',
+    paymentMethods: {
+      mercadoPago: true,
+      pix: true,
+      creditCard: false
+    },
   });
 
   useEffect(() => {
@@ -57,6 +62,11 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
           minimumPackagePrice: config.minimumPackagePrice || 300.00,
           advancePaymentPercentage: config.advancePaymentPercentage || 50,
           mercadoPagoAccessToken: config.mercadoPagoAccessToken || '',
+          paymentMethods: config.paymentMethods || {
+            mercadoPago: true,
+            pix: true,
+            creditCard: false
+          },
         }));
       }
     } catch (error) {
