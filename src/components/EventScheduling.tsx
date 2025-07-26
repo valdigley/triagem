@@ -10,6 +10,7 @@ const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   clientEmail: z.string().email('E-mail inválido'),
   clientPhone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
+  sessionType: z.string().min(1, 'Tipo de sessão é obrigatório'),
   eventDate: z.string().min(1, 'Data é obrigatória'),
   eventTime: z.string().min(1, 'Horário é obrigatório'),
   location: z.string().min(5, 'Local deve ter pelo menos 5 caracteres'),
@@ -22,6 +23,14 @@ interface EventSchedulingProps {
   onBack?: () => void;
 }
 
+const sessionTypes = [
+  { value: 'gestante', label: 'Sessão Gestante' },
+  { value: 'aniversario', label: 'Aniversário' },
+  { value: 'comerciais', label: 'Comerciais' },
+  { value: 'pre-wedding', label: 'Pré Wedding' },
+  { value: 'formatura', label: 'Formatura' },
+  { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+];
 const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addEvent } = useSupabaseData();
@@ -47,6 +56,7 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
         client_name: data.clientName,
         client_email: data.clientEmail,
         client_phone: data.clientPhone,
+        session_type: data.sessionType,
         event_date: eventDateTime.toISOString(),
         location: data.location,
         notes: data.notes,
@@ -147,6 +157,33 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
                     <p className="text-red-600 text-sm mt-1">{errors.clientPhone.message}</p>
                   )}
                 </div>
+              </div>
+            </div>
+            {/* Session Type */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <Camera className="w-5 h-5 mr-2" />
+                Tipo de Sessão
+              </h3>
+              
+              <div>
+                <label htmlFor="sessionType" className="block text-sm font-medium text-gray-700 mb-1">
+                  Categoria da Sessão *
+                </label>
+                <select
+                  {...register('sessionType')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione o tipo de sessão...</option>
+                  {sessionTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.sessionType && (
+                  <p className="text-red-600 text-sm mt-1">{errors.sessionType.message}</p>
+                )}
               </div>
             </div>
 

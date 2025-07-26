@@ -9,6 +9,7 @@ export interface Event {
   client_name: string;
   client_email: string;
   client_phone: string;
+  session_type?: string;
   event_date: string;
   location: string;
   notes?: string;

@@ -12,6 +12,14 @@ import {
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
+const sessionTypeLabels: Record<string, string> = {
+  'gestante': 'Sessão Gestante',
+  'aniversario': 'Aniversário',
+  'comerciais': 'Comerciais',
+  'pre-wedding': 'Pré Wedding',
+  'formatura': 'Formatura',
+  'revelacao-sexo': 'Revelação de Sexo',
+};
 const Dashboard: React.FC = () => {
   const { events, albums, photos, orders, loading } = useSupabaseData();
 
@@ -110,6 +118,7 @@ const Dashboard: React.FC = () => {
       return {
         id: event.id,
         clientName: event.client_name,
+        sessionType: event.session_type ? sessionTypeLabels[event.session_type] || event.session_type : 'Tipo não definido',
         eventDate: event.event_date,
         status: event.status,
         photos: eventPhotos.length,
@@ -278,6 +287,9 @@ const Dashboard: React.FC = () => {
                   Cliente
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tipo de Sessão
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Data
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -299,6 +311,9 @@ const Dashboard: React.FC = () => {
                 <tr key={event.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {event.clientName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {event.sessionType}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(event.eventDate).toLocaleDateString('pt-BR')}

@@ -10,6 +10,14 @@ interface EventListProps {
   onViewAlbum?: (eventId: string) => void;
 }
 
+const sessionTypeLabels: Record<string, string> = {
+  'gestante': 'Sessão Gestante',
+  'aniversario': 'Aniversário',
+  'comerciais': 'Comerciais',
+  'pre-wedding': 'Pré Wedding',
+  'formatura': 'Formatura',
+  'revelacao-sexo': 'Revelação de Sexo',
+};
 const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
   const { events, updateEvent, deleteEvent, loading } = useSupabaseData();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -101,7 +109,9 @@ const EventList: React.FC<EventListProps> = ({ onCreateNew, onViewAlbum }) => {
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">{event.clientName}</h3>
-                    <p className="text-gray-600">{event.notes || 'Sem observações'}</p>
+                    <p className="text-gray-600">
+                      {event.session_type ? sessionTypeLabels[event.session_type] || event.session_type : 'Tipo não definido'}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
