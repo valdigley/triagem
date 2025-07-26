@@ -80,6 +80,7 @@ const Checkout: React.FC<CheckoutProps> = ({
     console.log('Creating MercadoPago payment with config:', {
       hasAccessToken: !!mercadoPagoConfig.accessToken,
       accessTokenPrefix: mercadoPagoConfig.accessToken?.substring(0, 20) + '...',
+      isTestMode: mercadoPagoConfig.accessToken?.startsWith('TEST-'),
       totalAmount,
       selectedPhotosCount: selectedPhotos.length,
       clientEmail,

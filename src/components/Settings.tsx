@@ -546,8 +546,14 @@ const Settings: React.FC = () => {
                   <div className="space-y-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                     <h4 className="font-medium text-gray-900">Configuração Mercado Pago</h4>
                     <div className="text-sm text-gray-600 mb-4">
-                      <p><strong>Importante:</strong> Use credenciais de <strong>produção</strong> para pagamentos reais.</p>
-                      <p>Para testes, use credenciais de <strong>sandbox</strong>.</p>
+                      <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-3">
+                        <p className="text-blue-800"><strong>💡 Modo de Teste Ativo</strong></p>
+                        <p className="text-blue-700 text-xs mt-1">
+                          Use credenciais de <strong>teste</strong> que começam com <code>TEST-</code>
+                        </p>
+                      </div>
+                      <p><strong>Produção:</strong> Credenciais começam com <code>APP_USR-</code></p>
+                      <p><strong>Teste:</strong> Credenciais começam com <code>TEST-</code></p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -558,11 +564,20 @@ const Settings: React.FC = () => {
                         value={settings.mercadoPagoAccessToken}
                         onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoAccessToken: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="APP_USR-..."
+                        placeholder="TEST-... ou APP_USR-..."
                       />
                       {settings.mercadoPagoAccessToken && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Token configurado ({settings.mercadoPagoAccessToken.length} caracteres)
+                        <p className={`text-xs mt-1 ${
+                          settings.mercadoPagoAccessToken.startsWith('TEST-') 
+                            ? 'text-blue-600' 
+                            : settings.mercadoPagoAccessToken.startsWith('APP_USR-')
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}>
+                          {settings.mercadoPagoAccessToken.startsWith('TEST-') && '🧪 Modo TESTE - '}
+                          {settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
+                          {!settings.mercadoPagoAccessToken.startsWith('TEST-') && !settings.mercadoPagoAccessToken.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
+                          Token configurado ({settings.mercadoPagoAccessToken.length} caracteres)
                         </p>
                       )}
                     </div>
@@ -575,11 +590,20 @@ const Settings: React.FC = () => {
                         value={settings.mercadoPagoPublicKey}
                         onChange={(e) => setSettings(prev => ({ ...prev, mercadoPagoPublicKey: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="APP_USR-..."
+                        placeholder="TEST-... ou APP_USR-..."
                       />
                       {settings.mercadoPagoPublicKey && (
-                        <p className="text-xs text-green-600 mt-1">
-                          ✓ Chave configurada ({settings.mercadoPagoPublicKey.length} caracteres)
+                        <p className={`text-xs mt-1 ${
+                          settings.mercadoPagoPublicKey.startsWith('TEST-') 
+                            ? 'text-blue-600' 
+                            : settings.mercadoPagoPublicKey.startsWith('APP_USR-')
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }`}>
+                          {settings.mercadoPagoPublicKey.startsWith('TEST-') && '🧪 Modo TESTE - '}
+                          {settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '✅ Modo PRODUÇÃO - '}
+                          {!settings.mercadoPagoPublicKey.startsWith('TEST-') && !settings.mercadoPagoPublicKey.startsWith('APP_USR-') && '⚠️ Formato inválido - '}
+                          Chave configurada ({settings.mercadoPagoPublicKey.length} caracteres)
                         </p>
                       )}
                     </div>

@@ -84,8 +84,14 @@ serve(async (req) => {
 
     console.log('Creating payment with data:', paymentData)
 
-    const mpApiUrl = 'https://api.mercadopago.com/v1/payments';
+    // Usar URL correta baseada no tipo de credencial
+    const isTestMode = access_token.startsWith('TEST-');
+    const mpApiUrl = isTestMode 
+      ? 'https://api.mercadopago.com/v1/payments'
+      : 'https://api.mercadopago.com/v1/payments';
+    
     console.log('Calling MercadoPago API:', mpApiUrl);
+    console.log('Test mode:', isTestMode);
     console.log('Request headers:', {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${access_token.substring(0, 20)}...`,
