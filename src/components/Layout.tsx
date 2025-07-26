@@ -53,7 +53,12 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <h1 className="text-xl font-bold text-gray-900">Triagem</h1>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <Camera className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-gray-900">Triagem</h1>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="lg:hidden"
