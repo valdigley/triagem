@@ -57,10 +57,11 @@ const PaymentsList: React.FC = () => {
 
   const loadPayments = async () => {
     try {
-      // Buscar todos os pedidos/pagamentos
+      // Buscar apenas pedidos com valor > 0 (pagamentos reais)
       const { data: ordersData, error } = await supabase
         .from('orders')
         .select('*')
+        .gt('total_amount', 0) // Apenas pagamentos com valor
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -145,11 +146,19 @@ const PaymentsList: React.FC = () => {
   };
 
   const getPaymentTypeLabel = (amount: number) => {
-    // Determinar se é pagamento antecipado ou seleção de fotos
-    if (amount <= 300) {
-      return 'Pagamento Antecipado';
+    // Determinar se é pagamento de agendamento ou fotos extras
+    // Pagamentos de agendamento geralmente são valores fixos maiores (150-300)
+    // Fotos extras são valores menores e múltiplos do preço unitário (25, 50, 75, etc.)
+    
+    if (amount >= 150 && amount <= 300) {
+      return 'Agendamento';
+    } else if (amount > 0 && amount < 150) {
+      return 'Fotos Extras';
+    } else if (amount > 300) {
+      // Pode ser um pacote grande de fotos extras
+      return 'Fotos Extras';
     } else {
-      return 'Seleção de Fotos';
+      return 'Outros';
     }
   };
 
@@ -313,6 +322,9 @@ const PaymentsList: React.FC = () => {
                           {sessionTypeLabels[payment.event.session_type] || payment.event.session_type}
                         </div>
                       )}
+                      <div className="text-xs text-gray-400">
+                        R$ {payment.total_amount.toFixed(2)}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
@@ -440,6 +452,15 @@ const PaymentsList: React.FC = () => {
                     <span className="text-gray-600">Tipo:</span>
                     <span className="ml-2 font-medium">
                       {getPaymentTypeLabel(selectedPayment.total_amount)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Origem:</span>
+                    <span className="ml-2 font-medium">
+                      {selectedPayment.total_amount >= 150 && selectedPayment.total_amount <= 300 
+                        ? 'Pagamento antecipado do agendamento'
+                        : 'Compra de fotos extras'
+                      }
                     </span>
                   </div>
                   <div>

@@ -263,23 +263,9 @@ const Checkout: React.FC<CheckoutProps> = ({
     if (totalAmount === 0) {
       setIsProcessing(true);
       try {
-        // Salvar pedido sem pagamento
-        const { error: orderError } = await supabase
-          .from('orders')
-          .insert({
-            event_id: album?.event_id,
-            client_email: clientEmail,
-            selected_photos: selectedPhotos,
-            total_amount: 0,
-            status: 'paid', // Já considerado pago pois não há cobrança
-            payment_intent_id: `free_${Date.now()}`,
-          });
-
-        if (orderError) {
-          console.error('Error saving order:', orderError);
-          toast.error('Erro ao salvar pedido');
-          return;
-        }
+        // Para seleções gratuitas, não criar registro de pagamento
+        // As fotos já foram marcadas como selecionadas individualmente
+        console.log('Free selection confirmed - no payment record created');
 
         setOrderCompleted(true);
         toast.success('Seleção confirmada com sucesso!');
@@ -339,7 +325,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           client_email: clientEmail,
           selected_photos: selectedPhotos,
           total_amount: totalAmount,
-          status: totalAmount === 0 ? 'paid' : 'pending',
+          status: 'pending', // Sempre pending inicialmente, webhook atualiza para 'paid'
           payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
         });
 

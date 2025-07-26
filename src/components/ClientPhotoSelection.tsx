@@ -264,23 +264,9 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   const confirmFreeSelection = async () => {
     setIsSubmitting(true);
     try {
-      // Salvar seleção no banco sem pagamento
-      const { error } = await supabase
-        .from('orders')
-        .insert({
-          event_id: album?.event_id,
-          client_email: 'cliente@email.com', // Seria obtido do contexto
-          selected_photos: Array.from(selectedPhotos),
-          total_amount: 0,
-          status: 'paid', // Considerado pago pois não há cobrança
-          payment_intent_id: `free_${Date.now()}`,
-        });
-
-      if (error) {
-        console.error('Error saving free selection:', error);
-        toast.error('Erro ao confirmar seleção');
-        return;
-      }
+      // Para seleções gratuitas, apenas atualizar as fotos como selecionadas
+      // Não criar entrada na tabela orders pois não houve pagamento
+      console.log('Free selection confirmed - no payment record needed');
 
       toast.success('Seleção confirmada com sucesso!');
       setSelectedPhotos(new Set());
