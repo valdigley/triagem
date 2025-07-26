@@ -1,6 +1,35 @@
 export interface Database {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          phone: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          phone: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string;
+          phone?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       photographers: {
         Row: {
           id: string;

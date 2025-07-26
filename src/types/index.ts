@@ -7,6 +7,16 @@ export interface User {
   createdAt: Date;
 }
 
+export interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Photographer {
   id: string;
   userId: string;

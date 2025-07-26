@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { Client } from '../types';
 import toast from 'react-hot-toast';
 
 const sessionTypeLabels: Record<string, string> = {
@@ -68,6 +69,7 @@ export const useSupabaseData = () => {
   const [albums, setAlbums] = useState<Album[]>([]);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
 
@@ -193,6 +195,18 @@ export const useSupabaseData = () => {
         setOrders([]);
       }
 
+      // Carregar clientes
+      const { data: clientsData, error: clientsError } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (clientsError) {
+        console.error('Error loading clients:', clientsError);
+      } else {
+        setClients(clientsData || []);
+      }
+
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Erro ao carregar dados');
@@ -209,6 +223,13 @@ export const useSupabaseData = () => {
     }
 
     try {
+      // Primeiro, verificar se o cliente já existe ou criar um novo
+      await upsertClient({
+        name: eventData.client_name,
+        email: eventData.client_email,
+        phone: eventData.client_phone,
+      });
+
       const { data, error } = await supabase
         .from('events')
         .insert({
@@ -663,6 +684,137 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Função para criar ou atualizar cliente
+  const upsertClient = async (clientData: { name: string; email: string; phone: string; notes?: string }) => {
+    try {
+      // Verificar se cliente já existe
+      const { data: existingClient } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('email', clientData.email)
+        .single();
+
+      if (existingClient) {
+        // Atualizar cliente existente
+        const { error } = await supabase
+          .from('clients')
+          .update({
+            name: clientData.name,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          })
+          .eq('id', existingClient.id);
+
+        if (error) {
+          console.error('Error updating client:', error);
+        }
+      } else {
+        // Criar novo cliente
+        const { error } = await supabase
+          .from('clients')
+          .insert({
+            name: clientData.name,
+            email: clientData.email,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          });
+
+        if (error) {
+          console.error('Error creating client:', error);
+        } else {
+          // Recarregar lista de clientes
+          const { data: clientsData } = await supabase
+            .from('clients')
+            .select('*')
+            .order('created_at', { ascending: false });
+          
+          if (clientsData) {
+            setClients(clientsData);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error upserting client:', error);
+    }
+  };
+
+  // Adicionar cliente manualmente
+  const addClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert(clientData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding client:', error);
+        toast.error('Erro ao adicionar cliente');
+        return null;
+      }
+
+      setClients(prev => [data, ...prev]);
+      toast.success('Cliente adicionado com sucesso!');
+      return data;
+    } catch (error) {
+      console.error('Error adding client:', error);
+      toast.error('Erro ao adicionar cliente');
+      return null;
+    }
+  };
+
+  // Atualizar cliente
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating client:', error);
+        toast.error('Erro ao atualizar cliente');
+        return null;
+      }
+
+      setClients(prev => prev.map(client => 
+        client.id === id ? data : client
+      ));
+      toast.success('Cliente atualizado!');
+      return data;
+    } catch (error) {
+      console.error('Error updating client:', error);
+      toast.error('Erro ao atualizar cliente');
+      return null;
+    }
+  };
+
+  // Excluir cliente
+  const deleteClient = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clients')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting client:', error);
+        toast.error('Erro ao excluir cliente');
+        return false;
+      }
+
+      setClients(prev => prev.filter(client => client.id !== id));
+      toast.success('Cliente excluído!');
+      return true;
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast.error('Erro ao excluir cliente');
+      return false;
+    }
+  };
+
   // Carregar dados quando o usuário mudar
   useEffect(() => {
     if (user) {
@@ -672,6 +824,7 @@ export const useSupabaseData = () => {
       setAlbums([]);
       setPhotos([]);
       setOrders([]);
+      setClients([]);
       setPhotographerId(null);
       setLoading(false);
     }
@@ -682,6 +835,7 @@ export const useSupabaseData = () => {
     albums,
     photos,
     orders,
+    clients,
     loading,
     photographerId,
     addEvent,
@@ -692,5 +846,8 @@ export const useSupabaseData = () => {
     uploadPhotos,
     deleteAlbum,
     updatePhoto,
+    addClient,
+    updateClient,
+    deleteClient,
   };
 };

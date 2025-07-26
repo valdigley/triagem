@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { User, Phone, Mail, MessageCircle, Calendar, Camera, Search, Filter } from 'lucide-react';
+import { User, Phone, Mail, MessageCircle, Calendar, Camera, Search, Filter, Plus, Edit, Trash2, X, Save } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import toast from 'react-hot-toast';
+
+const clientSchema = z.object({
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  email: z.string().email('E-mail inválido'),
+  phone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
+  notes: z.string().optional(),
+});
+
+type ClientFormData = z.infer<typeof clientSchema>;
 
 interface Client {
   id: string;
@@ -26,27 +38,55 @@ const sessionTypeLabels: Record<string, string> = {
 };
 
 const ClientsList: React.FC = () => {
-  const { events, orders, loading } = useSupabaseData();
+  const { events, orders, clients: supabaseClients, loading, addClient, updateClient, deleteClient } = useSupabaseData();
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'recent' | 'frequent'>('all');
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+    setValue,
+  } = useForm<ClientFormData>({
+    resolver: zodResolver(clientSchema),
+  });
 
   useEffect(() => {
-    if (events.length > 0) {
+    if (events.length > 0 || supabaseClients.length > 0) {
       processClientsData();
     }
-  }, [events, orders]);
+  }, [events, orders, supabaseClients]);
 
   const processClientsData = () => {
     const clientsMap = new Map<string, Client>();
+
+    // Primeiro, adicionar todos os clientes do Supabase
+    supabaseClients.forEach(client => {
+      const clientKey = client.email.toLowerCase();
+      clientsMap.set(clientKey, {
+        id: client.id,
+        name: client.name,
+        email: client.email,
+        phone: client.phone,
+        totalEvents: 0,
+        sessionTypes: [],
+        totalSpent: 0,
+      });
+    });
 
     // Processar eventos para extrair dados dos clientes
     events.forEach(event => {
       const clientKey = event.client_email.toLowerCase();
       
       if (!clientsMap.has(clientKey)) {
+        // Se não existe no Supabase, criar entrada temporária
         clientsMap.set(clientKey, {
-          id: clientKey,
+          id: `temp_${clientKey}`,
           name: event.client_name,
           email: event.client_email,
           phone: event.client_phone,
@@ -98,6 +138,65 @@ const ClientsList: React.FC = () => {
     
     window.open(whatsappUrl, '_blank');
     toast.success('Abrindo WhatsApp...');
+  };
+
+  const onSubmit = async (data: ClientFormData) => {
+    setIsSubmitting(true);
+    
+    try {
+      if (editingClient) {
+        // Atualizar cliente existente
+        const success = await updateClient(editingClient, data);
+        if (success) {
+          setEditingClient(null);
+          reset();
+        }
+      } else {
+        // Adicionar novo cliente
+        const success = await addClient(data);
+        if (success) {
+          setShowAddForm(false);
+          reset();
+        }
+      }
+    } catch (error) {
+      console.error('Error submitting client:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEdit = (client: Client) => {
+    // Só permitir edição de clientes que existem no Supabase (não temporários)
+    if (client.id.startsWith('temp_')) {
+      toast.error('Este cliente precisa ser adicionado primeiro');
+      return;
+    }
+    
+    setEditingClient(client.id);
+    setValue('name', client.name);
+    setValue('email', client.email);
+    setValue('phone', client.phone);
+    setValue('notes', '');
+  };
+
+  const handleDelete = async (clientId: string) => {
+    if (clientId.startsWith('temp_')) {
+      toast.error('Este cliente não pode ser excluído pois não está salvo');
+      return;
+    }
+
+    if (!confirm('Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    await deleteClient(clientId);
+  };
+
+  const cancelEdit = () => {
+    setEditingClient(null);
+    setShowAddForm(false);
+    reset();
   };
 
   const filteredClients = clients.filter(client => {
@@ -203,9 +302,111 @@ const ClientsList: React.FC = () => {
               R$ {clients.reduce((sum, c) => sum + c.totalSpent, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div className="text-sm text-gray-600">Receita Total</div>
-          </div>
+          <p className="text-gray-600">Gerencie seus clientes e entre em contato facilmente ({supabaseClients.length} salvos, {clients.length} total)</p>
         </div>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar Cliente
+        </button>
       </div>
+
+      {/* Formulário de Adicionar/Editar Cliente */}
+      {(showAddForm || editingClient) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">
+              {editingClient ? 'Editar Cliente' : 'Adicionar Novo Cliente'}
+            </h3>
+            <button
+              onClick={cancelEdit}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome Completo *
+                </label>
+                <input
+                  {...register('name')}
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Nome completo do cliente"
+                />
+                {errors.name && (
+                  <p className="text-red-600 text-sm mt-1">{errors.name.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-mail *
+                </label>
+                <input
+                  {...register('email')}
+                  type="email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="cliente@email.com"
+                />
+                {errors.email && (
+                  <p className="text-red-600 text-sm mt-1">{errors.email.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone *
+                </label>
+                <input
+                  {...register('phone')}
+                  type="tel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="(11) 99999-9999"
+                />
+                {errors.phone && (
+                  <p className="text-red-600 text-sm mt-1">{errors.phone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observações
+                </label>
+                <input
+                  {...register('notes')}
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Observações sobre o cliente"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? 'Salvando...' : editingClient ? 'Atualizar' : 'Adicionar'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {/* Lista de Clientes */}
       {sortedClients.length === 0 ? (
@@ -283,6 +484,32 @@ const ClientsList: React.FC = () => {
                     <MessageCircle className="w-4 h-4" />
                     WhatsApp
                   </button>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-2">
+                    {!client.id.startsWith('temp_') ? (
+                      <>
+                        <button
+                          onClick={() => handleEdit(client)}
+                          className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(client.id)}
+                          className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Excluir
+                        </button>
+                      </>
+                    ) : (
+                      <div className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm">
+                        Cliente temporário - adicione para gerenciar
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
