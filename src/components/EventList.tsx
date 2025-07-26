@@ -9,6 +9,10 @@ import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
+interface EventListProps {
+  onViewAlbum?: (albumId: string) => void;
+}
+
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   clientEmail: z.string().email('E-mail inválido'),
@@ -26,10 +30,6 @@ const eventSchema = z.object({
 
 type EventFormData = z.infer<typeof eventSchema>;
 
-interface EventListProps {
-  onViewAlbum?: (eventId: string) => void;
-}
-
 const sessionTypeLabels: Record<string, string> = {
   'gestante': 'Sessão Gestante',
   'aniversario': 'Aniversário',
@@ -44,7 +44,7 @@ const sessionTypes = [
 ];
 
 const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
-  const { events, updateEvent, deleteEvent, addEvent, loading } = useSupabaseData();
+  const { events, albums, updateEvent, deleteEvent, addEvent, loading } = useSupabaseData();
   const { user } = useAuth();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -452,15 +452,19 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    {event.album_id && (
+                    {(() => {
+                      // Buscar álbum relacionado ao evento
+                      const relatedAlbum = albums.find(album => album.event_id === event.id);
+                      return relatedAlbum && (
                       <button 
-                        onClick={() => onViewAlbum?.(event.album_id)}
+                        onClick={() => onViewAlbum?.(relatedAlbum.id)}
                         className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Eye className="w-4 h-4" />
                         Ver Sessão
                       </button>
-                    )}
+                    );
+                    })()}
                     <button 
                       onClick={() => handleEditStart(event)}
                       className="flex items-center gap-2 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
