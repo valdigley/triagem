@@ -15,7 +15,64 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const Dashboard: React.FC = () => {
   const { events, albums, photos, loading } = useSupabaseData();
 
-  // Calcular estatísticas reais
+  // Calcular estatísticas reais baseadas nos dados do banco
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  
+  // Pedidos pagos do mês atual
+  const paidOrdersThisMonth = orders.filter(order => {
+    const orderDate = new Date(order.created_at);
+    return order.status === 'paid' && 
+           orderDate.getMonth() === currentMonth && 
+           orderDate.getFullYear() === currentYear;
+  });
+  
+  // Receita mensal real
+  const monthlyRevenue = paidOrdersThisMonth.reduce((sum, order) => sum + order.total_amount, 0);
+  
+  // Receita dos últimos 6 meses
+  const last6MonthsRevenue = [];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    
+    const monthOrders = orders.filter(order => {
+      const orderDate = new Date(order.created_at);
+      return order.status === 'paid' && 
+             orderDate.getMonth() === month && 
+             orderDate.getFullYear() === year;
+    });
+    
+    const monthRevenue = monthOrders.reduce((sum, order) => sum + order.total_amount, 0);
+    
+    last6MonthsRevenue.push({
+      month: date.toLocaleDateString('pt-BR', { month: 'short' }),
+      revenue: monthRevenue
+    });
+  }
+  
+  // Eventos dos últimos 6 meses
+  const last6MonthsEvents = [];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setMonth(date.getMonth() - i);
+    const month = date.getMonth();
+    const year = date.getFullYear();
+    
+    const monthEvents = events.filter(event => {
+      const eventDate = new Date(event.created_at);
+      return eventDate.getMonth() === month && 
+             eventDate.getFullYear() === year;
+    });
+    
+    last6MonthsEvents.push({
+      month: date.toLocaleDateString('pt-BR', { month: 'short' }),
+      events: monthEvents.length
+    });
+  }
+
   const stats = {
     totalEvents: events.length,
     activeAlbums: albums.filter(album => album.isActive).length,
@@ -24,47 +81,41 @@ const Dashboard: React.FC = () => {
       const selectedPhotos = albumPhotos.filter(p => p.isSelected);
       return albumPhotos.length > 0 && selectedPhotos.length === 0;
     }).length,
-    monthlyRevenue: photos.filter(p => p.isSelected).reduce((sum, p) => sum + p.price, 0),
+    monthlyRevenue: monthlyRevenue,
     completedEvents: events.filter(e => e.status === 'completed').length,
     totalPhotos: photos.length,
+    totalRevenue: orders.filter(o => o.status === 'paid').reduce((sum, o) => sum + o.total_amount, 0),
+    paidOrders: orders.filter(o => o.status === 'paid').length,
   };
 
-  const revenueData = [
-    { month: 'Jan', revenue: 3200 },
-    { month: 'Fev', revenue: 4100 },
-    { month: 'Mar', revenue: 3800 },
-    { month: 'Abr', revenue: 4850 },
-    { month: 'Mai', revenue: 5200 },
-    { month: 'Jun', revenue: 4650 },
-  ];
-
-  const eventsData = [
-    { month: 'Jan', events: 18 },
-    { month: 'Fev', events: 22 },
-    { month: 'Mar', events: 19 },
-    { month: 'Abr', events: 24 },
-    { month: 'Mai', events: 26 },
-    { month: 'Jun', events: 23 },
-  ];
+  // Usar dados reais calculados
+  const revenueData = last6MonthsRevenue;
+  const eventsData = last6MonthsEvents;
 
   // Eventos recentes (últimos 5)
   const recentEvents = events
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     .slice(0, 5)
     .map(event => {
-      const eventPhotos = photos.filter(p => {
-        const album = albums.find(a => a.event_id === event.id);
-        return album && p.album_id === album.id;
-      });
+      // Buscar álbum do evento
+      const album = albums.find(a => a.event_id === event.id);
+      const eventPhotos = album ? photos.filter(p => p.album_id === album.id) : [];
       const selectedPhotos = eventPhotos.filter(p => p.is_selected);
+      
+      // Buscar pedidos do evento
+      const eventOrders = orders.filter(o => o.event_id === event.id);
+      const paidOrders = eventOrders.filter(o => o.status === 'paid');
+      const revenue = paidOrders.reduce((sum, o) => sum + o.total_amount, 0);
       
       return {
         id: event.id,
-        client: event.client_name,
-        date: event.event_date.split('T')[0],
+        clientName: event.client_name,
+        eventDate: event.event_date,
         status: event.status,
         photos: eventPhotos.length,
         selected: selectedPhotos.length,
+        revenue: revenue,
+        paymentStatus: paidOrders.length > 0 ? 'paid' : eventOrders.length > 0 ? 'pending' : 'none'
       };
     });
 
@@ -150,27 +201,27 @@ const Dashboard: React.FC = () => {
         />
         <StatCard
           title="Receita Mensal"
-          value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR')}`}
+          value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
-          change="+18% vs mês anterior"
-          changeType="positive"
+          change={stats.paidOrders > 0 ? `${stats.paidOrders} pedidos pagos` : 'Nenhum pedido pago'}
         />
         <StatCard
           title="Total de Clientes"
           value={stats.completedEvents}
           icon={Users}
+          change={`R$ ${stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} total`}
         />
         <StatCard
           title="Fotos Capturadas"
           value={stats.totalPhotos.toLocaleString('pt-BR')}
           icon={Camera}
+          change={`${photos.filter(p => p.is_selected).length} selecionadas`}
         />
         <StatCard
-          title="Taxa de Conversão"
-          value="78%"
+          title="Pedidos Pagos"
+          value={stats.paidOrders}
           icon={TrendingUp}
-          change="+5% vs mês anterior"
-          changeType="positive"
+          change={`de ${orders.length} pedidos totais`}
         />
       </div>
 
@@ -184,7 +235,12 @@ const Dashboard: React.FC = () => {
               <XAxis dataKey="month" />
               <YAxis />
               <Tooltip formatter={(value) => [`R$ ${value}`, 'Receita']} />
-              <Bar dataKey="revenue" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="revenue" 
+                fill="#3B82F6" 
+                radius={[4, 4, 0, 0]}
+                name="Receita"
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -196,8 +252,14 @@ const Dashboard: React.FC = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="events" stroke="#10B981" strokeWidth={2} />
+              <Tooltip formatter={(value) => [`${value}`, 'Eventos']} />
+              <Line 
+                type="monotone" 
+                dataKey="events" 
+                stroke="#10B981" 
+                strokeWidth={2}
+                name="Eventos"
+              />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -227,16 +289,19 @@ const Dashboard: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Selecionadas
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Receita
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {recentEvents.map((event) => (
                 <tr key={event.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {event.client}
+                    {event.clientName}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(event.date).toLocaleDateString('pt-BR')}
+                    {new Date(event.eventDate).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(event.status)}
@@ -246,6 +311,22 @@ const Dashboard: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {event.selected}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${event.revenue > 0 ? 'text-green-600' : 'text-gray-400'}`}>
+                        R$ {event.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
+                      <span className={`text-xs ${
+                        event.paymentStatus === 'paid' ? 'text-green-600' : 
+                        event.paymentStatus === 'pending' ? 'text-yellow-600' : 
+                        'text-gray-400'
+                      }`}>
+                        {event.paymentStatus === 'paid' ? 'Pago' : 
+                         event.paymentStatus === 'pending' ? 'Pendente' : 
+                         'Sem pedido'}
+                      </span>
+                    </div>
                   </td>
                 </tr>
               ))}
