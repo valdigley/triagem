@@ -8,9 +8,12 @@ import {
   TrendingUp,
   Clock,
   Camera,
-  CheckCircle
+  CheckCircle,
+  Link,
+  Copy
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import toast from 'react-hot-toast';
 
 const sessionTypeLabels: Record<string, string> = {
   'gestante': 'Sessão Gestante',
@@ -129,6 +132,13 @@ const Dashboard: React.FC = () => {
       };
     });
 
+  // Função para copiar link de agendamento
+  const copySchedulingLink = () => {
+    const schedulingUrl = `${window.location.origin}/agendar`;
+    navigator.clipboard.writeText(schedulingUrl);
+    toast.success('Link de agendamento copiado para a área de transferência!');
+  };
+
   const StatCard: React.FC<{
     title: string;
     value: string | number;
@@ -192,6 +202,33 @@ const Dashboard: React.FC = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Visão geral do seu negócio fotográfico</p>
+      </div>
+
+      {/* Link de Agendamento */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Link className="w-6 h-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Link de Agendamento</h3>
+              <p className="text-gray-600">Compartilhe este link com seus clientes para que possam agendar e pagar diretamente</p>
+            </div>
+          </div>
+          <button
+            onClick={copySchedulingLink}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Copy className="w-4 h-4" />
+            Copiar Link
+          </button>
+        </div>
+        <div className="mt-4 p-3 bg-white rounded-lg border border-blue-200">
+          <code className="text-sm text-gray-700 break-all">
+            {window.location.origin}/agendar
+          </code>
+        </div>
       </div>
 
       {/* Stats Grid */}

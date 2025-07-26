@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
@@ -92,7 +92,12 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-          <AppContent />
+          <Routes>
+            {/* Rota pública para agendamento */}
+            <Route path="/agendar" element={<EventScheduling />} />
+            {/* Rotas do sistema interno */}
+            <Route path="/*" element={<AppContent />} />
+          </Routes>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
