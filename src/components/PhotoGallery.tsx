@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Check, Download, Eye, ShoppingCart, X } from 'lucide-react';
+import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import Checkout from './Checkout';
+import WatermarkSettings from './WatermarkSettings';
 
 interface Photo {
   id: string;
@@ -30,8 +31,10 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
     new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id))
   );
-  const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+  const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
+  const [showWatermarkSettings, setShowWatermarkSettings] = useState(false);
+  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
 
   // Atualizar seleções quando as fotos carregarem
   React.useEffect(() => {
@@ -39,6 +42,17 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     setSelectedPhotos(selected);
   }, [albumPhotos]);
 
+  // Carregar configuração de marca d'água
+  React.useEffect(() => {
+    const savedConfig = localStorage.getItem('watermark_config');
+    if (savedConfig) {
+      try {
+        setWatermarkConfig(JSON.parse(savedConfig));
+      } catch (error) {
+        console.error('Error loading watermark config:', error);
+      }
+    }
+  }, []);
   const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
     const isSelected = newSelected.has(photoId);
@@ -81,6 +95,71 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     }
   };
 
+  const openLightbox = (photoIndex: number) => {
+    setLightboxPhotoIndex(photoIndex);
+  };
+
+  const closeLightbox = () => {
+    setLightboxPhotoIndex(null);
+  };
+
+  const navigateLightbox = (direction: 'prev' | 'next') => {
+    if (lightboxPhotoIndex === null) return;
+    
+    if (direction === 'prev') {
+      setLightboxPhotoIndex(lightboxPhotoIndex > 0 ? lightboxPhotoIndex - 1 : albumPhotos.length - 1);
+    } else {
+      setLightboxPhotoIndex(lightboxPhotoIndex < albumPhotos.length - 1 ? lightboxPhotoIndex + 1 : 0);
+    }
+  };
+
+  const handleKeyPress = React.useCallback((e: KeyboardEvent) => {
+    if (lightboxPhotoIndex === null) return;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        navigateLightbox('prev');
+        break;
+      case 'ArrowRight':
+        navigateLightbox('next');
+        break;
+      case 'Escape':
+        closeLightbox();
+        break;
+    }
+  }, [lightboxPhotoIndex]);
+
+  React.useEffect(() => {
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [handleKeyPress]);
+
+  const getWatermarkStyle = () => {
+    if (!watermarkConfig) return {};
+    
+    const baseStyle = {
+      position: 'absolute' as const,
+      opacity: watermarkConfig.opacity,
+      width: `${watermarkConfig.size}%`,
+      height: 'auto',
+      pointerEvents: 'none' as const,
+    };
+
+    switch (watermarkConfig.position) {
+      case 'center':
+        return { ...baseStyle, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
+      case 'bottom-right':
+        return { ...baseStyle, bottom: '20px', right: '20px' };
+      case 'bottom-left':
+        return { ...baseStyle, bottom: '20px', left: '20px' };
+      case 'top-right':
+        return { ...baseStyle, top: '20px', right: '20px' };
+      case 'top-left':
+        return { ...baseStyle, top: '20px', left: '20px' };
+      default:
+        return baseStyle;
+    }
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -116,23 +195,35 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           </p>
         </div>
 
-        {isClientView && selectedPhotos.size > 0 && (
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Total</p>
-              <p className="text-xl font-bold text-gray-900">
-                R$ {totalPrice.toFixed(2)}
-              </p>
-            </div>
+        <div className="flex items-center gap-4">
+          {!isClientView && (
             <button
-              onClick={handleFinishSelection}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              onClick={() => setShowWatermarkSettings(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <ShoppingCart className="w-4 h-4" />
-              Finalizar Seleção
+              <Settings className="w-4 h-4" />
+              Marca D'água
             </button>
-          </div>
-        )}
+          )}
+          
+          {isClientView && selectedPhotos.size > 0 && (
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-xl font-bold text-gray-900">
+                  R$ {totalPrice.toFixed(2)}
+                </p>
+              </div>
+              <button
+                onClick={handleFinishSelection}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Finalizar Seleção
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Photo Grid */}
@@ -146,7 +237,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         </div>
       ) : (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {albumPhotos.map((photo) => {
+        {albumPhotos.map((photo, index) => {
           const isSelected = selectedPhotos.has(photo.id);
           
           return (
@@ -171,9 +262,13 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               {/* Watermark overlay for client view */}
               {isClientView && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="bg-white bg-opacity-20 px-4 py-2 rounded-lg backdrop-blur-sm">
-                    <span className="text-white font-semibold text-sm">© Fotógrafo</span>
-                  </div>
+                  {watermarkConfig && watermarkConfig.file && (
+                    <img
+                      src={watermarkConfig.file}
+                      alt="Watermark"
+                      style={getWatermarkStyle()}
+                    />
+                  )}
                 </div>
               )}
 
@@ -182,7 +277,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 <div className="absolute top-2 right-2 space-y-2">
                   {/* View button */}
                   <button
-                    onClick={() => setLightboxPhoto(photo)}
+                    onClick={() => openLightbox(index)}
                     className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 opacity-0 group-hover:opacity-100"
                   >
                     <Eye className="w-4 h-4 text-gray-700" />
@@ -228,54 +323,89 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       )}
 
       {/* Lightbox */}
-      {lightboxPhoto && (
+      {lightboxPhotoIndex !== null && (
         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
           <div className="relative max-w-4xl max-h-full">
+            {/* Close button */}
             <button
-              onClick={() => setLightboxPhoto(null)}
+              onClick={closeLightbox}
               className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
             >
               <X className="w-6 h-6 text-white" />
             </button>
 
-            <img
-              src={lightboxPhoto.original_path}
-              alt={lightboxPhoto.filename}
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onError={(e) => {
-                // Fallback para imagem de demonstração se a real falhar
-                e.currentTarget.src = `https://picsum.photos/1200/800?random=${lightboxPhoto.id.slice(-6)}`;
-              }}
-            />
+            {/* Navigation buttons */}
+            <button
+              onClick={() => navigateLightbox('prev')}
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
+            >
+              <ChevronLeft className="w-8 h-8 text-white" />
+            </button>
+
+            <button
+              onClick={() => navigateLightbox('next')}
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
+            >
+              <ChevronRight className="w-8 h-8 text-white" />
+            </button>
+            {/* Main image */}
+            <div className="relative">
+              <img
+                src={albumPhotos[lightboxPhotoIndex].original_path}
+                alt={albumPhotos[lightboxPhotoIndex].filename}
+                className="max-w-full max-h-full object-contain rounded-lg"
+                onError={(e) => {
+                  // Fallback para imagem de demonstração se a real falhar
+                  e.currentTarget.src = `https://picsum.photos/1200/800?random=${albumPhotos[lightboxPhotoIndex].id.slice(-6)}`;
+                }}
+              />
+              
+              {/* Watermark overlay for client view */}
+              {isClientView && watermarkConfig && watermarkConfig.file && (
+                <img
+                  src={watermarkConfig.file}
+                  alt="Watermark"
+                  style={getWatermarkStyle()}
+                />
+              )}
+            </div>
 
             {/* Photo info */}
             <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded-lg p-4">
               <div className="flex justify-between items-center text-white">
                 <div>
-                  <p className="font-semibold">{lightboxPhoto.filename}</p>
+                  <p className="font-semibold">{albumPhotos[lightboxPhotoIndex].filename}</p>
+                  <p className="text-sm text-gray-300">
+                    {lightboxPhotoIndex + 1} de {albumPhotos.length}
+                  </p>
                   {isClientView && (
                     <p className="text-sm text-gray-300">
-                      R$ {lightboxPhoto.price.toFixed(2)}
+                      R$ {albumPhotos[lightboxPhotoIndex].price.toFixed(2)}
                     </p>
                   )}
                 </div>
                 
                 {isClientView && (
                   <button
-                    onClick={() => togglePhotoSelection(lightboxPhoto.id)}
+                    onClick={() => togglePhotoSelection(albumPhotos[lightboxPhotoIndex].id)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      selectedPhotos.has(lightboxPhoto.id)
+                      selectedPhotos.has(albumPhotos[lightboxPhotoIndex].id)
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
                         : 'bg-white text-gray-900 hover:bg-gray-100'
                     }`}
                   >
-                    {selectedPhotos.has(lightboxPhoto.id) ? 'Selecionada' : 'Selecionar'}
+                    {selectedPhotos.has(albumPhotos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
                   </button>
                 )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Watermark Settings Modal */}
+      {showWatermarkSettings && (
+        <WatermarkSettings onClose={() => setShowWatermarkSettings(false)} />
       )}
     </div>
   );
