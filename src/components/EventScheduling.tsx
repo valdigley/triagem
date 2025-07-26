@@ -11,9 +11,13 @@ const eventSchema = z.object({
   clientEmail: z.string().email('E-mail inválido'),
   clientPhone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
   sessionType: z.string().min(1, 'Tipo de sessão é obrigatório'),
-  eventDate: z.string().min(1, 'Data é obrigatória'),
+  eventDate: z.string().min(1, 'Data é obrigatória').refine((date) => {
+    const selectedDate = new Date(date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return selectedDate >= today;
+  }, 'A data não pode ser anterior a hoje'),
   eventTime: z.string().min(1, 'Horário é obrigatório'),
-  location: z.string().min(5, 'Local deve ter pelo menos 5 caracteres'),
   notes: z.string().optional(),
 });
 
@@ -58,7 +62,7 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
         client_phone: data.clientPhone,
         session_type: data.sessionType,
         event_date: eventDateTime.toISOString(),
-        location: data.location,
+        location: 'Estúdio Fotográfico',
         notes: data.notes,
         status: 'scheduled',
       });
@@ -231,22 +235,14 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                  Local *
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-                  <input
-                    {...register('location')}
-                    type="text"
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Endereço completo do local da sessão"
-                  />
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 text-gray-700">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">Local: Estúdio Fotográfico</span>
                 </div>
-                {errors.location && (
-                  <p className="text-red-600 text-sm mt-1">{errors.location.message}</p>
-                )}
+                <p className="text-sm text-gray-600 mt-1">
+                  Todas as sessões são realizadas em nosso estúdio
+                </p>
               </div>
 
               <div>
