@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Smartphone, Check, X } from 'lucide-react';
+import { ArrowLeft, CreditCard, Smartphone, Check, X, Copy, RefreshCw } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
@@ -27,6 +27,9 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
   const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentData, setPaymentData] = useState<any>(null);
+  const [isWaitingPayment, setIsWaitingPayment] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'pending' | 'approved' | 'rejected' | null>(null);
   const [settings, setSettings] = useState({
     minimumPackagePrice: 300.00,
     advancePaymentPercentage: 50,
@@ -72,6 +75,60 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
     sessionTypeLabels[eventData.session_type] || eventData.session_type : 
     'Sessão';
 
+  // Função para verificar status do pagamento
+  const checkPaymentStatus = async (paymentId: string) => {
+    try {
+      // Buscar o pedido no banco para verificar se foi atualizado pelo webhook
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('payment_intent_id', paymentId)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (orders && orders.length > 0) {
+        const order = orders[0];
+        if (order.status === 'paid') {
+          setPaymentStatus('approved');
+          return 'approved';
+        } else if (order.status === 'cancelled') {
+          setPaymentStatus('rejected');
+          return 'rejected';
+        }
+      }
+      
+      return 'pending';
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      return 'pending';
+    }
+  };
+
+  // Polling para verificar status do pagamento
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (isWaitingPayment && paymentData?.id) {
+      interval = setInterval(async () => {
+        const status = await checkPaymentStatus(paymentData.id);
+        if (status === 'approved') {
+          setIsWaitingPayment(false);
+          toast.success('Pagamento confirmado!');
+          setTimeout(() => {
+            onComplete();
+          }, 2000);
+        } else if (status === 'rejected') {
+          setIsWaitingPayment(false);
+          toast.error('Pagamento rejeitado. Tente novamente.');
+        }
+      }, 3000); // Verificar a cada 3 segundos
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isWaitingPayment, paymentData?.id]);
+
   const createMercadoPagoPayment = async () => {
     if (!settings.mercadoPagoAccessToken) {
       throw new Error('Mercado Pago não configurado');
@@ -111,43 +168,39 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
 
     try {
       let paymentResult;
-
       if (settings.paymentMethods.mercadoPago && settings.mercadoPagoAccessToken) {
         paymentResult = await createMercadoPagoPayment();
+        setPaymentData(paymentResult);
         
         if (paymentResult.status === 'pending' && paymentResult.qr_code) {
-          toast.success('PIX gerado! Use o QR code para pagar.');
-          console.log('QR Code:', paymentResult.qr_code);
-        } else if (paymentResult.status === 'approved') {
-          toast.success('Pagamento aprovado!');
-        } else if (paymentResult.status === 'pending') {
-          toast.success('Pagamento criado! Aguardando confirmação...');
-        }
-      } else {
-        // Simular processamento para outros métodos
+          // Salvar pedido no banco como pending
+          await supabase
+            .from('orders')
+            .insert({
+              event_id: null, // Será preenchido após criar o evento
+              client_email: eventData.client_email,
+              selected_photos: [],
+              total_amount: advanceAmount,
+          setPaymentStatus('approved');
+              status: 'pending',
+          setTimeout(() => onComplete(), 2000);
+              payment_intent_id: paymentResult.id,
+          setIsWaitingPayment(true);
+            });
+
+          setIsWaitingPayment(true);
+          toast.success('PIX gerado! Escaneie o código para pagar.');
         await new Promise(resolve => setTimeout(resolve, 3000));
         paymentResult = {
           id: `advance_${Date.now()}`,
           status: 'approved',
         };
         toast.success('Pagamento processado com sucesso!');
-      }
-
-      // Salvar registro do pagamento antecipado
-      await supabase
-        .from('orders')
-        .insert({
-          event_id: null, // Será preenchido após criar o evento
-          client_email: eventData.client_email,
-          selected_photos: [],
-          total_amount: advanceAmount,
-          status: 'paid',
-          payment_intent_id: paymentResult?.id || `advance_${Date.now()}`,
-        });
-
-      // Confirmar agendamento
-      onComplete();
-
+        
+        // Salvar pedido como pago para métodos simulados
+        await supabase
+          .from('orders')
+          .insert({
     } catch (error) {
       console.error('Payment error:', error);
       toast.error(error.message || 'Erro no processamento do pagamento');
@@ -155,6 +208,115 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
       setIsProcessing(false);
     }
   };
+
+  const copyPixCode = () => {
+    if (paymentData?.qr_code) {
+      navigator.clipboard.writeText(paymentData.qr_code);
+      toast.success('Código PIX copiado!');
+    }
+  };
+
+  // Se está aguardando pagamento, mostrar tela de PIX
+  if (isWaitingPayment && paymentData) {
+    return (
+      <div className="p-6">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <RefreshCw className={`w-8 h-8 text-blue-600 ${paymentStatus === 'pending' ? 'animate-spin' : ''}`} />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">
+            Aguardando Pagamento
+          </h3>
+          <p className="text-gray-600">
+            Escaneie o QR Code ou copie o código PIX para pagar
+          </p>
+        </div>
+
+        <div className="max-w-md mx-auto">
+          {/* QR Code */}
+          {paymentData.qr_code_base64 && (
+            <div className="bg-white p-6 rounded-lg border-2 border-gray-200 mb-6 text-center">
+              <img 
+                src={`data:image/png;base64,${paymentData.qr_code_base64}`}
+                alt="QR Code PIX"
+                className="mx-auto mb-4 max-w-full h-auto"
+                style={{ maxWidth: '200px' }}
+              />
+              <p className="text-sm text-gray-600 mb-4">
+                Escaneie com o app do seu banco
+              </p>
+            </div>
+          )}
+
+          {/* Código PIX para copiar */}
+          {paymentData.qr_code && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Ou copie o código PIX:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={paymentData.qr_code}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm font-mono"
+                />
+                <button
+                  onClick={copyPixCode}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copiar
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Informações do pagamento */}
+          <div className="bg-blue-50 p-4 rounded-lg mb-6">
+            <div className="text-center">
+              <p className="text-lg font-bold text-blue-900">
+                R$ {advanceAmount.toFixed(2)}
+              </p>
+              <p className="text-sm text-blue-700">
+                Pagamento antecipado da sessão
+              </p>
+            </div>
+          </div>
+
+          <div className="text-center text-sm text-gray-500">
+            <p>Verificando pagamento automaticamente...</p>
+            <p>Não feche esta página até a confirmação.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Se pagamento foi aprovado
+  if (paymentStatus === 'approved') {
+    return (
+      <div className="p-6 text-center">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Check className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          Sua sessão foi agendada!
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Pagamento confirmado com sucesso. Você receberá um e-mail com os detalhes.
+        </p>
+        <div className="bg-green-50 p-4 rounded-lg">
+          <p className="text-sm text-green-800">
+            <strong>Próximos passos:</strong><br/>
+            • Você receberá um e-mail de confirmação<br/>
+            • Após a sessão, enviaremos o link para seleção das fotos<br/>
+            • Você poderá escolher até 10 fotos incluídas no pacote
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
