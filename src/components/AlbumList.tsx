@@ -157,26 +157,21 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   };
 
   const getPaymentStatus = (albumId: string) => {
-    const album = albums.find(a => a.id === albumId);
-    if (!album) return 'Sem pedidos';
+    const selectedCount = getSelectedPhotosCount(albumId);
+    const totalPhotos = getAlbumPhotos(albumId).length;
     
-    const albumOrders = orders.filter(order => order.event_id === album.event_id);
-    if (albumOrders.length === 0) return 'Sem pedidos';
-    
-    const paidOrders = albumOrders.filter(order => order.status === 'paid');
-    const pendingOrders = albumOrders.filter(order => order.status === 'pending');
-    
-    if (paidOrders.length > 0) return 'Pago';
-    if (pendingOrders.length > 0) return 'Pendente';
-    return 'Sem pagamento';
+    if (totalPhotos === 0) return 'Sem fotos';
+    if (selectedCount > 0) return 'Selecionado!';
+    return 'Não selecionado';
   };
 
-  const getPaymentStatusColor = (albumId: string) => {
+  const getSelectionStatusColor = (albumId: string) => {
     const status = getPaymentStatus(albumId);
     switch (status) {
-      case 'Pago': return 'text-green-600';
-      case 'Pendente': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      case 'Selecionado!': return 'text-green-600';
+      case 'Não selecionado': return 'text-orange-600';
+      case 'Sem fotos': return 'text-gray-400';
+      default: return 'text-gray-500';
     }
   };
 
@@ -373,8 +368,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </button>
                 </div>
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">Status do pagamento:</span>
-                  <span className={`font-semibold ${getPaymentStatusColor(album.id)}`}>
+                  <span className="text-gray-600">Status da seleção:</span>
+                  <span className={`font-semibold ${getSelectionStatusColor(album.id)}`}>
                     {getPaymentStatus(album.id)}
                   </span>
                 </div>
