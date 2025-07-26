@@ -339,21 +339,23 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   )}
                 </div>
               </div>
-              {priceCalculation.total > 0 && (
-                <button
-                  onClick={handleFinishSelection}
-                  disabled={isSubmitting}
-                  className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                  {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
-                </button>
-              )}
+              <button
+                onClick={handleFinishSelection}
+                disabled={isSubmitting}
+                className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+                  priceCalculation.total > 0 
+                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {isSubmitting ? 'Finalizando...' : 
+                 priceCalculation.total > 0 ? 'Finalizar Seleção' : 'Confirmar Seleção'}
+              </button>
             </div>
           </div>
         )}
 
-        {selectedPhotos.size > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {photos.map((photo, index) => {
             const isSelected = selectedPhotos.has(photo.id);
@@ -505,15 +507,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     }`}
                   >
                     {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
-              priceCalculation.total > 0 
-                ? 'bg-green-600 text-white hover:bg-green-700' 
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            }`}
+                  </button>
                 </div>
               </div>
-            {isSubmitting ? 'Finalizando...' : 
-             priceCalculation.total > 0 ? 'Finalizar Seleção' : 'Confirmar Seleção'}
+            </div>
           </div>
         )}
       </div>
