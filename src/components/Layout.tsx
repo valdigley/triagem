@@ -30,7 +30,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     { name: 'Agendamentos', key: 'events', icon: Calendar },
     { name: 'Álbuns', key: 'albums', icon: Image },
     { name: 'Novo Agendamento', key: 'scheduling', icon: Calendar },
-    { name: 'Galeria (Cliente)', key: 'gallery', icon: Image },
   ];
 
   const handleLogout = () => {

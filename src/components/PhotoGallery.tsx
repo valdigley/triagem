@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Download, Eye, ShoppingCart, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import Checkout from './Checkout';
 
 interface Photo {
   id: string;
@@ -15,11 +16,13 @@ interface Photo {
 interface PhotoGalleryProps {
   albumId: string;
   isClientView?: boolean;
+  onBackToAlbums?: () => void;
 }
 
 const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   albumId,
   isClientView = false,
+  onBackToAlbums,
 }) => {
   const { photos, updatePhoto, loading } = useSupabaseData();
   const albumPhotos = photos.filter(photo => photo.album_id === albumId);
@@ -28,6 +31,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id))
   );
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   // Atualizar seleções quando as fotos carregarem
   React.useEffect(() => {
@@ -66,9 +70,15 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       return;
     }
 
-    // Redirect to checkout
-    toast.success(`${selectedPhotos.size} fotos selecionadas! Redirecionando para o checkout...`);
-    // In a real app, this would navigate to the checkout page
+    setShowCheckout(true);
+  };
+
+  const handleCheckoutComplete = () => {
+    setShowCheckout(false);
+    setSelectedPhotos(new Set());
+    if (onBackToAlbums) {
+      onBackToAlbums();
+    }
   };
 
   if (loading) {
@@ -77,6 +87,18 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         <span className="ml-2 text-gray-600">Carregando fotos...</span>
       </div>
+    );
+  }
+
+  if (showCheckout) {
+    return (
+      <Checkout
+        albumId={albumId}
+        selectedPhotos={Array.from(selectedPhotos)}
+        totalAmount={totalPrice}
+        onBack={() => setShowCheckout(false)}
+        onComplete={handleCheckoutComplete}
+      />
     );
   }
 

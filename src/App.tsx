@@ -66,6 +66,7 @@ const AppContent: React.FC = () => {
           <PhotoGallery
             albumId={selectedAlbumId || "album_1"}
             isClientView={true}
+            onBackToAlbums={() => setCurrentView('albums')}
           />
         );
       default:
