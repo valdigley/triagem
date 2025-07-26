@@ -274,38 +274,34 @@ export const useSupabaseData = () => {
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
     try {
-      // Verificar se o bucket existe primeiro
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('Error checking buckets:', bucketsError);
-        toast.error('Erro ao verificar storage. Usando modo de demonstração.');
-        return await uploadPhotosDemo(albumId, files);
-      }
-
-      const photoBucket = buckets?.find(bucket => bucket.name === 'photos');
-      if (!photoBucket) {
-        console.warn('Photos bucket not found. Using demo mode.');
-        toast.error('Bucket de fotos não configurado. Usando modo de demonstração.');
-        return await uploadPhotosDemo(albumId, files);
-      }
-
-      // Upload real para Supabase Storage
+      // Tentar upload real para Supabase Storage
       const photoPromises = files.map(async (file, index) => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${albumId}_${Date.now()}_${index}.${fileExt}`;
         
         try {
+          // Validar tipo de arquivo
+          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+          if (!allowedTypes.includes(file.type)) {
+            throw new Error(`Tipo de arquivo não suportado: ${file.type}`);
+          }
+
+          // Validar tamanho (50MB max)
+          if (file.size > 50 * 1024 * 1024) {
+            throw new Error('Arquivo muito grande. Máximo 50MB.');
+          }
+
           // Upload para o bucket 'photos'
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('photos')
             .upload(`original/${fileName}`, file, {
               cacheControl: '3600',
-              upsert: false
+              upsert: false,
+              contentType: file.type
             });
 
           if (uploadError) {
-            console.error('Error uploading file:', uploadError);
+            console.error('Error uploading file:', file.name, uploadError);
             throw uploadError;
           }
 
@@ -334,13 +330,130 @@ export const useSupabaseData = () => {
             metadata: {
               size: file.size,
               type: file.type,
-              width: 1200,
-              height: 800,
+              uploadedAt: new Date().toISOString(),
             },
           };
         } catch (error) {
-          console.error('Error uploading individual file:', error);
-          // Fallback para foto de demonstração
+          console.error('Error uploading individual file:', file.name, error);
+          
+          // Se for erro de bucket, usar modo demo
+          if (error.message?.includes('Bucket not found') || error.message?.includes('bucket')) {
+            console.warn('Storage bucket not configured, using demo mode for:', file.name);
+            return {
+              album_id: albumId,
+              filename: file.name,
+              original_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
+              thumbnail_path: `https://picsum.photos/300/200?random=${Date.now()}_${index}`,
+              watermarked_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
+              is_selected: false,
+              price: 25.00,
+              metadata: {
+                size: file.size,
+                type: file.type,
+                demo: true,
+                error: 'Storage not configured',
+              },
+            };
+          }
+          
+          // Para outros erros, rejeitar
+          throw error;
+        }
+      });
+
+      try {
+        const photosData = await Promise.all(photoPromises);
+        
+        // Separar fotos com sucesso das com erro
+        const successfulPhotos = photosData.filter(photo => photo !== null);
+        const demoPhotos = photosData.filter(photo => photo?.metadata?.demo);
+        
+        if (successfulPhotos.length === 0) {
+          throw new Error('Nenhuma foto foi processada com sucesso');
+        }
+
+        const { data, error } = await supabase
+          .from('photos')
+          .insert(successfulPhotos)
+          .select();
+
+        if (error) {
+          console.error('Error saving photos to database:', error);
+          throw error;
+        }
+
+        setPhotos(prev => [...prev, ...data]);
+        
+        // Mensagem de sucesso personalizada
+        if (demoPhotos.length > 0) {
+          toast.success(`${data.length} fotos salvas! (${demoPhotos.length} em modo demo - configure o Storage)`);
+        } else {
+          toast.success(`${data.length} fotos enviadas com sucesso!`);
+        }
+        
+        return true;
+      } catch (error) {
+        console.error('Error processing photos:', error);
+        throw error;
+      }
+      
+    } catch (error) {
+      console.error('Error in photo upload process:', error);
+      
+      // Se for erro de configuração, tentar modo demo completo
+      if (error.message?.includes('Bucket not found') || 
+          error.message?.includes('bucket') ||
+          error.message?.includes('storage')) {
+        
+        toast.error('Storage não configurado. Usando modo de demonstração.');
+        return await uploadPhotosDemo(albumId, files);
+      }
+      
+      // Para outros erros, mostrar mensagem específica
+      toast.error(error.message || 'Erro no upload das fotos');
+      return false;
+    }
+  };
+
+  // Função de upload de demonstração melhorada
+  const uploadPhotosDemo = async (albumId: string, files: File[]) => {
+    try {
+      const photosData = files.map((file, index) => ({
+        album_id: albumId,
+        filename: file.name,
+        original_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
+        thumbnail_path: `https://picsum.photos/300/200?random=${Date.now()}_${index}`,
+        watermarked_path: `https://picsum.photos/800/600?random=${Date.now()}_${index}`,
+        is_selected: false,
+        price: 25.00,
+        metadata: {
+          size: file.size,
+          type: file.type,
+          demo: true,
+          originalName: file.name,
+        },
+      }));
+
+      const { data, error } = await supabase
+        .from('photos')
+        .insert(photosData)
+        .select();
+
+      if (error) {
+        console.error('Error saving demo photos:', error);
+        toast.error('Erro ao salvar fotos de demonstração');
+        return false;
+      }
+
+      setPhotos(prev => [...prev, ...data]);
+      toast.success(`${data.length} fotos de demonstração criadas! Configure o Supabase Storage para fotos reais.`);
+      return true;
+    } catch (error) {
+      console.error('Error in demo upload:', error);
+      toast.error('Erro no modo de demonstração');
+      return false;
+    }
+  };
           return {
             album_id: albumId,
             filename: file.name,
