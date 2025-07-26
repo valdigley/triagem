@@ -22,6 +22,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const { events, albums, photos, orders, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
   const [uploadingAlbumId, setUploadingAlbumId] = useState<string | null>(null);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [reactivatingAlbumId, setReactivatingAlbumId] = useState<string | null>(null);
 
   // Forçar re-render quando álbuns mudarem
   React.useEffect(() => {
@@ -57,6 +58,38 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       setDeletingPhotoId(null);
     }
   };
+
+  const reactivateSelection = async (albumId: string) => {
+    if (!confirm('Tem certeza que deseja reativar a seleção? O cliente poderá alterar suas fotos selecionadas.')) {
+      return;
+    }
+
+    setReactivatingAlbumId(albumId);
+    try {
+      // Desmarcar todas as fotos como não selecionadas para permitir nova seleção
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('photos')
+        .update({ is_selected: false })
+        .eq('album_id', albumId);
+
+      if (error) {
+        console.error('Error reactivating selection:', error);
+        toast.error('Erro ao reativar seleção');
+        return;
+      }
+
+      toast.success('Seleção reativada! O cliente pode fazer nova seleção.');
+      // Forçar recarregamento dos dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Error reactivating selection:', error);
+      toast.error('Erro ao reativar seleção');
+    } finally {
+      setReactivatingAlbumId(null);
+    }
+  };
+
   const handlePhotoUpload = async (albumId: string, files: FileList) => {
     if (!files || files.length === 0) return;
 
@@ -305,6 +338,18 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         E-mail
                       </button>
                     </>
+                  )}
+                  {selectedCount > 0 && (
+                    <button 
+                      onClick={() => reactivateSelection(album.id)}
+                      disabled={reactivatingAlbumId === album.id}
+                      className="flex items-center gap-2 px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      {reactivatingAlbumId === album.id ? 'Reativando...' : 'Reativar Seleção'}
+                    </button>
                   )}
                   <button 
                     onClick={() => onViewAlbum?.(album.id)}

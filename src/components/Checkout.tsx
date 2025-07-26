@@ -240,6 +240,9 @@ const Checkout: React.FC<CheckoutProps> = ({
           
           // Forçar atualização da página de pagamentos
           window.dispatchEvent(new CustomEvent('paymentStatusUpdated'));
+          
+          // Marcar seleção como finalizada
+          onComplete();
         } else if (status === 'rejected') {
           setIsWaitingPayment(false);
           setPaymentStatus('rejected');

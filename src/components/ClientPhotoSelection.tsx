@@ -35,6 +35,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectionLocked, setSelectionLocked] = useState(false);
   const [pricingConfig, setPricingConfig] = useState({
     photoPrice: 25.00,
     packagePhotos: 10,
@@ -90,6 +91,11 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       // Inicializar seleções
       const selected = new Set(formattedPhotos.filter(p => p.isSelected).map(p => p.id));
       setSelectedPhotos(selected);
+      
+      // Verificar se a seleção já foi finalizada (tem fotos selecionadas)
+      if (selected.size > 0) {
+        setSelectionLocked(true);
+      }
 
     } catch (error) {
       console.error('Error loading album data:', error);
@@ -136,6 +142,12 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     }
   };
   const togglePhotoSelection = async (photoId: string) => {
+    // Verificar se a seleção está bloqueada
+    if (selectionLocked) {
+      toast.error('Seleção finalizada. Entre em contato para alterações.');
+      return;
+    }
+    
     // Verificar se excedeu o limite do pacote e não há pagamento confirmado
     const currentSelectedCount = selectedPhotos.size;
     const isSelecting = !selectedPhotos.has(photoId);
@@ -268,6 +280,9 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       // Não criar entrada na tabela orders pois não houve pagamento
       console.log('Free selection confirmed - no payment record needed');
 
+      // Bloquear futuras alterações
+      setSelectionLocked(true);
+      
       toast.success('Seleção confirmada com sucesso!');
       setSelectedPhotos(new Set());
     } catch (error) {
@@ -339,6 +354,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
             onComplete={() => {
               setShowCheckout(false);
               setSelectedPhotos(new Set());
+              setSelectionLocked(true);
             }}
           />
         </div>
@@ -358,7 +374,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         </div>
 
         {/* Selection Summary */}
-        {selectedPhotos.size > 0 && priceCalculation.total > 0 && (
+        {selectedPhotos.size > 0 && priceCalculation.total > 0 && !selectionLocked && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
             <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
               <div>
@@ -400,7 +416,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         )}
 
         {/* Message for free photos */}
-        {selectedPhotos.size > 0 && priceCalculation.total === 0 && (
+        {selectedPhotos.size > 0 && priceCalculation.total === 0 && !selectionLocked && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
             <div className="flex items-center justify-center">
               <div className="text-center">
@@ -425,7 +441,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         )}
 
         {/* Instructions when no photos selected */}
-        {selectedPhotos.size === 0 && (
+        {selectedPhotos.size === 0 && !selectionLocked && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
             <div className="text-center">
               <h3 className="text-lg font-semibold text-blue-900 mb-2">
@@ -446,6 +462,30 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
           </div>
         )}
 
+        {/* Selection locked message */}
+        {selectionLocked && (
+          <div className="bg-gray-50 border border-gray-300 rounded-lg p-6 mb-8">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Seleção Finalizada
+              </h3>
+              <div className="text-gray-700">
+                <p className="mb-2">
+                  Você já finalizou sua seleção com <strong>{selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''}</strong>.
+                </p>
+                <p className="text-sm">
+                  Para fazer alterações, entre em contato conosco.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {photos.map((photo, index) => {
             const isSelected = selectedPhotos.has(photo.id);
@@ -453,8 +493,10 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
             return (
               <div
                 key={photo.id}
-                className={`relative group bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
-                  isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
+                className={`relative group bg-gray-100 rounded-lg overflow-hidden transition-all duration-200 ${
+                  isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
+                } ${
+                  selectionLocked ? 'cursor-default' : 'cursor-pointer hover:shadow-lg'
                 }`}
                 style={{ aspectRatio: '1/1' }}
               >
@@ -495,31 +537,37 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 </div>
 
                 {/* Selection overlay */}
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200">
+                <div className={`absolute inset-0 bg-black bg-opacity-0 transition-all duration-200 ${
+                  !selectionLocked ? 'group-hover:bg-opacity-20' : ''
+                }`}>
                   <div className="absolute top-2 right-2 space-y-2">
                     {/* View button */}
                     <button
                       onClick={() => setLightboxPhotoIndex(index)}
-                      className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      className={`w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 ${
+                        selectionLocked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
                     >
                       <Eye className="w-4 h-4 text-gray-700" />
                     </button>
 
-                    {/* Selection button */}
-                    <button
-                      onClick={() => togglePhotoSelection(photo.id)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-green-500 text-white opacity-100'
-                          : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
-                      }`}
-                    >
-                      {isSelected ? '✓' : '+'}
-                    </button>
+                    {/* Selection button - only show if not locked */}
+                    {!selectionLocked && (
+                      <button
+                        onClick={() => togglePhotoSelection(photo.id)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-green-500 text-white opacity-100'
+                            : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
+                        }`}
+                      >
+                        {isSelected ? '✓' : '+'}
+                      </button>
+                    )}
                   </div>
 
                   {/* Price tag */}
-                  {selectedPhotos.size > pricingConfig.packagePhotos && (
+                  {selectedPhotos.size > pricingConfig.packagePhotos && !selectionLocked && (
                     <div className="absolute bottom-2 left-2">
                       <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
                         R$ {pricingConfig.photoPrice.toFixed(2)}
@@ -533,6 +581,18 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   <div className="absolute inset-0 border-4 border-green-500 rounded-lg pointer-events-none">
                     <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
                       {Array.from(selectedPhotos).indexOf(photo.id) + 1}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Lock indicator for selected photos when locked */}
+                {selectionLocked && isSelected && (
+                  <div className="absolute bottom-2 right-2">
+                    <div className="bg-gray-800 bg-opacity-75 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                      </svg>
+                      Selecionada
                     </div>
                   </div>
                 )}
@@ -618,12 +678,20 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   <button
                     onClick={() => togglePhotoSelection(photos[lightboxPhotoIndex].id)}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      selectedPhotos.has(photos[lightboxPhotoIndex].id)
+                      selectionLocked
+                        ? 'bg-gray-500 text-white cursor-not-allowed'
+                        : selectedPhotos.has(photos[lightboxPhotoIndex].id)
                         ? 'bg-green-500 text-white hover:bg-green-600'
                         : 'bg-white text-gray-900 hover:bg-gray-100'
                     }`}
+                    disabled={selectionLocked}
                   >
-                    {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
+                    {selectionLocked 
+                      ? 'Seleção Finalizada'
+                      : selectedPhotos.has(photos[lightboxPhotoIndex].id) 
+                      ? 'Selecionada' 
+                      : 'Selecionar'
+                    }
                   </button>
                 </div>
               </div>
