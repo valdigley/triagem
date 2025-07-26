@@ -440,7 +440,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     </button>
                   )}
                   <button 
-                    onClick={() => onViewAlbum?.(album.id)}
+                    onClick={() => {
+                      console.log('Clicking Ver Fotos for album:', album.id);
+                      onViewAlbum?.(album.id);
+                    }}
                     className="flex items-center gap-1 px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
                   >
                     <Eye className="w-3 h-3" />

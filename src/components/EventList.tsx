@@ -457,7 +457,10 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                       const relatedAlbum = albums.find(album => album.event_id === event.id);
                       return relatedAlbum && (
                       <button 
-                        onClick={() => onViewAlbum?.(relatedAlbum.id)}
+                        onClick={() => {
+                          console.log('Clicking Ver Sessão for album:', relatedAlbum.id);
+                          onViewAlbum?.(relatedAlbum.id);
+                        }}
                         className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Eye className="w-4 h-4" />

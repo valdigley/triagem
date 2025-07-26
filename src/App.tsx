@@ -19,16 +19,6 @@ import ClientsList from './components/ClientsList';
 // Create a client
 const queryClient = new QueryClient();
 
-// Mock data for photo gallery
-const mockPhotos = Array.from({ length: 24 }, (_, i) => ({
-  id: `photo_${i + 1}`,
-  filename: `DSC_${String(i + 1).padStart(4, '0')}.jpg`,
-  thumbnailPath: `/thumbnails/photo_${i + 1}.jpg`,
-  watermarkedPath: `/watermarked/photo_${i + 1}.jpg`,
-  isSelected: Math.random() > 0.7,
-  price: 25.00,
-}));
-
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<string>('dashboard');
@@ -55,10 +45,15 @@ const AppContent: React.FC = () => {
         return <Dashboard />;
       case 'events':
         return <EventList 
-          onViewAlbum={(eventId) => setCurrentView('gallery')}
+          onViewAlbum={(albumId) => {
+            console.log('EventList onViewAlbum called with albumId:', albumId);
+            setSelectedAlbumId(albumId);
+            setCurrentView('gallery');
+          }}
         />;
       case 'albums':
         return <AlbumList onViewAlbum={(albumId) => {
+          console.log('AlbumList onViewAlbum called with albumId:', albumId);
           setCurrentView('gallery');
           setSelectedAlbumId(albumId);
         }} />;
