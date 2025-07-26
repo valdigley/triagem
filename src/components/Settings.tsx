@@ -20,6 +20,11 @@ interface StudioSettings {
   minimumPackagePrice: number;
   extraPhotoPrice: number;
   advancePaymentPercentage: number;
+  paymentMethods?: {
+    pix: boolean;
+    creditCard: boolean;
+    mercadoPago: boolean;
+  };
 }
 
 const Settings: React.FC = () => {
@@ -78,6 +83,7 @@ const Settings: React.FC = () => {
             pix: true,
             creditCard: true,
             mercadoPago: false,
+          }
         }));
 
         if (photographer.watermark_config?.watermarkFile) {
@@ -156,6 +162,7 @@ const Settings: React.FC = () => {
             minimumPackagePrice: settings.minimumPackagePrice,
             extraPhotoPrice: settings.extraPhotoPrice,
             advancePaymentPercentage: settings.advancePaymentPercentage,
+            paymentMethods: settings.paymentMethods,
           },
         })
         .eq('user_id', user.id);
