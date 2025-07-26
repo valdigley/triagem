@@ -142,6 +142,9 @@ const PublicScheduling: React.FC = () => {
 
       console.log('Event created successfully:', newEvent.id);
 
+      // Enviar email de confirmação de agendamento
+      await sendBookingConfirmationEmail(newEvent, studioSettings);
+
       // Criar álbum automaticamente para o evento
       const sessionTypeLabel = newEvent.session_type ? 
         sessionTypeLabels[newEvent.session_type] || newEvent.session_type : 

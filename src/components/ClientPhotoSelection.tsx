@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Check, ShoppingCart, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Check, ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import Checkout from './Checkout';
 
 interface Photo {
   id: string;
@@ -21,17 +20,16 @@ interface Album {
 }
 
 interface ClientPhotoSelectionProps {
-  shareToken: string;
+  shareToken?: string;
 }
 
-const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken }) => {
+const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
+  const { shareToken } = useParams<{ shareToken: string }>();
   const [album, setAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
 
   useEffect(() => {
     loadAlbumData();
@@ -315,10 +313,11 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
               </div>
               <button
                 onClick={handleFinishSelection}
+               disabled={isSubmitting}
                 className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
               >
                 <ShoppingCart className="w-5 h-5" />
-                Finalizar Seleção
+               {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
               </button>
             </div>
           </div>

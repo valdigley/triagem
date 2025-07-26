@@ -61,7 +61,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const copyShareLink = (shareToken: string) => {
     const shareUrl = `${window.location.origin}/album/${shareToken}`;
     navigator.clipboard.writeText(shareUrl);
-    toast.success('Link copiado para a área de transferência!');
+    toast.success('Link do cliente copiado! Envie para o cliente selecionar as fotos.');
   };
 
   const getAlbumPhotos = (albumId: string) => {

@@ -8,6 +8,7 @@ import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import PublicScheduling from './components/PublicScheduling';
+import ClientPhotoSelection from './components/ClientPhotoSelection';
 import PhotoGallery from './components/PhotoGallery';
 import EventList from './components/EventList';
 import AlbumList from './components/AlbumList';
@@ -98,6 +99,8 @@ function App() {
           <Routes>
             {/* Rota pública para agendamento */}
             <Route path="/agendar" element={<PublicScheduling />} />
+            {/* Rota pública para seleção de fotos */}
+            <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
             {/* Rotas do sistema interno */}
             <Route path="/*" element={<AppContent />} />
           </Routes>
