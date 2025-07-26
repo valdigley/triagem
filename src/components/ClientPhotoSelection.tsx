@@ -188,29 +188,6 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = ({ shareToken 
       minimumPackagePrice: minimumPackagePrice
     };
   };
-      
-      // Fotos extras (acima de 10): 20% de desconto
-      const extraPhotos = Array.from(selectedPhotos).slice(10);
-      const extraTotal = extraPhotos.reduce((total, photoId) => {
-        const photo = photos.find(p => p.id === photoId);
-        return total + ((photo?.price || 0) * 0.8); // 20% desconto
-      }, 0);
-      
-      return {
-        total: firstTenTotal + extraTotal,
-        discount: baseTotal - (firstTenTotal + extraTotal),
-        hasDiscount: true,
-        extraPhotosCount: extraPhotos.length
-      };
-    }
-    
-    return {
-      total: baseTotal,
-      discount: 0,
-      hasDiscount: false,
-      extraPhotosCount: 0
-    };
-  };
 
   const priceCalculation = calculateTotalWithDiscount();
 
