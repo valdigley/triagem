@@ -366,12 +366,12 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     Excluir
                   </button>
                 </div>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600">Status do pagamento:</span>
-                <span className={`font-semibold ${getPaymentStatusColor(album.id)}`}>
-                  {getPaymentStatus(album.id)}
-                </span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">Status do pagamento:</span>
+                  <span className={`font-semibold ${getPaymentStatusColor(album.id)}`}>
+                    {getPaymentStatus(album.id)}
+                  </span>
+                </div>
               </div>
             );
           })}
