@@ -238,6 +238,28 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 </div>
 
+                {/* Preview das fotos */}
+                {albumPhotos.length > 0 && (
+                  <div className="mb-4">
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {albumPhotos.slice(0, 6).map((photo) => (
+                        <div key={photo.id} className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                          <img
+                            src={`https://picsum.photos/200/200?random=${photo.id.slice(-6)}`}
+                            alt={photo.filename}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                      {albumPhotos.length > 6 && (
+                        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-xs text-gray-500">+{albumPhotos.length - 6}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {selectedCount > 0 && albumPhotos.length > 0 && (
                   <div className="mb-4">
                     <div className="w-full bg-gray-200 rounded-full h-2">

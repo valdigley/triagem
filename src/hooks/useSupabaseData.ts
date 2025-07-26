@@ -132,18 +132,23 @@ export const useSupabaseData = () => {
       }
 
       // Carregar fotos
+      // Carregar todas as fotos dos álbuns do fotógrafo
       if (albumsData && albumsData.length > 0) {
         const albumIds = albumsData.map(album => album.id);
         const { data: photosData, error: photosError } = await supabase
           .from('photos')
           .select('*')
-          .in('album_id', albumIds);
+          .in('album_id', albumIds)
+          .order('created_at', { ascending: false });
 
         if (photosError) {
           console.error('Error loading photos:', photosError);
+          toast.error('Erro ao carregar fotos');
         } else {
           setPhotos(photosData || []);
         }
+      } else {
+        setPhotos([]);
       }
 
     } catch (error) {
@@ -271,21 +276,21 @@ export const useSupabaseData = () => {
     try {
       const photoPromises = files.map(async (file, index) => {
         // Em produção, aqui faria upload para Supabase Storage
-        const photoId = `photo_${Date.now()}_${index}`;
+        const photoId = `${albumId}_${Date.now()}_${index}`;
         
         return {
           album_id: albumId,
           filename: file.name,
-          original_path: `/photos/original/${photoId}`,
-          thumbnail_path: `/photos/thumbnails/${photoId}`,
-          watermarked_path: `/photos/watermarked/${photoId}`,
+          original_path: `/photos/original/${photoId}.jpg`,
+          thumbnail_path: `/photos/thumbnails/${photoId}.jpg`,
+          watermarked_path: `/photos/watermarked/${photoId}.jpg`,
           is_selected: false,
           price: 25.00,
           metadata: {
             size: file.size,
             type: file.type,
-            width: 4000,
-            height: 3000,
+            width: 1200,
+            height: 800,
           },
         };
       });
@@ -304,6 +309,7 @@ export const useSupabaseData = () => {
       }
 
       setPhotos(prev => [...prev, ...data]);
+      toast.success(`${files.length} fotos adicionadas com sucesso!`);
       return true;
     } catch (error) {
       console.error('Error uploading photos:', error);

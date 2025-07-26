@@ -21,13 +21,19 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   albumId,
   isClientView = false,
 }) => {
-  const { photos, updatePhoto } = useSupabaseData();
+  const { photos, updatePhoto, loading } = useSupabaseData();
   const albumPhotos = photos.filter(photo => photo.album_id === albumId);
   
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(
     new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id))
   );
   const [lightboxPhoto, setLightboxPhoto] = useState<Photo | null>(null);
+
+  // Atualizar seleções quando as fotos carregarem
+  React.useEffect(() => {
+    const selected = new Set(albumPhotos.filter(p => p.is_selected).map(p => p.id));
+    setSelectedPhotos(selected);
+  }, [albumPhotos]);
 
   const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
@@ -65,6 +71,15 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     // In a real app, this would navigate to the checkout page
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Carregando fotos...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -99,6 +114,15 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       </div>
 
       {/* Photo Grid */}
+      {albumPhotos.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Eye className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma foto encontrada</h3>
+          <p className="text-gray-600">Este álbum ainda não possui fotos.</p>
+        </div>
+      ) : (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {albumPhotos.map((photo) => {
           const isSelected = selectedPhotos.has(photo.id);
@@ -175,6 +199,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           );
         })}
       </div>
+      )}
 
       {/* Lightbox */}
       {lightboxPhoto && (

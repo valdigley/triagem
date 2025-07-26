@@ -28,6 +28,7 @@ const mockPhotos = Array.from({ length: 24 }, (_, i) => ({
 const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [currentView, setCurrentView] = useState<string>('dashboard');
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -54,13 +55,16 @@ const AppContent: React.FC = () => {
           onViewAlbum={(eventId) => setCurrentView('gallery')}
         />;
       case 'albums':
-        return <AlbumList />;
+        return <AlbumList onViewAlbum={(albumId) => {
+          setCurrentView('gallery');
+          setSelectedAlbumId(albumId);
+        }} />;
       case 'scheduling':
         return <EventScheduling onBack={() => setCurrentView('events')} />;
       case 'gallery':
         return (
           <PhotoGallery
-            albumId="album_1"
+            albumId={selectedAlbumId || "album_1"}
             isClientView={true}
           />
         );
