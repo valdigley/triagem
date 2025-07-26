@@ -115,11 +115,90 @@ const PublicScheduling: React.FC = () => {
 
   const advanceAmount = (studioSettings.minimumPackagePrice * studioSettings.advancePaymentPercentage) / 100;
 
+  // Função para criar evento após confirmação do pagamento
+  const createEventAfterPayment = async (paymentData: any) => {
+    if (!pendingEventData || !photographerId) {
+      console.error('Missing event data or photographer ID');
+      return;
+    }
+
+    try {
+      console.log('Creating event after payment confirmation...');
+      
+      // Criar o evento
+      const { data: newEvent, error: eventError } = await supabase
+        .from('events')
+        .insert({
+          ...pendingEventData,
+          photographer_id: photographerId,
+        })
+        .select()
+        .single();
+
+      if (eventError || !newEvent) {
+        console.error('Error creating event:', eventError);
+        throw new Error('Erro ao criar evento no banco de dados');
+      }
+
+      console.log('Event created successfully:', newEvent.id);
+
+      // Criar o pedido
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          event_id: newEvent.id,
+          client_email: pendingEventData.client_email,
+          selected_photos: [],
+          total_amount: advanceAmount,
+          status: 'paid',
+          payment_intent_id: paymentData.id.toString(),
+        });
+
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+      } else {
+        console.log('Order created successfully');
+      }
+
+      return newEvent;
+    } catch (error) {
+      console.error('Error creating event after payment:', error);
+      throw error;
+    }
+  };
+
   // Função para verificar status do pagamento
   const checkPaymentStatus = async (paymentId: string) => {
     console.log('Checking payment status for:', paymentId);
     
     try {
+      // Primeiro verificar se o pagamento foi aprovado no Mercado Pago
+      if (studioSettings.mercadoPagoAccessToken) {
+        console.log('Checking payment status directly from MercadoPago...');
+        
+        const mpResponse = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: {
+            'Authorization': `Bearer ${studioSettings.mercadoPagoAccessToken}`,
+            'Content-Type': 'application/json',
+          }
+        });
+
+        if (mpResponse.ok) {
+          const paymentData = await mpResponse.json();
+          console.log('MercadoPago payment status:', paymentData.status);
+          
+          if (paymentData.status === 'approved') {
+            // Pagamento aprovado, criar o evento agora
+            console.log('Payment approved, creating event...');
+            await createEventAfterPayment(paymentData);
+            return 'approved';
+          } else if (paymentData.status === 'rejected' || paymentData.status === 'cancelled') {
+            return 'rejected';
+          }
+        }
+      }
+
+      // Fallback: verificar no banco de dados
       const { data: orders } = await supabase
         .from('orders')
         .select('status')
@@ -186,22 +265,7 @@ const PublicScheduling: React.FC = () => {
       sessionTypeLabels[eventData.session_type] || eventData.session_type : 
       'Sessão';
 
-    // Primeiro, criar o evento no banco de dados
-    const { data: newEvent, error: eventError } = await supabase
-      .from('events')
-      .insert({
-        ...eventData,
-        photographer_id: photographerId,
-      })
-      .select()
-      .single();
-
-    if (eventError || !newEvent) {
-      console.error('Error creating event:', eventError);
-      throw new Error('Erro ao criar evento no banco de dados');
-    }
-
-    console.log('Event created successfully:', newEvent.id);
+    console.log('Creating payment for event data:', eventData);
 
     const paymentRequest = {
       transaction_amount: advanceAmount,
@@ -212,7 +276,7 @@ const PublicScheduling: React.FC = () => {
       },
       access_token: studioSettings.mercadoPagoAccessToken,
       selected_photos: [],
-      event_id: newEvent.id,
+      event_id: null, // Será criado após confirmação do pagamento
       client_email: eventData.client_email,
     };
 
@@ -235,12 +299,8 @@ const PublicScheduling: React.FC = () => {
 
     const paymentResult = await response.json();
     console.log('Payment created:', paymentResult);
-    
-    // Retornar tanto o resultado do pagamento quanto o evento criado
-    return {
-      ...paymentResult,
-      eventId: newEvent.id,
-    };
+
+    return paymentResult;
   };
 
   const onSubmit = async (data: EventFormData) => {
