@@ -40,6 +40,7 @@ export interface Event {
   clientName: string;
   clientEmail: string;
   clientPhone: string;
+  sessionType?: string;
   eventDate: Date;
   location: string;
   notes?: string;

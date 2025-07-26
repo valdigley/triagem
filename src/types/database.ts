@@ -40,6 +40,7 @@ export interface Database {
           client_name: string;
           client_email: string;
           client_phone: string;
+          session_type: string | null;
           event_date: string;
           location: string;
           notes: string | null;
@@ -54,6 +55,7 @@ export interface Database {
           client_name: string;
           client_email: string;
           client_phone: string;
+          session_type?: string | null;
           event_date: string;
           location: string;
           notes?: string | null;
@@ -68,6 +70,7 @@ export interface Database {
           client_name?: string;
           client_email?: string;
           client_phone?: string;
+          session_type?: string | null;
           event_date?: string;
           location?: string;
           notes?: string | null;
