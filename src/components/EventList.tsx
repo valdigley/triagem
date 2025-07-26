@@ -658,7 +658,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
             </div>
           ))}
         </div>
-        </div>
+        )
       )}
     </div>
   );
