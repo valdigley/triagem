@@ -486,6 +486,32 @@ const ClientsList: React.FC = () => {
                     <MessageCircle className="w-4 h-4" />
                     WhatsApp
                   </button>
+
+                  {/* Botões de Ação */}
+                  <div className="flex gap-2">
+                    {!client.id.startsWith('temp_') ? (
+                      <>
+                        <button
+                          onClick={() => handleEdit(client)}
+                          className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDelete(client.id)}
+                          className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Excluir
+                        </button>
+                      </>
+                    ) : (
+                      <div className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm">
+                        Cliente temporário - adicione para gerenciar
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
