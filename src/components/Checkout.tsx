@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, CreditCard, Smartphone, Check, Download, Mail } from 'lucide-react';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 interface CheckoutProps {
@@ -19,14 +21,87 @@ const Checkout: React.FC<CheckoutProps> = ({
   onComplete,
 }) => {
   const { photos, albums, events } = useSupabaseData();
+  const { user } = useAuth();
   const [paymentMethod, setPaymentMethod] = useState<'pix' | 'card'>('pix');
   const [clientEmail, setClientEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderCompleted, setOrderCompleted] = useState(false);
+  const [paymentMethods, setPaymentMethods] = useState({
+    pix: true,
+    creditCard: true,
+    mercadoPago: false,
+  });
+  const [mercadoPagoConfig, setMercadoPagoConfig] = useState<{
+    accessToken?: string;
+    publicKey?: string;
+  }>({});
 
   const album = albums.find(a => a.id === albumId);
   const event = album ? events.find(e => e.id === album.event_id) : null;
   const selectedPhotoObjects = photos.filter(p => selectedPhotos.includes(p.id));
+
+  // Carregar configurações de pagamento
+  React.useEffect(() => {
+    loadPaymentSettings();
+  }, [user]);
+
+  const loadPaymentSettings = async () => {
+    if (!user) return;
+
+    try {
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .eq('user_id', user.id)
+        .single();
+
+      if (photographer?.watermark_config) {
+        const config = photographer.watermark_config;
+        if (config.paymentMethods) {
+          setPaymentMethods(config.paymentMethods);
+        }
+        if (config.mercadoPagoAccessToken && config.mercadoPagoPublicKey) {
+          setMercadoPagoConfig({
+            accessToken: config.mercadoPagoAccessToken,
+            publicKey: config.mercadoPagoPublicKey,
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error loading payment settings:', error);
+    }
+  };
+
+  const createMercadoPagoPayment = async () => {
+    if (!mercadoPagoConfig.accessToken) {
+      throw new Error('Mercado Pago não configurado');
+    }
+
+    const paymentData = {
+      transaction_amount: totalAmount,
+      description: `Fotos selecionadas - ${selectedPhotos.length} fotos`,
+      payment_method_id: 'pix', // ou 'visa', 'master', etc.
+      payer: {
+        email: clientEmail,
+      },
+      notification_url: `${window.location.origin}/webhook/mercadopago`,
+    };
+
+    const response = await fetch('https://api.mercadopago.com/v1/payments', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${mercadoPagoConfig.accessToken}`,
+      },
+      body: JSON.stringify(paymentData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Erro ao criar pagamento no Mercado Pago');
+    }
+
+    return await response.json();
+  };
 
   const handlePayment = async () => {
     if (!clientEmail.trim()) {
@@ -37,11 +112,38 @@ const Checkout: React.FC<CheckoutProps> = ({
     setIsProcessing(true);
 
     try {
-      // Simular processamento de pagamento
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      let paymentResult;
 
-      // Aqui você integraria com gateway de pagamento real
-      // Por exemplo: Stripe, MercadoPago, PagSeguro, etc.
+      if (paymentMethod === 'mercadopago' && paymentMethods.mercadoPago) {
+        // Processar com Mercado Pago
+        paymentResult = await createMercadoPagoPayment();
+        
+        if (paymentResult.status === 'pending') {
+          toast.success('Pagamento criado! Aguardando confirmação...');
+          // Aqui você pode mostrar o QR code do PIX ou redirecionar para pagamento
+        } else if (paymentResult.status === 'approved') {
+          toast.success('Pagamento aprovado!');
+        }
+      } else {
+        // Simular processamento para outros métodos
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      // Salvar pedido no banco de dados
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          event_id: album?.event_id,
+          client_email: clientEmail,
+          selected_photos: selectedPhotos,
+          total_amount: totalAmount,
+          status: 'paid',
+          payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
+        });
+
+      if (orderError) {
+        console.error('Error saving order:', orderError);
+      }
 
       setOrderCompleted(true);
       toast.success('Pagamento processado com sucesso!');
@@ -53,7 +155,7 @@ const Checkout: React.FC<CheckoutProps> = ({
 
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error('Erro no processamento do pagamento');
+      toast.error(error.message || 'Erro no processamento do pagamento');
     } finally {
       setIsProcessing(false);
     }
@@ -217,37 +319,61 @@ const Checkout: React.FC<CheckoutProps> = ({
                 Método de Pagamento
               </label>
               <div className="space-y-2">
-                <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="pix"
-                    checked={paymentMethod === 'pix'}
-                    onChange={(e) => setPaymentMethod(e.target.value as 'pix')}
-                    className="mr-3"
-                  />
-                  <Smartphone className="w-5 h-5 mr-2 text-green-600" />
-                  <div>
-                    <p className="font-medium">PIX</p>
-                    <p className="text-sm text-gray-500">Pagamento instantâneo</p>
-                  </div>
-                </label>
+                {paymentMethods.pix && (
+                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="pix"
+                      checked={paymentMethod === 'pix'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'pix')}
+                      className="mr-3"
+                    />
+                    <Smartphone className="w-5 h-5 mr-2 text-green-600" />
+                    <div>
+                      <p className="font-medium">PIX</p>
+                      <p className="text-sm text-gray-500">Pagamento instantâneo</p>
+                    </div>
+                  </label>
+                )}
                 
-                <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="card"
-                    checked={paymentMethod === 'card'}
-                    onChange={(e) => setPaymentMethod(e.target.value as 'card')}
-                    className="mr-3"
-                  />
-                  <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
-                  <div>
-                    <p className="font-medium">Cartão de Crédito</p>
-                    <p className="text-sm text-gray-500">Visa, Mastercard, Elo</p>
-                  </div>
-                </label>
+                {paymentMethods.creditCard && (
+                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="card"
+                      checked={paymentMethod === 'card'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'card')}
+                      className="mr-3"
+                    />
+                    <CreditCard className="w-5 h-5 mr-2 text-blue-600" />
+                    <div>
+                      <p className="font-medium">Cartão de Crédito</p>
+                      <p className="text-sm text-gray-500">Visa, Mastercard, Elo</p>
+                    </div>
+                  </label>
+                )}
+
+                {paymentMethods.mercadoPago && (
+                  <label className="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="payment"
+                      value="mercadopago"
+                      checked={paymentMethod === 'mercadopago'}
+                      onChange={(e) => setPaymentMethod(e.target.value as 'mercadopago')}
+                      className="mr-3"
+                    />
+                    <div className="w-5 h-5 mr-2 bg-blue-500 rounded flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">MP</span>
+                    </div>
+                    <div>
+                      <p className="font-medium">Mercado Pago</p>
+                      <p className="text-sm text-gray-500">PIX, Cartão, Boleto</p>
+                    </div>
+                  </label>
+                )}
               </div>
             </div>
 
@@ -260,10 +386,12 @@ const Checkout: React.FC<CheckoutProps> = ({
               {isProcessing ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                  Processando Pagamento...
+                  {paymentMethod === 'mercadopago' ? 'Criando pagamento...' : 'Processando Pagamento...'}
                 </div>
               ) : (
-                `Pagar R$ ${totalAmount.toFixed(2)} via ${paymentMethod.toUpperCase()}`
+                `Pagar R$ ${totalAmount.toFixed(2)} via ${
+                  paymentMethod === 'mercadopago' ? 'Mercado Pago' : paymentMethod.toUpperCase()
+                }`
               )}
             </button>
 

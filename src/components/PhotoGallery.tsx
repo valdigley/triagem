@@ -44,6 +44,27 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
 
   // Carregar configuração de marca d'água
   React.useEffect(() => {
+    loadWatermarkConfig();
+  }, []);
+
+  const loadWatermarkConfig = async () => {
+    try {
+      // Tentar carregar do banco de dados primeiro
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .limit(1)
+        .single();
+
+      if (photographer?.watermark_config?.watermarkFile) {
+        setWatermarkConfig(photographer.watermark_config);
+        return;
+      }
+    } catch (error) {
+      console.error('Error loading watermark from database:', error);
+    }
+
+    // Fallback para localStorage
     const savedConfig = localStorage.getItem('watermark_config');
     if (savedConfig) {
       try {
@@ -52,7 +73,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         console.error('Error loading watermark config:', error);
       }
     }
-  }, []);
+  };
   const togglePhotoSelection = async (photoId: string) => {
     const newSelected = new Set(selectedPhotos);
     const isSelected = newSelected.has(photoId);

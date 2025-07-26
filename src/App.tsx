@@ -11,6 +11,7 @@ import EventScheduling from './components/EventScheduling';
 import PhotoGallery from './components/PhotoGallery';
 import EventList from './components/EventList';
 import AlbumList from './components/AlbumList';
+import Settings from './components/Settings';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -61,6 +62,8 @@ const AppContent: React.FC = () => {
         }} />;
       case 'scheduling':
         return <EventScheduling onBack={() => setCurrentView('events')} />;
+      case 'settings':
+        return <Settings />;
       case 'gallery':
         return (
           <PhotoGallery
