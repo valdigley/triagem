@@ -70,19 +70,18 @@ const Settings: React.FC = () => {
           watermarkPosition: photographer.watermark_config?.position || 'bottom-right',
           watermarkOpacity: photographer.watermark_config?.opacity || 0.7,
           watermarkSize: photographer.watermark_config?.size || 20,
-            logo: config.logo || '',
-            email: config.email || '',
-            address: config.address || '',
-            website: config.website || '',
-            instagram: config.instagram || '',
+          logo: photographer.watermark_config?.logo || '',
+          email: photographer.watermark_config?.email || '',
+          address: photographer.watermark_config?.address || '',
+          website: photographer.watermark_config?.website || '',
+          instagram: photographer.watermark_config?.instagram || '',
           mercadoPagoAccessToken: photographer.watermark_config?.mercadoPagoAccessToken || '',
           mercadoPagoPublicKey: photographer.watermark_config?.mercadoPagoPublicKey || '',
           minimumPackagePrice: photographer.watermark_config?.minimumPackagePrice || 300.00,
           extraPhotoPrice: photographer.watermark_config?.extraPhotoPrice || 30.00,
           advancePaymentPercentage: photographer.watermark_config?.advancePaymentPercentage || 50,
-          paymentMethods: photographer.watermark_config?.paymentMethods || {
-            pix: true,
-            creditCard: true,
+        }));
+        if (photographer.watermark_config?.watermarkFile) {
           setWatermarkPreview(photographer.watermark_config.watermarkFile);
         }
       }
@@ -149,11 +148,6 @@ const Settings: React.FC = () => {
           business_name: settings.businessName,
           phone: settings.phone,
           watermark_config: {
-            logo: settings.logo,
-            email: settings.email,
-            address: settings.address,
-            website: settings.website,
-            instagram: settings.instagram,
             position: settings.watermarkPosition,
             opacity: settings.watermarkOpacity,
             size: settings.watermarkSize,
