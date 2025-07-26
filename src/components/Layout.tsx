@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,30 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const [studioLogo, setStudioLogo] = useState<string>('');
 
+  // Carregar logo do estúdio
+  React.useEffect(() => {
+    const loadStudioLogo = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('watermark_config')
+          .eq('user_id', user.id)
+          .single();
+
+        if (photographer?.watermark_config?.logo) {
+          setStudioLogo(photographer.watermark_config.logo);
+        }
+      } catch (error) {
+        console.error('Error loading studio logo:', error);
+      }
+    };
+
+    loadStudioLogo();
+  }, [user]);
   const navigationItems = [
     { name: 'Dashboard', key: 'dashboard', icon: Camera },
     { name: 'Agendamentos', key: 'events', icon: Calendar },
@@ -54,9 +78,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
       }`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Camera className="w-5 h-5 text-white" />
-            </div>
+            {studioLogo ? (
+              <img 
+                src={studioLogo} 
+                alt="Logo" 
+                className="w-8 h-8 object-contain rounded"
+              />
+            ) : (
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <Camera className="w-5 h-5 text-white" />
+              </div>
+            )}
             <h1 className="text-xl font-bold text-gray-900">Triagem</h1>
           </div>
           <button
