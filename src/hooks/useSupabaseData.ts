@@ -3,6 +3,15 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
+const sessionTypeLabels: Record<string, string> = {
+  'gestante': 'Sessão Gestante',
+  'aniversario': 'Aniversário',
+  'comerciais': 'Comerciais',
+  'pre-wedding': 'Pré Wedding',
+  'formatura': 'Formatura',
+  'revelacao-sexo': 'Revelação de Sexo',
+};
+
 export interface Event {
   id: string;
   photographer_id: string;

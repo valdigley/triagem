@@ -142,6 +142,36 @@ const PublicScheduling: React.FC = () => {
 
       console.log('Event created successfully:', newEvent.id);
 
+      // Criar álbum automaticamente para o evento
+      const sessionTypeLabel = newEvent.session_type ? 
+        sessionTypeLabels[newEvent.session_type] || newEvent.session_type : 
+        'Sessão';
+      const albumName = `${sessionTypeLabel} - ${newEvent.client_name}`;
+
+      console.log('Creating album for event:', albumName);
+      
+      const { data: newAlbum, error: albumError } = await supabase
+        .from('albums')
+        .insert({
+          event_id: newEvent.id,
+          name: albumName,
+        })
+        .select()
+        .single();
+
+      if (albumError) {
+        console.error('Error creating album:', albumError);
+        // Não falhar o processo se o álbum não for criado
+      } else {
+        console.log('Album created successfully:', newAlbum.id);
+        
+        // Atualizar o evento com o album_id
+        await supabase
+          .from('events')
+          .update({ album_id: newAlbum.id })
+          .eq('id', newEvent.id);
+      }
+
       // Criar o pedido
       const { error: orderError } = await supabase
         .from('orders')
