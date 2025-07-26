@@ -354,7 +354,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               <img
                 src={albumPhotos[lightboxPhotoIndex].original_path}
                 alt={albumPhotos[lightboxPhotoIndex].filename}
-                className="max-w-full max-h-full object-contain rounded-lg"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto"
                 onError={(e) => {
                   // Fallback para imagem de demonstração se a real falhar
                   e.currentTarget.src = `https://picsum.photos/1200/800?random=${albumPhotos[lightboxPhotoIndex].id.slice(-6)}`;

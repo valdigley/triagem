@@ -454,7 +454,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                   <div className="flex justify-end gap-2">
                     {event.album_id && (
                       <button 
-                        onClick={() => onViewAlbum?.(event.id)}
+                        onClick={() => onViewAlbum?.(event.album_id)}
                         className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Eye className="w-4 h-4" />
