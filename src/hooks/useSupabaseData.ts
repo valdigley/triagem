@@ -82,7 +82,7 @@ export const useSupabaseData = () => {
       // Primeiro, verificar se há múltiplos perfis e limpar duplicatas
       const { data: existingProfile, error: fetchError } = await supabase
         .from('photographers')
-        .select('*')
+        .select('id, user_id')
         .eq('user_id', user.id);
 
       if (existingProfile && existingProfile.length > 0) {
