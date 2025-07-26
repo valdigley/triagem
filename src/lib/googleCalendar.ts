@@ -14,7 +14,9 @@ export class GoogleCalendarService {
 
   async createEvent(eventData: any): Promise<string | null> {
     try {
-      console.log('Creating Google Calendar event via edge function...');
+      console.log('🚀 Chamando edge function do Google Calendar...');
+      console.log('🔑 Access Token configurado:', !!this.config.accessToken);
+      console.log('📅 Calendar ID:', this.config.calendarId || 'primary');
       
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-sync`, {
         method: 'POST',
@@ -30,18 +32,23 @@ export class GoogleCalendarService {
         }),
       });
 
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response ok:', response.ok);
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Failed to create Google Calendar event:', errorData);
+        console.error('❌ Falha na edge function:', errorData);
         throw new Error(errorData.error || 'Failed to create calendar event');
       }
 
       const result = await response.json();
-      console.log('Google Calendar event created:', result.googleEventId);
+      console.log('✅ Edge function executada com sucesso!');
+      console.log('🆔 Google Event ID retornado:', result.googleEventId);
+      console.log('🔗 Link do evento:', result.htmlLink);
       
       return result.googleEventId;
     } catch (error) {
-      console.error('Error creating Google Calendar event:', error);
+      console.error('💥 Erro na criação do evento:', error);
       throw error;
     }
   }

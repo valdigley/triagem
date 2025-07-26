@@ -256,8 +256,8 @@ export const useSupabaseData = () => {
       
       if (user) {
         try {
-          console.log('Tentando criar evento no Google Calendar...');
-          console.log('Dados do evento:', {
+          console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
+          console.log('📋 Dados do evento:', {
             client_name: eventData.client_name,
             session_type: eventData.session_type,
             event_date: eventData.event_date,
@@ -268,17 +268,21 @@ export const useSupabaseData = () => {
           const googleCalendarService = await createGoogleCalendarService(user.id);
           
           if (googleCalendarService) {
-            console.log('Google Calendar configurado, criando evento...');
+            console.log('✅ Google Calendar configurado, criando evento...');
             googleEventId = await googleCalendarService.createEvent(eventData);
-            console.log('Google Calendar event criado:', googleEventId);
+            console.log('🎉 Google Calendar event criado com sucesso!');
+            console.log('📅 Event ID:', googleEventId);
+            console.log('🔗 Acesse: https://calendar.google.com para verificar');
           } else {
-            console.log('Google Calendar não configurado - pulando sincronização');
+            console.log('❌ Google Calendar não configurado - pulando sincronização');
+            console.log('💡 Configure em: Configurações → Google Calendar');
           }
           
         } catch (error) {
-          console.error('Failed to create Google Calendar event:', error);
+          console.error('❌ ERRO no Google Calendar:', error);
+          console.error('📝 Detalhes do erro:', error.message);
           // Não falhar o processo se o Google Calendar der erro
-          console.log('Continuando sem Google Calendar devido ao erro:', error.message);
+          console.log('⚠️ Continuando sem Google Calendar devido ao erro');
         }
       }
 

@@ -652,6 +652,15 @@ const Settings: React.FC = () => {
                   <p className="text-xs text-gray-500">
                     Novos agendamentos serão sincronizados automaticamente
                   </p>
+                  <div className="bg-blue-50 p-3 rounded mt-3">
+                    <p className="text-xs text-blue-800 font-medium mb-2">📋 Como verificar se está funcionando:</p>
+                    <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
+                      <li>Abra o Console do navegador (F12)</li>
+                      <li>Crie um novo agendamento</li>
+                      <li>Procure por mensagens com 🗓️ e ✅</li>
+                      <li>Verifique seu Google Calendar</li>
+                    </ol>
+                  </div>
                   <button
                     onClick={async () => {
                       try {
