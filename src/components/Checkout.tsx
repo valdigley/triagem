@@ -243,8 +243,20 @@ const Checkout: React.FC<CheckoutProps> = ({
             </div>
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Valor unitário:</span>
-              <span className="font-semibold">R$ 25,00</span>
+              <span className="font-semibold">R$ {selectedPhotoObjects[0]?.price?.toFixed(2) || '25,00'}</span>
             </div>
+            {selectedPhotos.length > 10 && (
+              <div className="text-sm text-green-600 mb-2">
+                <div className="flex justify-between">
+                  <span>Primeiras 10 fotos:</span>
+                  <span>Preço normal</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>{selectedPhotos.length - 10} fotos extras:</span>
+                  <span>20% desconto</span>
+                </div>
+              </div>
+            )}
             <div className="flex justify-between items-center mb-2">
               <span className="text-gray-600">Valor total:</span>
               <span className="text-xl font-bold text-green-600">R$ {totalAmount.toFixed(2)}</span>
