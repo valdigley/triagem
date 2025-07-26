@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, MessageCircle, Mail, Eye, Download, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText } from 'lucide-react';
+import { Image, MessageCircle, Mail, Eye, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -435,12 +435,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     <Eye className="w-4 h-4" />
                     Ver Fotos
                   </button>
-                  {selectedCount > 0 && (
-                    <button className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  )}
                   <button 
                     onClick={() => handleDeleteAlbum(album.id)}
                     className="flex items-center gap-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
