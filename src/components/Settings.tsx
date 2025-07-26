@@ -22,6 +22,23 @@ interface StudioSettings {
   extraPhotoPrice: number;
   advancePaymentPercentage: number;
   sessionTypes: Array<{ value: string; label: string }>;
+  emailTemplates: {
+    bookingConfirmation: {
+      enabled: boolean;
+      subject: string;
+      message: string;
+    };
+    dayBeforeReminder: {
+      enabled: boolean;
+      subject: string;
+      message: string;
+    };
+    dayOfReminder: {
+      enabled: boolean;
+      subject: string;
+      message: string;
+    };
+  };
 }
 
 const Settings: React.FC = () => {
@@ -47,13 +64,88 @@ const Settings: React.FC = () => {
       { value: 'formatura', label: 'Formatura' },
       { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
     ],
+    emailTemplates: {
+      bookingConfirmation: {
+        enabled: true,
+        subject: '📸 Agendamento Confirmado - {{sessionType}} - {{studioName}}',
+        message: `Olá {{clientName}}!
+
+Obrigado por escolher nosso estúdio! Seu agendamento foi confirmado com sucesso.
+
+📅 DETALHES DA SESSÃO:
+• Tipo: {{sessionType}}
+• Data: {{eventDate}}
+• Horário: {{eventTime}}
+• Local: {{studioAddress}}
+
+📍 LOCALIZAÇÃO DO ESTÚDIO:
+{{studioName}}
+{{studioAddress}}
+📞 {{studioPhone}}
+🌐 {{studioWebsite}}
+
+📋 IMPORTANTE - LEIA COM ATENÇÃO:
+• Referências: Traga fotos de referência ou ideias que gostaria de reproduzir
+• Portfólio: As fotos poderão ser usadas em nosso portfólio e redes sociais. Caso não concorde, informe ao fotógrafo no dia da sessão
+• Pontualidade: Chegue 10 minutos antes do horário agendado
+• Seleção: Após a sessão, você receberá um link para selecionar suas fotos favoritas
+
+Estamos ansiosos para criar memórias incríveis com você!
+
+Dúvidas? Entre em contato: {{studioPhone}} | {{studioEmail}}`
+      },
+      dayBeforeReminder: {
+        enabled: true,
+        subject: '⏰ Lembrete: Sua sessão é amanhã! - {{studioName}}',
+        message: `Olá {{clientName}}!
+
+Sua sessão de fotos está chegando! Amanhã será o grande dia.
+
+📅 DETALHES DA SESSÃO:
+• Tipo: {{sessionType}}
+• Data: {{eventDate}}
+• Horário: {{eventTime}}
+• Local: {{studioAddress}}
+
+✅ CHECKLIST PARA AMANHÃ:
+• Chegue 10 minutos antes do horário
+• Traga suas fotos de referência
+• Vista roupas confortáveis e adequadas ao tipo de sessão
+• Tenha uma boa noite de sono
+• Venha com energia positiva! 😊
+
+Estamos ansiosos para te ver amanhã!
+
+Dúvidas? Entre em contato: {{studioPhone}}`
+      },
+      dayOfReminder: {
+        enabled: true,
+        subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+        message: `Bom dia, {{clientName}}!
+
+Hoje é o dia da sua sessão de fotos! Esperamos você no estúdio.
+
+📅 SUA SESSÃO HOJE:
+• Tipo: {{sessionType}}
+• Horário: {{eventTime}}
+• Local: {{studioAddress}}
+• Contato: {{studioPhone}}
+
+⚡ ÚLTIMAS DICAS:
+• Chegue 10 minutos antes
+• Traga suas referências
+• Relaxe e divirta-se!
+
+Nos vemos em breve! 📸✨`
+      }
+    }
   });
   
   const [watermarkFile, setWatermarkFile] = useState<File | null>(null);
   const [watermarkPreview, setWatermarkPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'studio' | 'watermark' | 'payment' | 'sessions'>('studio');
+  const [activeTab, setActiveTab] = useState<'studio' | 'watermark' | 'payment' | 'sessions' | 'emails'>('studio');
   
   // Estados para gerenciar tipos de sessão
   const [newSessionType, setNewSessionType] = useState({ value: '', label: '' });
@@ -101,6 +193,23 @@ const Settings: React.FC = () => {
             { value: 'formatura', label: 'Formatura' },
             { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
           ],
+          emailTemplates: photographer.watermark_config?.emailTemplates || {
+            bookingConfirmation: {
+              enabled: true,
+              subject: '📸 Agendamento Confirmado - {{sessionType}} - {{studioName}}',
+              message: `Olá {{clientName}}!\n\nObrigado por escolher nosso estúdio! Seu agendamento foi confirmado com sucesso.\n\n📅 DETALHES DA SESSÃO:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\n📍 LOCALIZAÇÃO DO ESTÚDIO:\n{{studioName}}\n{{studioAddress}}\n📞 {{studioPhone}}\n🌐 {{studioWebsite}}\n\n📋 IMPORTANTE - LEIA COM ATENÇÃO:\n• Referências: Traga fotos de referência ou ideias que gostaria de reproduzir\n• Portfólio: As fotos poderão ser usadas em nosso portfólio e redes sociais. Caso não concorde, informe ao fotógrafo no dia da sessão\n• Pontualidade: Chegue 10 minutos antes do horário agendado\n• Seleção: Após a sessão, você receberá um link para selecionar suas fotos favoritas\n\nEstamos ansiosos para criar memórias incríveis com você!\n\nDúvidas? Entre em contato: {{studioPhone}} | {{studioEmail}}`
+            },
+            dayBeforeReminder: {
+              enabled: true,
+              subject: '⏰ Lembrete: Sua sessão é amanhã! - {{studioName}}',
+              message: `Olá {{clientName}}!\n\nSua sessão de fotos está chegando! Amanhã será o grande dia.\n\n📅 DETALHES DA SESSÃO:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\n✅ CHECKLIST PARA AMANHÃ:\n• Chegue 10 minutos antes do horário\n• Traga suas fotos de referência\n• Vista roupas confortáveis e adequadas ao tipo de sessão\n• Tenha uma boa noite de sono\n• Venha com energia positiva! 😊\n\nEstamos ansiosos para te ver amanhã!\n\nDúvidas? Entre em contato: {{studioPhone}}`
+            },
+            dayOfReminder: {
+              enabled: true,
+              subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+              message: `Bom dia, {{clientName}}!\n\nHoje é o dia da sua sessão de fotos! Esperamos você no estúdio.\n\n📅 SUA SESSÃO HOJE:\n• Tipo: {{sessionType}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Contato: {{studioPhone}}\n\n⚡ ÚLTIMAS DICAS:\n• Chegue 10 minutos antes\n• Traga suas referências\n• Relaxe e divirta-se!\n\nNos vemos em breve! 📸✨`
+            }
+          }
         }));
         if (photographer.watermark_config?.watermarkFile) {
           setWatermarkPreview(photographer.watermark_config.watermarkFile);
@@ -247,6 +356,7 @@ const Settings: React.FC = () => {
             extraPhotoPrice: settings.extraPhotoPrice,
             advancePaymentPercentage: settings.advancePaymentPercentage,
             sessionTypes: settings.sessionTypes,
+            emailTemplates: settings.emailTemplates,
           },
         })
         .eq('user_id', user.id);
@@ -323,6 +433,7 @@ const Settings: React.FC = () => {
             { key: 'sessions', label: 'Tipos de Sessão', icon: CreditCard },
             { key: 'watermark', label: 'Marca D\'água', icon: Eye },
             { key: 'payment', label: 'Pagamentos', icon: CreditCard },
+            { key: 'emails', label: 'Templates de Email', icon: Mail },
           ].map(({ key, label, icon: Icon }) => (
             <button
               key={key}
