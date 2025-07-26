@@ -49,18 +49,35 @@ const WatermarkSettings: React.FC<WatermarkSettingsProps> = ({ onClose }) => {
 
     setIsUploading(true);
     try {
-      // Aqui você salvaria as configurações no banco de dados
-      // Por enquanto, vamos salvar no localStorage
-      const watermarkConfig = {
-        file: watermarkPreview,
-        position,
-        opacity,
-        size,
-        fileName: watermarkFile.name,
-        updatedAt: new Date().toISOString(),
-      };
+      // Salvar as configurações no banco de dados via Supabase
+      const { supabase } = await import('../lib/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Usuário não autenticado');
+        return;
+      }
 
-      localStorage.setItem('watermark_config', JSON.stringify(watermarkConfig));
+      const { error } = await supabase
+        .from('photographers')
+        .update({
+          watermark_config: {
+            watermarkFile: watermarkPreview,
+            position,
+            opacity,
+            size,
+            fileName: watermarkFile.name,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error saving watermark to database:', error);
+        toast.error('Erro ao salvar marca d\'água');
+        return;
+      }
+
       toast.success('Marca d\'água configurada com sucesso!');
       onClose();
     } catch (error) {
@@ -73,18 +90,32 @@ const WatermarkSettings: React.FC<WatermarkSettingsProps> = ({ onClose }) => {
 
   // Carregar configuração existente
   React.useEffect(() => {
-    const savedConfig = localStorage.getItem('watermark_config');
-    if (savedConfig) {
+    const loadWatermarkConfig = async () => {
       try {
-        const config = JSON.parse(savedConfig);
-        setWatermarkPreview(config.file);
-        setPosition(config.position);
-        setOpacity(config.opacity);
-        setSize(config.size);
+        const { supabase } = await import('../lib/supabase');
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) return;
+
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('watermark_config')
+          .eq('user_id', user.id)
+          .single();
+
+        if (photographer?.watermark_config) {
+          const config = photographer.watermark_config;
+          if (config.watermarkFile) setWatermarkPreview(config.watermarkFile);
+          if (config.position) setPosition(config.position);
+          if (config.opacity) setOpacity(config.opacity);
+          if (config.size) setSize(config.size);
+        }
       } catch (error) {
         console.error('Error loading watermark config:', error);
       }
-    }
+    };
+
+    loadWatermarkConfig();
   }, []);
 
   const positionOptions = [

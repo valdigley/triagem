@@ -64,16 +64,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     } catch (error) {
       console.error('Error loading watermark from database:', error);
     }
-
-    // Fallback para localStorage
-    const savedConfig = localStorage.getItem('watermark_config');
-    if (savedConfig) {
-      try {
-        setWatermarkConfig(JSON.parse(savedConfig));
-      } catch (error) {
-        console.error('Error loading watermark config:', error);
-      }
-    }
   };
   
   const togglePhotoSelection = async (photoId: string) => {

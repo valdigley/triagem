@@ -86,19 +86,6 @@ const Settings: React.FC = () => {
         }
       }
 
-      // Carregar configurações locais como fallback
-      const localSettings = localStorage.getItem('studio_settings');
-      if (localSettings) {
-        const parsed = JSON.parse(localSettings);
-        setSettings(prev => ({ ...prev, ...parsed }));
-      }
-
-      const localWatermark = localStorage.getItem('watermark_config');
-      if (localWatermark) {
-        const watermarkConfig = JSON.parse(localWatermark);
-        setWatermarkPreview(watermarkConfig.file || '');
-      }
-
     } catch (error) {
       console.error('Error loading settings:', error);
     } finally {
@@ -168,17 +155,9 @@ const Settings: React.FC = () => {
 
       if (error) {
         console.error('Error saving to database:', error);
-        // Continuar com salvamento local como fallback
+        toast.error('Erro ao salvar configurações no banco de dados');
+        return;
       }
-
-      // Salvar localmente como backup
-      localStorage.setItem('studio_settings', JSON.stringify(configToSave));
-      localStorage.setItem('watermark_config', JSON.stringify({
-        file: watermarkPreview,
-        position: settings.watermarkPosition,
-        opacity: settings.watermarkOpacity,
-        size: settings.watermarkSize,
-      }));
 
       toast.success('Configurações salvas com sucesso!');
     } catch (error) {
