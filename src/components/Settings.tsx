@@ -11,6 +11,7 @@ interface StudioSettings {
   address: string;
   website?: string;
   instagram?: string;
+  logo?: string;
   watermarkFile?: string;
   watermarkPosition: 'center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   watermarkOpacity: number;
@@ -69,6 +70,11 @@ const Settings: React.FC = () => {
           watermarkPosition: photographer.watermark_config?.position || 'bottom-right',
           watermarkOpacity: photographer.watermark_config?.opacity || 0.7,
           watermarkSize: photographer.watermark_config?.size || 20,
+            logo: config.logo || '',
+            email: config.email || '',
+            address: config.address || '',
+            website: config.website || '',
+            instagram: config.instagram || '',
           mercadoPagoAccessToken: photographer.watermark_config?.mercadoPagoAccessToken || '',
           mercadoPagoPublicKey: photographer.watermark_config?.mercadoPagoPublicKey || '',
           minimumPackagePrice: photographer.watermark_config?.minimumPackagePrice || 300.00,
@@ -77,11 +83,6 @@ const Settings: React.FC = () => {
           paymentMethods: photographer.watermark_config?.paymentMethods || {
             pix: true,
             creditCard: true,
-            mercadoPago: false,
-          }
-        }));
-
-        if (photographer.watermark_config?.watermarkFile) {
           setWatermarkPreview(photographer.watermark_config.watermarkFile);
         }
       }
@@ -148,6 +149,11 @@ const Settings: React.FC = () => {
           business_name: settings.businessName,
           phone: settings.phone,
           watermark_config: {
+            logo: settings.logo,
+            email: settings.email,
+            address: settings.address,
+            website: settings.website,
+            instagram: settings.instagram,
             position: settings.watermarkPosition,
             opacity: settings.watermarkOpacity,
             size: settings.watermarkSize,
@@ -339,6 +345,47 @@ const Settings: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="https://meusite.com"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Logo do Estúdio
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          setSettings(prev => ({ ...prev, logo: e.target?.result as string }));
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label htmlFor="logo-upload" className="cursor-pointer flex flex-col items-center">
+                    {settings.logo ? (
+                      <img 
+                        src={settings.logo} 
+                        alt="Logo" 
+                        className="h-20 mb-2 object-contain"
+                      />
+                    ) : (
+                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    )}
+                    <p className="text-sm text-gray-600">
+                      {settings.logo ? 'Clique para alterar logo' : 'Clique para adicionar logo'}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG até 5MB
+                    </p>
+                  </label>
+                </div>
               </div>
 
               <div>

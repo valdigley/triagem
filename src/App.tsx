@@ -7,7 +7,7 @@ import Login from './components/Login';
 import { DataProvider } from './contexts/DataContext';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
-import EventScheduling from './components/EventScheduling';
+import PublicScheduling from './components/PublicScheduling';
 import PhotoGallery from './components/PhotoGallery';
 import EventList from './components/EventList';
 import AlbumList from './components/AlbumList';
@@ -94,7 +94,7 @@ function App() {
         <BrowserRouter>
           <Routes>
             {/* Rota pública para agendamento */}
-            <Route path="/agendar" element={<EventScheduling />} />
+            <Route path="/agendar" element={<PublicScheduling />} />
             {/* Rotas do sistema interno */}
             <Route path="/*" element={<AppContent />} />
           </Routes>
