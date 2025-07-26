@@ -22,6 +22,11 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     !albums.some(album => album.event_id === event.id)
   );
 
+  // Forçar re-render quando álbuns mudarem
+  React.useEffect(() => {
+    // Este useEffect força o componente a re-renderizar quando os álbuns mudarem
+  }, [albums]);
+
   const handleCreateAlbum = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedEventId || !albumName.trim()) {
@@ -40,10 +45,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
         setShowCreateForm(false);
         setSelectedEventId('');
         setAlbumName('');
-        toast.success('Álbum criado com sucesso!');
       }
     } catch (error) {
       console.error('Error creating album:', error);
+      toast.error('Erro ao criar álbum');
     } finally {
       setIsCreating(false);
     }

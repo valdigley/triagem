@@ -123,10 +123,12 @@ export const useSupabaseData = () => {
           *,
           events!inner(photographer_id)
         `)
-        .eq('events.photographer_id', currentPhotographerId);
+        .eq('events.photographer_id', currentPhotographerId)
+        .order('created_at', { ascending: false });
 
       if (albumsError) {
         console.error('Error loading albums:', albumsError);
+        toast.error('Erro ao carregar álbuns');
       } else {
         setAlbums(albumsData || []);
       }
@@ -259,15 +261,16 @@ export const useSupabaseData = () => {
       if (error) {
         console.error('Error creating album:', error);
         toast.error('Erro ao criar álbum');
-        return null;
+        return false;
       }
 
       setAlbums(prev => [data, ...prev]);
-      return data;
+      toast.success('Álbum criado com sucesso!');
+      return true;
     } catch (error) {
       console.error('Error creating album:', error);
       toast.error('Erro ao criar álbum');
-      return null;
+      return false;
     }
   };
 
