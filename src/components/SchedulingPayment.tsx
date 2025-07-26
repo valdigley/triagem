@@ -428,7 +428,7 @@ const SchedulingPayment: React.FC<SchedulingPaymentProps> = ({
                   Processando Pagamento...
                 </div>
               ) : (
-                `Pagar R$ ${advanceAmount.toFixed(2)} via ${paymentMethod.toUpperCase()}`
+                `Pagar R$ ${advanceAmount.toFixed(2)} via PIX`
               )}
             </button>
 
