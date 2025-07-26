@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,7 @@ interface PaymentRequest {
   access_token: string;
   selected_photos: string[];
   event_id?: string;
+  client_email: string;
 }
 
 serve(async (req) => {
@@ -36,7 +38,8 @@ serve(async (req) => {
       payer, 
       access_token,
       selected_photos,
-      event_id 
+      event_id,
+      client_email
     }: PaymentRequest = await req.json()
 
     console.log('Received payment request:', {
@@ -48,6 +51,7 @@ serve(async (req) => {
       access_token_length: access_token?.length,
       selected_photos_count: selected_photos?.length,
       event_id,
+      client_email,
     });
     // Validar dados obrigatórios
     if (!transaction_amount || !description || !payer?.email || !access_token) {
@@ -130,6 +134,41 @@ serve(async (req) => {
 
     console.log('Payment created successfully:', responseData)
 
+    // Criar pedido no banco de dados imediatamente
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const orderData = {
+        event_id: event_id,
+        client_email: client_email || payer.email,
+        selected_photos: selected_photos || [],
+        total_amount: transaction_amount,
+        status: 'pending' as const,
+        payment_intent_id: responseData.id.toString(),
+      }
+
+      console.log('Creating order in database:', orderData)
+
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert(orderData)
+        .select()
+        .single()
+
+      if (orderError) {
+        console.error('Error creating order:', orderError)
+        // Não falhar o pagamento por causa do erro do pedido
+      } else {
+        console.log('Order created successfully:', order.id)
+      }
+    } catch (error) {
+      console.error('Error in order creation:', error)
+      // Não falhar o pagamento por causa do erro do pedido
+    }
+
     // Retornar dados do pagamento
     return new Response(
       JSON.stringify({
@@ -142,6 +181,7 @@ serve(async (req) => {
         qr_code: responseData.point_of_interaction?.transaction_data?.qr_code,
         qr_code_base64: responseData.point_of_interaction?.transaction_data?.qr_code_base64,
         ticket_url: responseData.point_of_interaction?.transaction_data?.ticket_url,
+        event_id: event_id,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

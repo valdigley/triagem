@@ -110,6 +110,8 @@ const PublicScheduling: React.FC = () => {
 
   // Função para verificar status do pagamento
   const checkPaymentStatus = async (paymentId: string) => {
+    console.log('Checking payment status for:', paymentId);
+    
     try {
       const { data: orders } = await supabase
         .from('orders')
@@ -118,8 +120,11 @@ const PublicScheduling: React.FC = () => {
         .order('created_at', { ascending: false })
         .limit(1);
 
+      console.log('Orders found:', orders);
+
       if (orders && orders.length > 0) {
         const order = orders[0];
+        console.log('Order status:', order.status);
         if (order.status === 'paid') {
           setPaymentStatus('approved');
           return 'approved';
@@ -141,42 +146,29 @@ const PublicScheduling: React.FC = () => {
     let interval: NodeJS.Timeout;
     
     if (isWaitingPayment && paymentData?.id) {
+      console.log('Starting payment polling for:', paymentData.id);
+      
       interval = setInterval(async () => {
         const status = await checkPaymentStatus(paymentData.id);
+        console.log('Polling result:', status);
+        
         if (status === 'approved') {
           setIsWaitingPayment(false);
           setPaymentStatus('approved');
           toast.success('Pagamento confirmado!');
-          
-          // Criar o evento após pagamento confirmado
-          if (pendingEventData && photographerId) {
-            try {
-              const { error } = await supabase
-                .from('events')
-                .insert({
-                  ...pendingEventData,
-                  photographer_id: photographerId,
-                });
-
-              if (!error) {
-                toast.success('Agendamento confirmado com sucesso!');
-              }
-            } catch (error) {
-              console.error('Error creating event:', error);
-            }
-          }
+          toast.success('Agendamento confirmado com sucesso!');
         } else if (status === 'rejected') {
           setIsWaitingPayment(false);
           setPaymentStatus('rejected');
           toast.error('Pagamento rejeitado. Tente novamente.');
         }
-      }, 3000);
+      }, 5000); // Aumentar intervalo para 5 segundos
     }
 
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isWaitingPayment, paymentData?.id, pendingEventData, photographerId]);
+  }, [isWaitingPayment, paymentData?.id]);
 
   const createMercadoPagoPayment = async (eventData: any) => {
     if (!studioSettings.mercadoPagoAccessToken) {
@@ -187,6 +179,23 @@ const PublicScheduling: React.FC = () => {
       sessionTypeLabels[eventData.session_type] || eventData.session_type : 
       'Sessão';
 
+    // Primeiro, criar o evento no banco de dados
+    const { data: newEvent, error: eventError } = await supabase
+      .from('events')
+      .insert({
+        ...eventData,
+        photographer_id: photographerId,
+      })
+      .select()
+      .single();
+
+    if (eventError || !newEvent) {
+      console.error('Error creating event:', eventError);
+      throw new Error('Erro ao criar evento no banco de dados');
+    }
+
+    console.log('Event created successfully:', newEvent.id);
+
     const paymentRequest = {
       transaction_amount: advanceAmount,
       description: `Pagamento antecipado - ${sessionTypeLabel} - ${eventData.client_name}`,
@@ -196,8 +205,11 @@ const PublicScheduling: React.FC = () => {
       },
       access_token: studioSettings.mercadoPagoAccessToken,
       selected_photos: [],
-      event_id: null,
+      event_id: newEvent.id,
+      client_email: eventData.client_email,
     };
+
+    console.log('Creating payment with event_id:', newEvent.id);
 
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`, {
       method: 'POST',
@@ -210,10 +222,18 @@ const PublicScheduling: React.FC = () => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Payment creation failed:', errorData);
       throw new Error(errorData.error || 'Erro ao processar pagamento');
     }
 
-    return await response.json();
+    const paymentResult = await response.json();
+    console.log('Payment created:', paymentResult);
+    
+    // Retornar tanto o resultado do pagamento quanto o evento criado
+    return {
+      ...paymentResult,
+      eventId: newEvent.id,
+    };
   };
 
   const onSubmit = async (data: EventFormData) => {

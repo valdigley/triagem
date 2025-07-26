@@ -131,7 +131,33 @@ serve(async (req) => {
 
       if (!orders || orders.length === 0) {
         console.log('Order not found for payment ID:', paymentId)
-        // Pode ser um pagamento que não está no nosso sistema, apenas log
+        
+        // Tentar buscar por external_reference se não encontrou pelo payment_id
+        if (externalReference) {
+          console.log('Trying to find order by external_reference:', externalReference)
+          
+          const { data: ordersByRef } = await supabase
+            .from('orders')
+            .select('*')
+            .ilike('payment_intent_id', `%${externalReference}%`)
+          
+          if (ordersByRef && ordersByRef.length > 0) {
+            console.log('Found order by external reference')
+            // Usar a primeira ordem encontrada
+            const order = ordersByRef[0]
+            
+            // Atualizar com o payment_id correto
+            await supabase
+              .from('orders')
+              .update({ payment_intent_id: paymentId.toString() })
+              .eq('id', order.id)
+              
+            // Continuar com o processamento normal
+          } else {
+            console.log('No order found even by external reference')
+          }
+        }
+        
         await supabase.from('webhook_logs').insert({
           event_type: 'mercadopago_payment_orphan',
           payload: { paymentId, paymentData },
