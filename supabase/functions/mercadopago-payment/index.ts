@@ -24,6 +24,10 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  console.log('MercadoPago payment function called');
+  console.log('Request method:', req.method);
+  console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
   try {
     const { 
       transaction_amount, 
@@ -35,8 +39,24 @@ serve(async (req) => {
       event_id 
     }: PaymentRequest = await req.json()
 
+    console.log('Received payment request:', {
+      transaction_amount,
+      description,
+      payment_method_id,
+      payer_email: payer?.email,
+      has_access_token: !!access_token,
+      access_token_length: access_token?.length,
+      selected_photos_count: selected_photos?.length,
+      event_id,
+    });
     // Validar dados obrigatórios
     if (!transaction_amount || !description || !payer?.email || !access_token) {
+      console.error('Missing required fields:', {
+        has_transaction_amount: !!transaction_amount,
+        has_description: !!description,
+        has_payer_email: !!payer?.email,
+        has_access_token: !!access_token,
+      });
       return new Response(
         JSON.stringify({ error: 'Dados obrigatórios não fornecidos' }),
         { 
@@ -64,6 +84,13 @@ serve(async (req) => {
 
     console.log('Creating payment with data:', paymentData)
 
+    const mpApiUrl = 'https://api.mercadopago.com/v1/payments';
+    console.log('Calling MercadoPago API:', mpApiUrl);
+    console.log('Request headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${access_token.substring(0, 20)}...`,
+    });
+
     const response = await fetch('https://api.mercadopago.com/v1/payments', {
       method: 'POST',
       headers: {
@@ -74,7 +101,11 @@ serve(async (req) => {
       body: JSON.stringify(paymentData),
     })
 
+    console.log('MercadoPago API response status:', response.status);
+    console.log('MercadoPago API response headers:', Object.fromEntries(response.headers.entries()));
+
     const responseData = await response.json()
+    console.log('MercadoPago API response data:', responseData);
 
     if (!response.ok) {
       console.error('Mercado Pago API error:', responseData)

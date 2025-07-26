@@ -77,6 +77,13 @@ const Checkout: React.FC<CheckoutProps> = ({
       throw new Error('Mercado Pago não configurado');
     }
 
+    console.log('Creating MercadoPago payment with config:', {
+      hasAccessToken: !!mercadoPagoConfig.accessToken,
+      accessTokenPrefix: mercadoPagoConfig.accessToken?.substring(0, 20) + '...',
+      totalAmount,
+      selectedPhotosCount: selectedPhotos.length,
+      clientEmail,
+    });
     const paymentRequest = {
       transaction_amount: totalAmount,
       description: `Fotos selecionadas - ${selectedPhotos.length} fotos`,
@@ -89,7 +96,15 @@ const Checkout: React.FC<CheckoutProps> = ({
       event_id: album?.event_id,
     };
 
+    console.log('Payment request payload:', {
+      ...paymentRequest,
+      access_token: paymentRequest.access_token?.substring(0, 20) + '...',
+    });
+
     // Usar edge function para processar pagamento de forma segura
+    const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`;
+    console.log('Calling edge function:', functionUrl);
+    
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`, {
       method: 'POST',
       headers: {
@@ -99,12 +114,18 @@ const Checkout: React.FC<CheckoutProps> = ({
       body: JSON.stringify(paymentRequest),
     });
 
+    console.log('Edge function response status:', response.status);
+    console.log('Edge function response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Edge function error response:', errorData);
       throw new Error(errorData.error || 'Erro ao criar pagamento no Mercado Pago');
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Payment creation result:', result);
+    return result;
   };
 
   const handlePayment = async () => {
@@ -113,12 +134,18 @@ const Checkout: React.FC<CheckoutProps> = ({
       return;
     }
 
+    console.log('Starting payment process:', {
+      paymentMethods,
+      mercadoPagoConfigExists: !!mercadoPagoConfig.accessToken,
+      selectedMethod: paymentMethod,
+    });
     setIsProcessing(true);
 
     try {
       let paymentResult;
 
       if (paymentMethods.mercadoPago && mercadoPagoConfig.accessToken) {
+        console.log('Using MercadoPago payment method');
         // Processar com Mercado Pago
         paymentResult = await createMercadoPagoPayment();
         
@@ -136,8 +163,13 @@ const Checkout: React.FC<CheckoutProps> = ({
           toast.error(`Status do pagamento: ${paymentResult.status}`);
         }
       } else {
+        console.log('Using simulated payment method');
         // Simular processamento para outros métodos
         await new Promise(resolve => setTimeout(resolve, 3000));
+        paymentResult = {
+          id: `local_${Date.now()}`,
+          status: 'approved',
+        };
       }
 
       // Salvar pedido no banco de dados
