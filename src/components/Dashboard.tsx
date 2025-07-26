@@ -204,7 +204,7 @@ const Dashboard: React.FC = () => {
           changeType="positive"
         />
         <StatCard
-          title="Álbuns Ativos"
+          title="Sessões Ativas"
           value={stats.activeAlbums}
           icon={Image}
           change="5 aguardando seleção"

@@ -140,22 +140,22 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Álbuns</h1>
-          <p className="text-gray-600">Gerencie os álbuns de fotos dos seus clientes ({albums.length} álbuns)</p>
+          <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
+          <p className="text-gray-600">Gerencie as sessões de fotos dos seus clientes ({albums.length} sessões)</p>
         </div>
         <button 
           onClick={() => setShowCreateForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Novo Álbum
+          Nova Sessão
         </button>
       </div>
 
       {/* Formulário de criação */}
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Criar Novo Álbum</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Criar Nova Sessão</h3>
           <form onSubmit={handleCreateAlbum} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -177,7 +177,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nome do Álbum
+                Nome da Sessão
               </label>
               <input
                 type="text"
@@ -201,7 +201,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 disabled={isCreating}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {isCreating ? 'Criando...' : 'Criar Álbum'}
+                {isCreating ? 'Criando...' : 'Criar Sessão'}
               </button>
             </div>
           </form>
@@ -211,8 +211,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       {albums.length === 0 ? (
         <div className="text-center py-12">
           <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum álbum encontrado</h3>
-          <p className="text-gray-600">Comece criando seu primeiro álbum usando o botão "Novo Álbum" acima</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma sessão encontrada</h3>
+          <p className="text-gray-600">Comece criando sua primeira sessão usando o botão "Nova Sessão" acima</p>
         </div>
       ) : (
         <div className="grid gap-6">

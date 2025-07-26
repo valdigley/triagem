@@ -28,7 +28,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
   const navigationItems = [
     { name: 'Dashboard', key: 'dashboard', icon: Camera },
     { name: 'Agendamentos', key: 'events', icon: Calendar },
-    { name: 'Álbuns', key: 'albums', icon: Image },
+    { name: 'Sessões', key: 'albums', icon: Image },
     { name: 'Configurações', key: 'settings', icon: Settings },
   ];
 
