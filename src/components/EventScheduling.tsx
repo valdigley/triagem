@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Calendar, Clock, MapPin, User, Mail, Phone, ArrowLeft, Camera } from 'lucide-react';
+import { Calendar, Clock, User, Mail, Phone, ArrowLeft, Camera } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 
@@ -233,16 +233,6 @@ const EventScheduling: React.FC<EventSchedulingProps> = ({ onBack }) => {
                     <p className="text-red-600 text-sm mt-1">{errors.eventTime.message}</p>
                   )}
                 </div>
-              </div>
-
-              <div className="bg-gray-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin className="w-4 h-4" />
-                  <span className="font-medium">Local: Estúdio Fotográfico</span>
-                </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  Todas as sessões são realizadas em nosso estúdio
-                </p>
               </div>
 
               <div>
