@@ -122,9 +122,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
                     {user?.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                   </span>
                 </div>
-                <div className="hidden sm:block">
+                <div>
                   <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
+                  <p className="text-xs text-gray-500 hidden sm:block">{user?.email}</p>
                 </div>
               </div>
             </div>
