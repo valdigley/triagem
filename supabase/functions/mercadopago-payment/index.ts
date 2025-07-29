@@ -13,11 +13,25 @@ interface PaymentRequest {
   payment_method_id: string;
   payer: {
     email: string;
+    first_name?: string;
+    last_name?: string;
+    identification?: {
+      type: string;
+      number: string;
+    };
   };
   access_token: string;
   selected_photos: string[];
   event_id?: string;
   client_email: string;
+  items?: Array<{
+    id: string;
+    title: string;
+    description: string;
+    category_id: string;
+    quantity: number;
+    unit_price: number;
+  }>;
 }
 
 serve(async (req) => {
@@ -39,7 +53,8 @@ serve(async (req) => {
       access_token,
       selected_photos,
       event_id,
-      client_email
+      client_email,
+      items
     }: PaymentRequest = await req.json()
 
     console.log('Received payment request:', {
@@ -71,19 +86,40 @@ serve(async (req) => {
     }
 
     // Criar pagamento no Mercado Pago
+    const [firstName, ...lastNameParts] = (payer.first_name || payer.email.split('@')[0]).split(' ');
+    const lastName = lastNameParts.join(' ') || payer.last_name || 'Cliente';
+    
     const paymentData = {
       transaction_amount,
       description,
       payment_method_id: payment_method_id || 'pix',
       payer: {
         email: payer.email,
+        first_name: firstName,
+        last_name: lastName,
+        identification: payer.identification || {
+          type: 'CPF',
+          number: '00000000000' // Será substituído pelo valor real quando disponível
+        }
       },
+      items: items || [
+        {
+          id: `photo_package_${Date.now()}`,
+          title: description,
+          description: `Pacote de fotos - ${selected_photos.length} fotos selecionadas`,
+          category_id: 'photography',
+          quantity: selected_photos.length || 1,
+          unit_price: selected_photos.length > 0 ? transaction_amount / selected_photos.length : transaction_amount
+        }
+      ],
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
       external_reference: `order_${Date.now()}`,
       metadata: {
         selected_photos: selected_photos.join(','),
         event_id: event_id || '',
         client_email: payer.email,
+        package_type: selected_photos.length > 10 ? 'extra_photos' : 'basic_package',
+        photo_count: selected_photos.length
       }
     }
 

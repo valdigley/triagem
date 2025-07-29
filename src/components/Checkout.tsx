@@ -72,6 +72,21 @@ const Checkout: React.FC<CheckoutProps> = ({
       throw new Error('Mercado Pago não configurado');
     }
 
+    // Separar nome e sobrenome
+    const nameParts = event?.client_name?.split(' ') || ['Cliente'];
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || 'Silva';
+
+    // Criar itens detalhados para o Mercado Pago
+    const items = selectedPhotoObjects.map((photo, index) => ({
+      id: photo.id,
+      title: `Foto ${index + 1} - ${photo.filename}`,
+      description: `Foto profissional editada em alta resolução`,
+      category_id: 'photography',
+      quantity: 1,
+      unit_price: photo.price
+    }));
+
     console.log('Creating MercadoPago payment with config:', {
       hasAccessToken: !!mercadoPagoConfig.accessToken,
       accessTokenPrefix: mercadoPagoConfig.accessToken?.substring(0, 20) + '...',
@@ -79,17 +94,28 @@ const Checkout: React.FC<CheckoutProps> = ({
       totalAmount,
       selectedPhotosCount: selectedPhotos.length,
       clientEmail,
+      itemsCount: items.length,
+      firstName,
+      lastName
     });
+    
     const paymentRequest = {
       transaction_amount: totalAmount,
-      description: `Fotos selecionadas - ${selectedPhotos.length} fotos`,
+      description: `Pacote de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} profissional${selectedPhotos.length > 1 ? 'is' : ''} editada${selectedPhotos.length > 1 ? 's' : ''}`,
       payment_method_id: 'pix', // ou 'visa', 'master', etc.
       payer: {
         email: clientEmail,
+        first_name: firstName,
+        last_name: lastName,
+        identification: {
+          type: 'CPF',
+          number: '00000000000' // Será atualizado quando implementarmos coleta de CPF
+        }
       },
       access_token: mercadoPagoConfig.accessToken,
       selected_photos: selectedPhotos,
       event_id: album?.event_id,
+      items: items
     };
 
     console.log('Payment request payload:', {

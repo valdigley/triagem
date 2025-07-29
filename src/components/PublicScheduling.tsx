@@ -447,19 +447,40 @@ const PublicScheduling: React.FC = () => {
       sessionTypeLabels[eventData.session_type] || eventData.session_type : 
       'Sessão';
 
+    // Separar nome e sobrenome
+    const nameParts = eventData.client_name?.split(' ') || ['Cliente'];
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || 'Silva';
+
     console.log('Creating payment for event data:', eventData);
 
     const paymentRequest = {
       transaction_amount: advanceAmount,
-      description: `Pagamento antecipado - ${sessionTypeLabel} - ${eventData.client_name}`,
+      description: `Agendamento de ${sessionTypeLabel} - Pagamento antecipado`,
       payment_method_id: 'pix',
       payer: {
         email: eventData.client_email,
+        first_name: firstName,
+        last_name: lastName,
+        identification: {
+          type: 'CPF',
+          number: '00000000000' // Será atualizado quando implementarmos coleta de CPF
+        }
       },
       access_token: studioSettings.mercadoPagoAccessToken,
       selected_photos: [],
       event_id: null, // Será criado após confirmação do pagamento
       client_email: eventData.client_email,
+      items: [
+        {
+          id: `session_${eventData.session_type || 'photo'}`,
+          title: `${sessionTypeLabel} - Pagamento Antecipado`,
+          description: `Reserva de sessão de fotos com direito a 10 fotos editadas`,
+          category_id: 'photography',
+          quantity: 1,
+          unit_price: advanceAmount
+        }
+      ]
     };
 
     const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-payment`, {

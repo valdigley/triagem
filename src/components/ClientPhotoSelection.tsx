@@ -42,6 +42,12 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     minimumPackagePrice: 300.00
   });
 
+  const [clientData, setClientData] = useState({
+    name: '',
+    email: '',
+    cpf: '',
+  });
+
   useEffect(() => {
     loadAlbumData();
     loadWatermarkConfig();
@@ -64,6 +70,21 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       }
 
       setAlbum(albumData);
+
+      // Buscar dados do evento para pré-preencher informações do cliente
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('client_name, client_email')
+        .eq('id', albumData.event_id)
+        .single();
+
+      if (eventData) {
+        setClientData(prev => ({
+          ...prev,
+          name: eventData.client_name,
+          email: eventData.client_email,
+        }));
+      }
 
       // Buscar fotos do álbum
       const { data: photosData, error: photosError } = await supabase
