@@ -103,16 +103,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Rota pública para agendamento */}
-            <Route path="/agendar" element={<PublicScheduling />} />
-            {/* Rota pública para seleção de fotos */}
-            <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
-            {/* Rotas do sistema interno */}
-            <Route path="/*" element={<AppContent />} />
-          </Routes>
-        </BrowserRouter>
+        <DataProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Rota pública para agendamento */}
+              <Route path="/agendar" element={<PublicScheduling />} />
+              {/* Rota pública para seleção de fotos */}
+              <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
+              {/* Rotas do sistema interno */}
+              <Route path="/*" element={<AppContent />} />
+            </Routes>
+          </BrowserRouter>
+        </DataProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
