@@ -846,6 +846,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                           <p><strong>Formato:</strong> Nomes originais dos arquivos enviados</p>
                         </div>
                       </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
