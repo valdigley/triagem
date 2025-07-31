@@ -190,7 +190,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
         </header>
 
         {/* Page content */}
-        <main className="p-6">
+        <main className="p-6 overflow-y-auto">
           {children}
         </main>
       </div>
