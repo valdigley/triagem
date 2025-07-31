@@ -121,14 +121,20 @@ function App() {
                 <Route 
                   path="/agendar" 
                   element={
-                    <PublicScheduling />
+                    <div>
+                      <PublicScheduling />
+                      <Toaster position="top-center" />
+                    </div>
                   } 
                 />
                 {/* Rota pública para seleção de fotos */}
                 <Route 
                   path="/album/:shareToken" 
                   element={
-                    <ClientPhotoSelection />
+                    <div>
+                      <ClientPhotoSelection />
+                      <Toaster position="top-center" />
+                    </div>
                   } 
                 />
                 {/* Rotas do sistema interno */}

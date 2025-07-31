@@ -1,0 +1,9 @@
+# Cloudflare Pages redirects
+# IMPORTANTE: Este arquivo deve estar em /public/_redirects
+
+# Rotas específicas da SPA - rewrite para index.html
+/agendar /index.html 200
+/album/* /index.html 200
+
+# Fallback para todas as outras rotas SPA
+/* /index.html 200
