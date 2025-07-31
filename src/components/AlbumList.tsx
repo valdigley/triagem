@@ -784,12 +784,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       Excluir
                     </button>
                   </div>
-                ) : (
-                  <div className="mb-4 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 text-sm">Nenhuma foto carregada</p>
-                    <p className="text-gray-500 text-xs">Adicione fotos para que o cliente possa fazer a seleção</p>
-                  </div>
                 )}
 
                 {selectedCount > 0 && albumPhotos.length > 0 && (
