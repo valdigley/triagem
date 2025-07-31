@@ -349,7 +349,7 @@ const Checkout: React.FC<CheckoutProps> = ({
       // Salvar pedido no banco de dados
       const { error: orderError } = await supabase
         .from('orders')
-        .insert({
+        .upsert({
           event_id: album?.event_id,
           client_email: clientEmail,
           selected_photos: selectedPhotos,
@@ -362,6 +362,9 @@ const Checkout: React.FC<CheckoutProps> = ({
             unit_price: 25.00,
             description: `Compra de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} extra${selectedPhotos.length > 1 ? 's' : ''}`
           }
+        }, {
+          onConflict: 'payment_intent_id',
+          ignoreDuplicates: false
         });
 
       if (orderError) {

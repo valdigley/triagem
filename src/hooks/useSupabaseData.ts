@@ -906,52 +906,34 @@ export const useSupabaseData = () => {
     }
 
     try {
-      // Verificar se cliente já existe
-      const { data: existingClient } = await supabase
+      // Usar upsert para inserir ou atualizar automaticamente
+      const { error } = await supabase
         .from('clients')
-        .select('id')
-        .eq('email', clientData.email)
-        .eq('photographer_id', photographerId)
-        .maybeSingle();
+        .upsert({
+          photographer_id: photographerId,
+          name: clientData.name,
+          email: clientData.email,
+          phone: clientData.phone,
+          notes: clientData.notes,
+        }, {
+          onConflict: 'email',
+          ignoreDuplicates: false
+        });
 
-      if (existingClient) {
-        // Atualizar cliente existente
-        const { error } = await supabase
-          .from('clients')
-          .update({
-            name: clientData.name,
-            phone: clientData.phone,
-            notes: clientData.notes,
-          })
-          .eq('id', existingClient.id);
-
-        if (error) {
-          console.error('Error updating client:', error);
-        }
+      if (error) {
+        console.error('Error upserting client:', error);
       } else {
-        // Criar novo cliente
-        const { error } = await supabase
+        console.log('Client upserted successfully:', clientData.email);
+        
+        // Recarregar lista de clientes
+        const { data: clientsData } = await supabase
           .from('clients')
-          .insert({
-            photographer_id: photographerId,
-            name: clientData.name,
-            email: clientData.email,
-            phone: clientData.phone,
-            notes: clientData.notes,
-          });
-
-        if (error) {
-          console.error('Error creating client:', error);
-        } else {
-          // Recarregar lista de clientes
-          const { data: clientsData } = await supabase
-            .from('clients')
-            .select('*')
-            .order('created_at', { ascending: false });
-          
-          if (clientsData) {
-            setClients(clientsData);
-          }
+          .select('*')
+          .eq('photographer_id', photographerId)
+          .order('created_at', { ascending: false });
+        
+        if (clientsData) {
+          setClients(clientsData);
         }
       }
     } catch (error) {

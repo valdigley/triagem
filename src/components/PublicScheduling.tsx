@@ -321,7 +321,7 @@ const PublicScheduling: React.FC = () => {
       // Criar o pedido
       const { error: orderError } = await supabase
         .from('orders')
-        .insert({
+        .upsert({
           event_id: newEvent.id,
           client_email: pendingEventData.client_email,
           selected_photos: [],
@@ -334,6 +334,9 @@ const PublicScheduling: React.FC = () => {
             advance_percentage: studioSettings.advancePaymentPercentage,
             description: `Pagamento antecipado de ${sessionTypeLabel}`
           }
+        }, {
+          onConflict: 'payment_intent_id',
+          ignoreDuplicates: false
         });
 
       if (orderError) {
