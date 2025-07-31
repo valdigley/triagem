@@ -110,6 +110,14 @@ const Login: React.FC = () => {
       });
 
       if (error) {
+        if (error.message === 'Email logins are disabled') {
+          setError('Cadastro por e-mail está desabilitado. Entre em contato com o administrador ou use o cadastro com Google.');
+          return;
+        }
+        if (error.message === 'Email logins are disabled') {
+          setError('Login por e-mail está desabilitado. Entre em contato com o administrador ou use o login com Google.');
+          return;
+        }
         console.error('Google OAuth error:', error);
         toast.error(`Erro no login com Google: ${error.message}`);
         return;
