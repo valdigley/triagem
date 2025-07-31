@@ -86,14 +86,14 @@ export class GoogleCalendarService {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Failed to update Google Calendar event:', errorData);
-        throw new Error(errorData.error || 'Failed to update calendar event');
+        return false;
       }
 
       console.log('Google Calendar event updated successfully');
       return true;
     } catch (error) {
       console.error('Error updating Google Calendar event:', error);
-      throw error;
+      return false;
     }
   }
 
@@ -118,14 +118,14 @@ export class GoogleCalendarService {
       if (!response.ok) {
         const errorData = await response.json();
         console.error('Failed to delete Google Calendar event:', errorData);
-        throw new Error(errorData.error || 'Failed to delete calendar event');
+        return false;
       }
 
       console.log('Google Calendar event deleted successfully');
       return true;
     } catch (error) {
       console.error('Error deleting Google Calendar event:', error);
-      throw error;
+      return false;
     }
   }
 }
