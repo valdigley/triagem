@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session error:', error);
+          console.error('Session error:', error.message);
           // Clear invalid tokens and reset auth state
           await supabase.auth.signOut();
           setSupabaseUser(null);
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } catch (error) {
-        console.error('Unexpected session error:', error);
+        console.error('Unexpected session error:', error instanceof Error ? error.message : 'Unknown error');
         // Clear invalid tokens and reset auth state
         await supabase.auth.signOut();
         setSupabaseUser(null);
@@ -145,7 +145,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Registration error:', error);
+        console.error('Registration error:', error.message);
         setIsLoading(false);
         
         // Retornar mensagens específicas baseadas no tipo de erro
@@ -192,7 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Registration exception:', error);
+      console.error('Registration exception:', error instanceof Error ? error.message : 'Unknown error');
       setIsLoading(false);
       return 'Erro inesperado ao criar conta';
     }
@@ -205,7 +205,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Password reset error:', error);
+        console.error('Password reset error:', error.message);
         
         if (error.message.includes('Email rate limit exceeded')) {
           return 'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente';
@@ -219,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return true;
     } catch (error) {
-      console.error('Password reset exception:', error);
+      console.error('Password reset exception:', error instanceof Error ? error.message : 'Unknown error');
       return 'Erro inesperado ao enviar e-mail de recuperação';
     }
   };
