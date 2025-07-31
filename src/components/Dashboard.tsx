@@ -67,6 +67,7 @@ const Dashboard: React.FC = () => {
         const expiresAt = s.expires_at ? new Date(s.expires_at) : new Date(s.trial_end_date);
         return s.status === 'active' && 
                s.plan_type === 'paid' && 
+               s.plan_type !== 'master' &&
                s.payment_date && 
                expiresAt > now;
       }).length || 0;

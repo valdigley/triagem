@@ -101,12 +101,16 @@ const SubscriptionManagement: React.FC = () => {
         totalUsers: processedSubscriptions.length,
         activeSubscriptions: processedSubscriptions.filter(s => {
           const expiresAt = s.expires_at ? new Date(s.expires_at) : null;
-          return s.status === 'active' && (!expiresAt || expiresAt > now);
+          return s.status === 'active' && 
+                 s.plan_type !== 'master' && 
+                 (!expiresAt || expiresAt > now);
         }).length,
         trialUsers: processedSubscriptions.filter(s => s.plan_type === 'trial').length,
         expiredUsers: processedSubscriptions.filter(s => {
           const expiresAt = s.expires_at ? new Date(s.expires_at) : new Date(s.trial_end_date);
-          return s.status === 'active' && expiresAt <= now;
+          return s.status === 'active' && 
+                 s.plan_type !== 'master' && 
+                 expiresAt <= now;
         }).length,
         monthlyRevenue: 0, // Será calculado dos pagamentos
       };
