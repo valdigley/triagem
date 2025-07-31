@@ -50,6 +50,10 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
+  const [pendingEventData, setPendingEventData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editForm, setEditForm] = useState({
     client_name: '',
     client_email: '',
@@ -86,7 +90,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
 
       if (photographer && photographer.length > 0 && photographer[0].watermark_config?.sessionTypes) {
         setSessionTypes(photographer[0].watermark_config.sessionTypes);
-      if (photographer && photographer.watermark_config?.sessionTypes) {
+      } else if (photographer && photographer.watermark_config?.sessionTypes) {
         setSessionTypes(photographer.watermark_config.sessionTypes);
       } else {
         // Tipos padrão se não houver configuração
@@ -103,6 +107,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
       console.error('Error loading session types:', error);
     }
   };
+  
   const getStatusBadge = (status: string) => {
     const statusConfig = {
       scheduled: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'Agendado' },
