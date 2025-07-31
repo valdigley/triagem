@@ -269,7 +269,18 @@ export const useSupabaseData = () => {
           
         } catch (error) {
           console.error('❌ ERRO no Google Calendar:', error);
-          console.error('📝 Detalhes do erro:', error.message);
+          
+          // Verificar se é erro de autenticação
+          if (error.message?.includes('invalid authentication') || 
+              error.message?.includes('Invalid Credentials') ||
+              error.message?.includes('authError')) {
+            console.warn('🔑 Token do Google Calendar expirado ou inválido');
+            console.warn('💡 Vá em Configurações → Google Calendar para renovar o token');
+            // Não mostrar toast de erro para não confundir o usuário
+          } else {
+            console.error('📝 Detalhes do erro:', error.message);
+          }
+          
           // Não falhar o processo se o Google Calendar der erro
           console.log('⚠️ Continuando sem Google Calendar devido ao erro');
         }
