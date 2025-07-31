@@ -80,33 +80,49 @@ export const useSupabaseData = () => {
   const ensurePhotographerProfile = async () => {
     if (!user) return null;
 
-    // Se já temos o photographerId ou já verificamos, não criar novamente
-    if (photographerId || photographerChecked) {
+    // Se já temos o photographerId, retornar imediatamente
+    if (photographerId) {
       return photographerId;
+    }
+
+    // Se já verificamos e não encontramos, não tentar novamente
+    if (photographerChecked) {
+      return null;
     }
 
     setPhotographerChecked(true);
 
     try {
-      // Verificar se já existe perfil do fotógrafo
-      const { data: existingProfile, error: fetchError } = await supabase
+      console.log('Checking for existing photographer profile...');
+      
+      // Usar uma consulta mais simples para evitar erro 406
+      const { data: existingProfiles, error: fetchError } = await supabase
         .from('photographers')
-        .select('id, user_id')
+        .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1);
 
-      if (!fetchError && existingProfile) {
+      if (!fetchError && existingProfiles && existingProfiles.length > 0) {
+        const existingProfile = existingProfiles[0];
         console.log('Found existing photographer profile:', existingProfile.id);
         setPhotographerId(existingProfile.id);
         return existingProfile.id;
       }
 
-      // Se não existe, criar um novo perfil
-      console.log('Creating photographer profile for new user:', user.email);
+      if (fetchError) {
+        console.error('Error fetching photographer profile:', fetchError);
+        // Se for erro de RLS, tentar criar mesmo assim
+        if (fetchError.code !== 'PGRST301') {
+          return null;
+        }
+      }
+
+      console.log('No existing profile found, creating new one for:', user.email);
       
+      // Usar insert simples em vez de upsert para evitar problemas de constraint
       const { data: newProfile, error: insertError } = await supabase
         .from('photographers')
-        .upsert({
+        .insert({
           user_id: user.id,
           business_name: user.name || 'Meu Estúdio',
           phone: user.user_metadata?.whatsapp || '(11) 99999-9999',
@@ -136,35 +152,39 @@ export const useSupabaseData = () => {
               }
             }
           }
-        }, {
-          onConflict: 'user_id',
-          ignoreDuplicates: false
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (insertError) {
         console.error('Error creating photographer profile:', insertError);
-        // Se for erro de duplicata, tentar buscar o existente
+        
+        // Se for erro de duplicata, buscar o existente
         if (insertError.code === '23505') {
-          const { data: existingAfterError } = await supabase
+          console.log('Duplicate detected, fetching existing profile...');
+          const { data: existingAfterError, error: fetchAfterError } = await supabase
             .from('photographers')
             .select('id')
             .eq('user_id', user.id)
-            .single();
+            .limit(1);
           
-          if (existingAfterError) {
-            console.log('Found existing profile after duplicate error:', existingAfterError.id);
-            setPhotographerId(existingAfterError.id);
-            return existingAfterError.id;
+          if (!fetchAfterError && existingAfterError && existingAfterError.length > 0) {
+            const profile = existingAfterError[0];
+            console.log('Found existing profile after duplicate error:', profile.id);
+            setPhotographerId(profile.id);
+            return profile.id;
           }
         }
         return null;
       }
 
-      console.log('Photographer profile created successfully:', newProfile.id);
-      setPhotographerId(newProfile.id);
-      return newProfile.id;
+      if (newProfile) {
+        console.log('Photographer profile created successfully:', newProfile.id);
+        setPhotographerId(newProfile.id);
+        return newProfile.id;
+      }
+
+      return null;
     } catch (error) {
       console.error('Error ensuring photographer profile:', error);
       return null;
@@ -931,34 +951,63 @@ export const useSupabaseData = () => {
     }
 
     try {
-      // Usar upsert para evitar duplicatas
-      const { error } = await supabase
+      console.log('Upserting client:', clientData.email);
+      
+      // Primeiro verificar se cliente já existe
+      const { data: existingClients, error: fetchError } = await supabase
         .from('clients')
-        .upsert({
-          photographer_id: photographerId,
-          name: clientData.name,
-          email: clientData.email,
-          phone: clientData.phone,
-          notes: clientData.notes,
-        }, {
-          onConflict: 'email,photographer_id',
-          ignoreDuplicates: false
-        });
+        .select('id, email')
+        .eq('email', clientData.email)
+        .eq('photographer_id', photographerId)
+        .limit(1);
 
-      if (error) {
-        console.error('Error creating/updating client:', error);
-      } else {
-        console.log('Client processed successfully:', clientData.email);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error checking existing client:', fetchError);
+        return;
+      }
+
+      if (existingClients && existingClients.length > 0) {
+        // Cliente existe, atualizar dados
+        const existingClient = existingClients[0];
+        console.log('Updating existing client:', existingClient.id);
         
-        // Recarregar lista de clientes
-        const { data: clientsData } = await supabase
+        const { error: updateError } = await supabase
           .from('clients')
-          .select('*')
-          .eq('photographer_id', photographerId)
-          .order('created_at', { ascending: false });
+          .update({
+            name: clientData.name,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          })
+          .eq('id', existingClient.id);
+
+        if (updateError) {
+          console.error('Error updating client:', updateError);
+        } else {
+          console.log('Client updated successfully');
+        }
+      } else {
+        // Cliente não existe, criar novo
+        console.log('Creating new client:', clientData.email);
         
-        if (clientsData) {
-          setClients(clientsData);
+        const { error: insertError } = await supabase
+          .from('clients')
+          .insert({
+            photographer_id: photographerId,
+            name: clientData.name,
+            email: clientData.email,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          });
+
+        if (insertError) {
+          // Se for erro de duplicata, ignorar (pode ter sido criado por outro processo)
+          if (insertError.code === '23505') {
+            console.log('Client already exists (created by another process)');
+          } else {
+            console.error('Error creating client:', insertError);
+          }
+        } else {
+          console.log('Client created successfully');
         }
       }
     } catch (error) {
