@@ -337,21 +337,13 @@ export const useSupabaseData = () => {
         // Não falhar o processo se o álbum não for criado
       }
       
-      if (googleEventId) {
-        toast.success('Agendamento criado e sincronizado com Google Calendar!');
-      } else {
-        toast.success('Agendamento e sessão criados com sucesso!');
-      }
+      toast.success('Seleção criada com sucesso!');
       
       return data;
     } catch (error) {
       console.error('Error adding event:', error);
       
-      // Não mostrar erro se for relacionado ao Google Calendar
-      if (!error.message?.includes('Google Calendar') && 
-          !error.message?.includes('token expirado')) {
-        toast.error('Erro ao criar agendamento');
-      }
+      toast.error('Erro ao criar seleção');
       return null;
     }
   };

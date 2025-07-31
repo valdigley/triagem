@@ -58,7 +58,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     { name: 'Dashboard', key: 'dashboard', icon: Camera },
     { name: 'Agendamentos', key: 'events', icon: Calendar },
     { name: 'Clientes', key: 'clients', icon: Users },
-    { name: 'Sessões', key: 'albums', icon: Image },
+    { name: 'Seleções', key: 'albums', icon: Image },
     { name: 'Pagamentos', key: 'payments', icon: CreditCard },
     ...(isMasterUser ? [
       { name: 'Assinaturas', key: 'subscriptions', icon: Crown },

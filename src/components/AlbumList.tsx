@@ -832,6 +832,20 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     </>
                   )}
                   {selectedCount > 0 && (
+                    <>
+                      {album.google_drive_link && (
+                        <button 
+                          onClick={() => sendDriveLinkViaWhatsApp(album, event)}
+                          disabled={sendingDriveMessage}
+                          className="flex items-center gap-1 px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs transition-colors disabled:opacity-50"
+                          title="Enviar link do Google Drive via WhatsApp"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                          </svg>
+                          {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
+                        </button>
+                      )}
                     <button 
                       onClick={() => reactivateSelection(album.id)}
                       disabled={reactivatingAlbumId === album.id}
@@ -842,6 +856,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       </svg>
                       {reactivatingAlbumId === album.id ? 'Reativando...' : 'Reativar Seleção'}
                     </button>
+                    </>
                   )}
                   <button 
                     onClick={() => {
