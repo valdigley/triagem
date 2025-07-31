@@ -6,7 +6,11 @@ export default {
     
     console.log('Workers request:', pathname);
     
-    // Get the asset from Cloudflare Workers Assets
+    // Handle SPA routes first (before trying to fetch assets)
+    const spaRoutes = ['/agendar', '/album'];
+    const isSpaRoute = spaRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
+    
+    // Try to get the asset first
     let response;
     
     try {
@@ -16,17 +20,17 @@ export default {
       response = new Response('Asset not found', { status: 404 });
     }
     
-    // If asset exists, serve it with correct headers
-    if (response.status === 200) {
+    // If asset exists and it's not a SPA route, serve it
+    if (response.status === 200 && !isSpaRoute) {
       const newResponse = new Response(response.body, response);
       
       // Set correct MIME types
       if (pathname.endsWith('.js') || pathname.endsWith('.mjs')) {
-        newResponse.headers.set('Content-Type', 'application/javascript');
+        newResponse.headers.set('Content-Type', 'application/javascript; charset=utf-8');
       } else if (pathname.endsWith('.css')) {
-        newResponse.headers.set('Content-Type', 'text/css');
+        newResponse.headers.set('Content-Type', 'text/css; charset=utf-8');
       } else if (pathname.endsWith('.html')) {
-        newResponse.headers.set('Content-Type', 'text/html');
+        newResponse.headers.set('Content-Type', 'text/html; charset=utf-8');
       } else if (pathname.endsWith('.json')) {
         newResponse.headers.set('Content-Type', 'application/json');
       } else if (pathname.endsWith('.svg')) {
@@ -42,45 +46,42 @@ export default {
       return newResponse;
     }
     
-    // For SPA routes (404 for non-asset requests), serve index.html
-    if (response.status === 404 && !pathname.includes('.')) {
-      console.log('SPA route detected, serving index.html for:', pathname);
+    // For SPA routes or 404 assets that look like routes, serve index.html
+    if (isSpaRoute || (response.status === 404 && !pathname.includes('.'))) {
+      console.log('Serving index.html for SPA route:', pathname);
       
-      // Special handling for SPA routes
-      const spaRoutes = ['/agendar', '/album'];
-      const isSpaRoute = spaRoutes.some(route => pathname.startsWith(route)) || pathname === '/';
-      
-      if (isSpaRoute) {
-        try {
-          const indexRequest = new Request(new URL('/index.html', request.url), {
-            method: 'GET',
-            headers: request.headers,
+      try {
+        const indexRequest = new Request(new URL('/index.html', request.url), {
+          method: 'GET',
+          headers: request.headers,
+        });
+        
+        const indexResponse = await env.ASSETS.fetch(indexRequest);
+        
+        if (indexResponse.ok) {
+          const indexNewResponse = new Response(indexResponse.body, {
+            status: 200,
+            statusText: 'OK',
+            headers: {
+              'Content-Type': 'text/html; charset=utf-8',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
+              'Expires': '0',
+            }
           });
           
-          const indexResponse = await env.ASSETS.fetch(indexRequest);
-          
-          if (indexResponse.ok) {
-            const indexNewResponse = new Response(indexResponse.body, {
-              status: 200,
-              statusText: 'OK',
-              headers: {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0',
-              }
-            });
-            
-            console.log('Served index.html for SPA route:', pathname);
-            return indexNewResponse;
-          }
-        } catch (error) {
-          console.error('Error serving index.html:', error);
+          console.log('Successfully served index.html for:', pathname);
+          return indexNewResponse;
+        } else {
+          console.error('Failed to fetch index.html:', indexResponse.status);
         }
+      } catch (error) {
+        console.error('Error serving index.html:', error);
       }
     }
     
     // Return original response for everything else
+    console.log('Returning original response for:', pathname, 'Status:', response.status);
     return response;
   },
 };
