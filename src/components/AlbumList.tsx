@@ -678,6 +678,101 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 )}
 
+                {/* Histórico Detalhado */}
+                <div className="mb-3 bg-gray-50 rounded-lg p-3">
+                  <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Histórico da Seleção
+                  </h4>
+                  <div className="space-y-1 text-xs">
+                    {/* Data de criação */}
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-gray-600">Criado para seleção:</span>
+                      <span className="font-medium text-gray-800">
+                        {format(new Date(album.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                    </div>
+
+                    {/* Primeira visualização do cliente */}
+                    {(() => {
+                      const firstView = album.activity_log?.find(log => 
+                        log.type === 'album_viewed' || log.description?.includes('visualizou')
+                      );
+                      return firstView ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span className="text-gray-600">Cliente visualizou:</span>
+                          <span className="font-medium text-gray-800">
+                            {format(new Date(firstView.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                          <span className="text-gray-500">Cliente ainda não visualizou</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Seleção finalizada */}
+                    {selectedCount > 0 ? (
+                      (() => {
+                        const selectionComplete = album.activity_log?.find(log => 
+                          log.type === 'selection_completed' || log.description?.includes('finalizou')
+                        );
+                        return selectionComplete ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="text-gray-600">Seleção finalizada:</span>
+                            <span className="font-medium text-gray-800">
+                              {format(new Date(selectionComplete.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <span className="text-gray-600">Seleção em andamento</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <span className="text-gray-500">Aguardando seleção do cliente</span>
+                      </div>
+                    )}
+
+                    {/* Link das fotos editadas disponibilizado */}
+                    {album.google_drive_link ? (
+                      (() => {
+                        const driveShared = album.activity_log?.find(log => 
+                          log.type === 'drive_link_added' || log.description?.includes('Google Drive')
+                        );
+                        return driveShared ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="text-gray-600">Fotos editadas disponibilizadas:</span>
+                            <span className="font-medium text-gray-800">
+                              {format(new Date(driveShared.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="text-gray-600">Link do Drive configurado</span>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                        <span className="text-gray-500">Fotos editadas não disponibilizadas</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Upload de fotos - apenas quando não há seleção */}
                 {selectedCount === 0 && (
                   <div className="mb-3">
