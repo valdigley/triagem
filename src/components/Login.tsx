@@ -41,30 +41,48 @@ const Login: React.FC = () => {
 
   const loadStudioSettings = async () => {
     try {
-      console.log('🔍 Loading studio settings...');
+      console.log('🔍 Loading studio settings for login background...');
       // Carregar configurações de TODOS os fotógrafos para encontrar imagens personalizadas
       const { data: photographer } = await supabase
         .from('photographers')
-        .select('business_name, watermark_config, user_id, id')
-        .order('created_at', { ascending: false });
+        .select('business_name, watermark_config')
+        .not('watermark_config', 'is', null);
 
-      console.log('📊 All photographers data:', photographer);
-      console.log('📊 Number of photographers found:', photographer?.length || 0);
+      if (error) {
+        console.error('❌ Error loading photographers:', error);
+        setBackgroundImages([
+          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+        ]);
+        return;
+      }
+
+      console.log('📊 Photographers found:', photographer?.length || 0);
 
       // Buscar o primeiro fotógrafo que tenha configurações personalizadas
       let selectedPhotographer = null;
       
       if (photographer && photographer.length > 0) {
-        console.log('🔍 Searching for photographer with custom backgrounds...');
+        console.log('🔍 Checking each photographer for custom backgrounds...');
         
-        // Primeiro, tentar encontrar um fotógrafo com imagens de fundo personalizadas
-        selectedPhotographer = photographer.find(p => 
-          p.watermark_config?.loginBackgrounds && 
-          Array.isArray(p.watermark_config.loginBackgrounds) && 
-          p.watermark_config.loginBackgrounds.length > 0
-        );
+        // Verificar cada fotógrafo
+        for (const p of photographer) {
+          console.log('📋 Checking photographer:', {
+            business_name: p.business_name,
+            has_watermark_config: !!p.watermark_config,
+            has_login_backgrounds: !!p.watermark_config?.loginBackgrounds,
+            backgrounds_count: p.watermark_config?.loginBackgrounds?.length || 0
+          });
+          
+          if (p.watermark_config?.loginBackgrounds && 
+              Array.isArray(p.watermark_config.loginBackgrounds) && 
+              p.watermark_config.loginBackgrounds.length > 0) {
+            selectedPhotographer = p;
+            console.log('✅ Found photographer with custom backgrounds!');
+            break;
+          }
+        }
         
-        console.log('🎯 Photographer with custom backgrounds:', selectedPhotographer ? 'Found' : 'Not found');
+        console.log('🎯 Selected photographer result:', selectedPhotographer ? 'Found with backgrounds' : 'Not found');
         
         // Se não encontrou com imagens personalizadas, usar o primeiro
         if (!selectedPhotographer) {
@@ -72,16 +90,9 @@ const Login: React.FC = () => {
           selectedPhotographer = photographer[0];
         }
         
-        console.log('✅ Selected photographer:', {
-          id: selectedPhotographer.id,
-          business_name: selectedPhotographer.business_name,
-          has_watermark_config: !!selectedPhotographer.watermark_config,
-          has_login_backgrounds: !!selectedPhotographer.watermark_config?.loginBackgrounds
-        });
-        
         // Logo personalizada
         if (selectedPhotographer.watermark_config?.logo) {
-          console.log('🖼️ Setting studio logo (length:', selectedPhotographer.watermark_config.logo.length, ')');
+          console.log('🖼️ Setting studio logo');
           setStudioLogo(selectedPhotographer.watermark_config.logo);
         }
 
@@ -93,50 +104,40 @@ const Login: React.FC = () => {
 
         // Imagens de fundo personalizadas
         const customBackgrounds = selectedPhotographer.watermark_config?.loginBackgrounds;
-        console.log('🎨 Custom backgrounds analysis:', {
-          exists: !!customBackgrounds,
-          is_array: Array.isArray(customBackgrounds),
-          length: customBackgrounds?.length || 0,
-          first_item_type: customBackgrounds?.[0] ? typeof customBackgrounds[0] : 'none',
-          first_item_length: customBackgrounds?.[0]?.length || 0
-        });
+        console.log('🎨 Processing custom backgrounds...');
+        console.log('🎨 Raw backgrounds data:', customBackgrounds);
         
         if (customBackgrounds && 
             Array.isArray(customBackgrounds) && 
             customBackgrounds.length > 0) {
-          console.log('✅ Loading custom background images:', customBackgrounds.length);
-          console.log('🖼️ First background starts with:', customBackgrounds[0].substring(0, 50) + '...');
+          console.log('✅ Setting custom background images:', customBackgrounds.length);
+          console.log('🖼️ First image preview:', customBackgrounds[0].substring(0, 100) + '...');
           setBackgroundImages(customBackgrounds);
-          console.log('🎯 Background images state updated');
+          
+          // Forçar re-render
+          setTimeout(() => {
+            console.log('🔄 Background images state after timeout:', customBackgrounds.length);
+          }, 100);
         } else {
-          console.log('⚠️ No custom backgrounds found, using default images');
+          console.log('⚠️ No valid custom backgrounds, using defaults');
           // Imagens padrão de alta qualidade para estúdios fotográficos
           setBackgroundImages([
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
             'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
           ]);
         }
       } else {
-        console.log('❌ No photographer found, using default settings');
+        console.log('❌ No photographers found, using defaults');
         // Configurações padrão se não houver fotógrafo
         setBackgroundImages([
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
         ]);
       }
-      
-      console.log('🎯 Final background images state:', {
-        count: backgroundImages.length,
-        current_index: currentImageIndex
-      });
       
     } catch (error) {
       console.error('Error loading studio settings:', error);
       // Usar imagens padrão em caso de erro
       setBackgroundImages([
-        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
       ]);
     }
   };
