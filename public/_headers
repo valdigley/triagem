@@ -1,5 +1,5 @@
 # Cloudflare Pages headers
-# IMPORTANTE: Este arquivo deve estar em /public/_headers
+# Este arquivo deve estar em /public/ para ser copiado para /dist/
 
 # Headers globais
 /*

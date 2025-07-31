@@ -10,12 +10,14 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     copyPublicDir: true,
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: undefined,
       },
     },
   },
+  publicDir: 'public',
   optimizeDeps: {
     exclude: ['lucide-react'],
   },
