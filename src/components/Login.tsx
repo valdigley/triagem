@@ -284,20 +284,20 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 overflow-hidden h-screen w-screen">
+    <div className="min-h-screen w-full relative overflow-hidden">
       {/* Background Images with Slideshow */}
-      <div className="absolute inset-0">
+      <div className="fixed inset-0 z-0">
         {backgroundImages.map((image, index) => (
           <div
             key={index}
-            className={`fixed inset-0 transition-opacity duration-1000 ${
+            className={`absolute inset-0 transition-opacity duration-1000 ${
               index === currentImageIndex ? 'opacity-100' : 'opacity-0'
             }`}
           >
             <img
               src={image}
               alt={`Background ${index + 1}`}
-              className="w-full h-full object-cover object-center"
+              className="w-full h-full object-cover"
               loading={index === 0 ? 'eager' : 'lazy'}
               onError={(e) => {
                 console.error('❌ Failed to load background image:', image.substring(0, 100) + '...');
@@ -308,19 +308,19 @@ const Login: React.FC = () => {
                 console.log('✅ Background image loaded successfully:', index);
               }}
             />
-            {/* Overlay para legibilidade do texto */}
-            <div className="absolute inset-0 bg-black/50"></div>
           </div>
         ))}
+        {/* Overlay para legibilidade do texto */}
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
       {/* Content */}
-      <div className="fixed inset-0 z-10 flex items-center justify-center p-4 min-h-screen">
-        <div className="w-full max-w-sm sm:max-w-md flex flex-col justify-center min-h-0">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-sm mx-auto">
           {/* Logo and Branding */}
-          <div className="text-center mb-4 sm:mb-6 lg:mb-8 flex-shrink-0">
+          <div className="text-center mb-6">
             {studioLogo ? (
-              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-full mb-4 sm:mb-6 p-3 sm:p-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-md rounded-full mb-4 p-3 shadow-lg">
                 <img 
                   src={studioLogo} 
                   alt="Logo" 
@@ -328,72 +328,71 @@ const Login: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-md rounded-full mb-4 sm:mb-6 shadow-lg">
-                <Camera className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-md rounded-full mb-4 shadow-lg">
+                <Camera className="w-8 h-8 text-white" />
               </div>
             )}
             
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-1 sm:mb-2 drop-shadow-lg">
+            <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
               Triagem
             </h1>
-            <p className="text-white/90 text-sm sm:text-base lg:text-lg mb-1 sm:mb-2 drop-shadow px-2">
+            <p className="text-white/90 text-base mb-2 drop-shadow px-2">
               Sistema de seleção de fotos para estúdio fotográfico
             </p>
-            <p className="text-white/70 text-xs sm:text-sm drop-shadow">
+            <p className="text-white/70 text-sm drop-shadow">
               by Valdigley Santos
             </p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/95 backdrop-blur-md rounded-xl sm:rounded-2xl shadow-2xl p-4 sm:p-6 lg:p-8 border border-white/30 flex-shrink min-h-0 overflow-hidden">
-            <div className="max-h-[60vh] sm:max-h-[70vh] overflow-y-auto">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/30 w-full">
             {/* Tela de Sucesso do Cadastro */}
             {registrationSuccess ? (
-              <div className="text-center space-y-4 sm:space-y-6">
-                <div className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full mb-2 sm:mb-4">
-                  <svg className="w-8 h-8 sm:w-10 sm:h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
                 
                 <div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">
                     🎉 Cadastro Realizado com Sucesso!
                   </h2>
-                  <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+                  <p className="text-sm text-gray-600 mb-4">
                     Sua conta foi criada e você já pode fazer login no sistema.
                   </p>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6">
-                  <h3 className="text-base sm:text-lg font-semibold text-green-900 mb-3 sm:mb-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <h3 className="text-base font-semibold text-green-900 mb-3">
                     ✅ Próximos Passos
                   </h3>
-                  <div className="text-left space-y-2 sm:space-y-3 text-green-800">
+                  <div className="text-left space-y-2 text-green-800">
                     <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-bold mt-0.5 flex-shrink-0">1</div>
+                      <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">1</div>
                       <div>
-                        <p className="text-sm sm:text-base font-medium">Faça seu primeiro login</p>
-                        <p className="text-xs sm:text-sm text-green-700">Use o e-mail: <strong>{registeredEmail}</strong></p>
+                        <p className="text-sm font-medium">Faça seu primeiro login</p>
+                        <p className="text-xs text-green-700">Use o e-mail: <strong>{registeredEmail}</strong></p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-bold mt-0.5 flex-shrink-0">2</div>
+                      <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">2</div>
                       <div>
-                        <p className="text-sm sm:text-base font-medium">Configure seu estúdio</p>
-                        <p className="text-xs sm:text-sm text-green-700">Adicione logo, preços e informações de contato</p>
+                        <p className="text-sm font-medium">Configure seu estúdio</p>
+                        <p className="text-xs text-green-700">Adicione logo, preços e informações de contato</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-bold mt-0.5 flex-shrink-0">3</div>
+                      <div className="w-5 h-5 bg-green-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">3</div>
                       <div>
-                        <p className="text-sm sm:text-base font-medium">Comece a usar</p>
-                        <p className="text-xs sm:text-sm text-green-700">Crie agendamentos e compartilhe fotos com clientes</p>
+                        <p className="text-sm font-medium">Comece a usar</p>
+                        <p className="text-xs text-green-700">Crie agendamentos e compartilhe fotos com clientes</p>
                       </div>
                     </div>
                   </div>
                 </div>
-                  <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-white rounded-lg border border-blue-200">
+                
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 mb-2">🎁 Período de Teste</h4>
                   <p className="text-sm text-blue-800">
@@ -404,7 +403,7 @@ const Login: React.FC = () => {
 
                 <button
                   onClick={handleBackToLogin}
-                  className="w-full bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium text-sm sm:text-base"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
                 >
                   Fazer Login Agora
                 </button>
@@ -413,27 +412,26 @@ const Login: React.FC = () => {
                   Precisa de ajuda? Entre em contato pelo WhatsApp
                 </p>
               </div>
-              </div>
             ) : (
             showForgotPassword ? (
-              <form onSubmit={handleForgotPassword} className="space-y-4 sm:space-y-6">
+              <form onSubmit={handleForgotPassword} className="space-y-4">
                 <div className="text-center mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Recuperar Senha</h2>
-                  <p className="text-sm sm:text-base text-gray-600 mt-2">Digite seu e-mail para receber as instruções</p>
+                  <h2 className="text-xl font-bold text-gray-900">Recuperar Senha</h2>
+                  <p className="text-sm text-gray-600 mt-2">Digite seu e-mail para receber as instruções</p>
                 </div>
 
                 <div>
-                  <label htmlFor="resetEmail" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700 mb-2">
                     E-mail para recuperação
                   </label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-2.5 sm:top-3 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                    <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                     <input
                       id="resetEmail"
                       type="email"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
-                      className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       placeholder="seu@email.com"
                       disabled={isLoading}
                     />
@@ -443,7 +441,7 @@ const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base"
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                 >
                   {isLoading ? 'Enviando...' : 'Enviar E-mail de Recuperação'}
                 </button>
@@ -451,7 +449,7 @@ const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(false)}
-                  className="w-full text-gray-600 hover:text-gray-800 text-xs sm:text-sm font-medium"
+                  className="w-full text-gray-600 hover:text-gray-800 text-sm font-medium"
                   disabled={isLoading}
                 >
                   Voltar ao login
@@ -460,28 +458,28 @@ const Login: React.FC = () => {
             ) : (
               <div>
                 <div className="text-center mb-6">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  <h2 className="text-xl font-bold text-gray-900">
                     {isRegisterMode ? 'Criar Conta' : 'Entrar'}
                   </h2>
-                  <p className="text-sm sm:text-base text-gray-600 mt-2">
+                  <p className="text-sm text-gray-600 mt-2">
                     {isRegisterMode ? 'Crie sua conta para começar' : 'Acesse sua conta'}
                   </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   {isRegisterMode && (
                     <div>
-                      <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                         Nome Completo
                       </label>
                       <div className="relative">
-                        <UserPlus className="absolute left-3 top-2.5 sm:top-3 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                        <UserPlus className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                         <input
                           id="name"
                           type="text"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
-                          className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           placeholder="Seu nome completo"
                           disabled={isLoading}
                         />
@@ -491,18 +489,18 @@ const Login: React.FC = () => {
 
                   {/* Erro de cadastro */}
                   {registerError && isRegisterMode && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
-                          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                           </svg>
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-xs sm:text-sm font-medium text-red-800">
+                          <h3 className="text-sm font-medium text-red-800">
                             Erro no Cadastro
                           </h3>
-                          <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-700">
+                          <div className="mt-1 text-sm text-red-700">
                             <p>{registerError}</p>
                           </div>
                         </div>
@@ -512,18 +510,18 @@ const Login: React.FC = () => {
 
                   {/* Erro de login */}
                   {loginError && !isRegisterMode && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                       <div className="flex items-start">
                         <div className="flex-shrink-0">
-                          <svg className="h-4 w-4 sm:h-5 sm:w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                          <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                           </svg>
                         </div>
                         <div className="ml-3">
-                          <h3 className="text-xs sm:text-sm font-medium text-red-800">
+                          <h3 className="text-sm font-medium text-red-800">
                             Erro no Login
                           </h3>
-                          <div className="mt-1 sm:mt-2 text-xs sm:text-sm text-red-700">
+                          <div className="mt-1 text-sm text-red-700">
                             <p>{loginError}</p>
                           </div>
                         </div>
@@ -532,17 +530,17 @@ const Login: React.FC = () => {
                   )}
 
                   <div>
-                    <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                       E-mail
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 sm:top-3 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                      <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                       <input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="seu@email.com"
                         disabled={isLoading}
                       />
@@ -551,17 +549,17 @@ const Login: React.FC = () => {
 
                   {isRegisterMode && (
                     <div>
-                      <label htmlFor="whatsapp" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-2">
                         WhatsApp *
                       </label>
                       <div className="relative">
-                        <MessageCircle className="absolute left-3 top-2.5 sm:top-3 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                        <MessageCircle className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                         <input
                           id="whatsapp"
                           type="tel"
                           value={whatsapp}
                           onChange={(e) => setWhatsapp(e.target.value)}
-                          className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                           placeholder="(11) 99999-9999"
                           disabled={isLoading}
                         />
@@ -573,27 +571,27 @@ const Login: React.FC = () => {
                   )}
 
                   <div>
-                    <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                       Senha
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-2.5 sm:top-3 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                      <Lock className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
                       <input
                         id="password"
                         type={showPassword ? 'text' : 'password'}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-9 sm:pl-10 pr-10 sm:pr-12 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
+                        className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                         placeholder="••••••••"
                         disabled={isLoading}
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-2.5 sm:top-3 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
                         disabled={isLoading}
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4 sm:w-5 sm:h-5" /> : <Eye className="w-4 h-4 sm:w-5 sm:h-5" />}
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
                   </div>
@@ -601,7 +599,7 @@ const Login: React.FC = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full bg-blue-600 text-white py-2.5 sm:py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm sm:text-base"
+                    className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
                   >
                     {isLoading 
                       ? (isRegisterMode ? 'Criando conta...' : 'Entrando...') 
@@ -611,7 +609,7 @@ const Login: React.FC = () => {
                 </form>
 
                 {!showForgotPassword && (
-                  <div className="mt-4 sm:mt-6 space-y-3 sm:space-y-4">
+                  <div className="mt-6 space-y-4">
                     <button
                       type="button"
                       onClick={() => {
@@ -619,7 +617,7 @@ const Login: React.FC = () => {
                         setLoginError('');
                         setRegisterError('');
                       }}
-                      className="w-full text-blue-600 hover:text-blue-700 text-xs sm:text-sm font-medium"
+                      className="w-full text-blue-600 hover:text-blue-700 text-sm font-medium"
                       disabled={isLoading}
                     >
                       {isRegisterMode 
@@ -633,7 +631,7 @@ const Login: React.FC = () => {
                       <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-gray-300" />
                       </div>
-                      <div className="relative flex justify-center text-xs sm:text-sm">
+                      <div className="relative flex justify-center text-sm">
                         <span className="px-2 bg-white text-gray-500">ou</span>
                       </div>
                     </div>
@@ -643,12 +641,12 @@ const Login: React.FC = () => {
                       type="button"
                       onClick={handleGoogleLogin}
                       disabled={isLoading || isGoogleLoading}
-                      className="w-full flex items-center justify-center gap-2 sm:gap-3 py-2.5 sm:py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-gray-700 bg-white text-sm sm:text-base"
+                      className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-gray-700 bg-white"
                     >
                       {isGoogleLoading ? (
-                        <div className="animate-spin rounded-full h-4 w-4 sm:h-5 sm:w-5 border-b-2 border-gray-600"></div>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-600"></div>
                       ) : (
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" viewBox="0 0 24 24">
                           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                           <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -666,7 +664,7 @@ const Login: React.FC = () => {
                             setShowForgotPassword(true);
                             setLoginError('');
                           }}
-                          className="text-gray-500 hover:text-gray-700 text-xs sm:text-sm"
+                          className="text-gray-500 hover:text-gray-700 text-sm"
                           disabled={isLoading}
                         >
                           Esqueceu sua senha?
@@ -677,17 +675,16 @@ const Login: React.FC = () => {
                 )}
               </div>
             ))}
-            </div>
           </div>
 
           {/* Image indicators */}
           {backgroundImages.length > 1 && (
-            <div className="flex justify-center mt-4 sm:mt-6 lg:mt-8 space-x-2 flex-shrink-0">
+            <div className="flex justify-center mt-6 space-x-2">
               {backgroundImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 shadow-lg ${
+                  className={`w-3 h-3 rounded-full transition-all duration-300 shadow-lg ${
                     index === currentImageIndex 
                       ? 'bg-white scale-125 shadow-white/50' 
                       : 'bg-white/60 hover:bg-white/80'
