@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail, Check, MessageSquare } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import Checkout from './Checkout';
 
