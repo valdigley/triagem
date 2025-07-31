@@ -203,6 +203,48 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [handleKeyPress]);
 
+  const startEditingComment = (photoId: string) => {
+    setEditingComment(photoId);
+    setTempComment(photoComments[photoId] || '');
+  };
+
+  const saveComment = async (photoId: string) => {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('photos')
+        .update({ 
+          metadata: { 
+            ...albumPhotos.find(p => p.id === photoId)?.metadata,
+            comment: tempComment 
+          }
+        })
+        .eq('id', photoId);
+
+      if (error) {
+        toast.error('Erro ao salvar comentário');
+        return;
+      }
+
+      setPhotoComments(prev => ({
+        ...prev,
+        [photoId]: tempComment
+      }));
+      
+      setEditingComment(null);
+      setTempComment('');
+      toast.success('Comentário salvo!');
+    } catch (error) {
+      console.error('Error saving comment:', error);
+      toast.error('Erro ao salvar comentário');
+    }
+  };
+
+  const cancelEditingComment = () => {
+    setEditingComment(null);
+    setTempComment('');
+  };
+
   const getWatermarkStyle = () => {
     if (!watermarkConfig) return {};
     
