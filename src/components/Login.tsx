@@ -205,7 +205,7 @@ const Login: React.FC = () => {
             </p>
           </div>
         ) : (
-        {showForgotPassword ? (
+        showForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
               <label htmlFor="resetEmail" className="block text-sm font-medium text-gray-700 mb-2">
@@ -238,17 +238,11 @@ const Login: React.FC = () => {
               onClick={() => setShowForgotPassword(false)}
               className="w-full text-gray-600 hover:text-gray-800 text-sm font-medium"
               disabled={isLoading}
-              onClick={() => {
-                setIsRegisterMode(!isRegisterMode);
-                setLoginError('');
-                setRegisterError('');
-              }}
             >
               Voltar ao login
             </button>
           </form>
         ) : (
-        )}
           <form onSubmit={handleSubmit} className="space-y-6">
           {isRegisterMode && (
             <div>
@@ -363,6 +357,7 @@ const Login: React.FC = () => {
             </div>
           )}
 
+          <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Senha
             </label>
@@ -386,6 +381,7 @@ const Login: React.FC = () => {
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
+          </div>
 
           <button
             type="submit"
@@ -398,13 +394,17 @@ const Login: React.FC = () => {
             }
           </button>
         </form>
-        )}
+        ))}
 
         {!showForgotPassword && (
           <div className="mt-6 text-center space-y-3">
           <button
             type="button"
-            onClick={() => setIsRegisterMode(!isRegisterMode)}
+            onClick={() => {
+              setIsRegisterMode(!isRegisterMode);
+              setLoginError('');
+              setRegisterError('');
+            }}
             className="text-blue-600 hover:text-blue-700 text-sm font-medium"
             disabled={isLoading}
           >
