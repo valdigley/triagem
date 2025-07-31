@@ -47,7 +47,9 @@ export class GoogleCalendarService {
           return null; // Retornar null em vez de lançar erro
         }
         
-        throw new Error(errorData.error || 'Failed to create calendar event');
+        // Para outros erros também retornar null em vez de lançar erro
+        console.error('❌ Erro na criação do evento:', errorData.error || 'Failed to create calendar event');
+        return null;
       }
 
       const result = await response.json();
