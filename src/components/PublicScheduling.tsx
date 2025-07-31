@@ -711,7 +711,8 @@ const PublicScheduling: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100" data-testid="public-scheduling">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Toaster position="top-center" />
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -991,7 +992,6 @@ const PublicScheduling: React.FC = () => {
           </div>
         </div>
       </div>
-      <Toaster position="top-center" />
     </div>
   );
 };
