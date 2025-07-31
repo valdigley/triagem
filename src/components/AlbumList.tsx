@@ -420,7 +420,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Seleções</h1>
-          <p className="text-gray-600">Visualize as seleções criadas automaticamente a partir dos agendamentos ({albums.length} seleções)</p>
+          <p className="text-gray-600">Gerencie seleções de fotos para seus clientes ({albums.length} seleções)</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}

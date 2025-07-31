@@ -228,6 +228,8 @@ export const useSupabaseData = () => {
 
   // Adicionar evento
   const addEvent = async (eventData: Omit<Event, 'id' | 'created_at' | 'photographer_id'>) => {
+    const isManualSelection = true; // Sempre manual quando criado via interface de seleções
+    
     if (!photographerId) {
       toast.error('Perfil do fotógrafo não encontrado');
       return null;
@@ -244,33 +246,38 @@ export const useSupabaseData = () => {
       // Tentar criar evento no Google Calendar primeiro
       let googleEventId: string | null = null;
       
-      // Verificar se Google Calendar está configurado antes de tentar
-      const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
-      
-      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
-        try {
-          console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
-          
-          // Tentar integração real com Google Calendar
-          const googleCalendarService = await createGoogleCalendarService(user.id);
-          
-          if (googleCalendarService) {
-            googleEventId = await googleCalendarService.createEvent(eventData);
-            if (googleEventId) {
-              console.log('✅ Google Calendar event criado com sucesso');
+      // Não sincronizar com Google Calendar para seleções manuais
+      if (!isManualSelection) {
+        // Verificar se Google Calendar está configurado antes de tentar
+        const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
+        
+        if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
+          try {
+            console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
+            
+            // Tentar integração real com Google Calendar
+            const googleCalendarService = await createGoogleCalendarService(user.id);
+            
+            if (googleCalendarService) {
+              googleEventId = await googleCalendarService.createEvent(eventData);
+              if (googleEventId) {
+                console.log('✅ Google Calendar event criado com sucesso');
+              } else {
+                console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
+              }
             } else {
-              console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
+              console.warn('⚠️ Google Calendar não configurado');
             }
-          } else {
-            console.warn('⚠️ Google Calendar não configurado');
+            
+          } catch (error) {
+            console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
+            googleEventId = null;
           }
-          
-        } catch (error) {
-          console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
-          googleEventId = null;
+        } else {
+          console.log('ℹ️ Google Calendar não configurado');
         }
       } else {
-        console.log('ℹ️ Google Calendar não configurado');
+        console.log('📝 Seleção manual - não sincronizando com Google Calendar');
       }
 
       const { data, error } = await supabase
