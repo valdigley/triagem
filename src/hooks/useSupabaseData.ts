@@ -257,13 +257,17 @@ export const useSupabaseData = () => {
           });
           
           // Tentar integração real com Google Calendar
-          const googleCalendarService = new GoogleCalendarService(googleCalendarConfig);
+          const googleCalendarService = await createGoogleCalendarService(user.id);
           
-          console.log('✅ Google Calendar configurado, criando evento...');
-          googleEventId = await googleCalendarService.createEvent(eventData);
-          console.log('🎉 Google Calendar event criado com sucesso!');
-          console.log('📅 Event ID:', googleEventId);
-          console.log('🔗 Acesse: https://calendar.google.com para verificar');
+          if (googleCalendarService) {
+            console.log('✅ Google Calendar configurado, criando evento...');
+            googleEventId = await googleCalendarService.createEvent(eventData);
+            console.log('🎉 Google Calendar event criado com sucesso!');
+            console.log('📅 Event ID:', googleEventId);
+            console.log('🔗 Acesse: https://calendar.google.com para verificar');
+          } else {
+            console.log('❌ Google Calendar não pôde ser inicializado');
+          }
           
         } catch (error) {
           console.error('❌ ERRO no Google Calendar:', error);
