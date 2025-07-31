@@ -807,7 +807,7 @@ export const useSupabaseData = () => {
         .from('clients')
         .select('id')
         .eq('email', clientData.email)
-        .single();
+        .maybeSingle();
 
       if (existingClient) {
         // Atualizar cliente existente

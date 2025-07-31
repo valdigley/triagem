@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, User, Phone, Mail, Eye, Plus, Edit, Trash2, X, Save, Camera, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
