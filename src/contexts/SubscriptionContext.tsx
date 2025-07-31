@@ -30,7 +30,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const isMasterUser = user?.email === 'valdigley2007@gmail.com';
+  const isMasterUser = user?.email === 'valdigley2007@gmail.com' || user?.email === 'master@triagem.com';
 
   useEffect(() => {
     if (user) {

@@ -7,6 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
+import { useSubscription } from '../contexts/SubscriptionContext';
 
 const clientSchema = z.object({
   name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -39,6 +40,7 @@ const sessionTypeLabels: Record<string, string> = {
 
 const ClientsList: React.FC = () => {
   const { events, orders, clients: supabaseClients, loading, addClient, updateClient, deleteClient } = useSupabaseData();
+  const { isMasterUser } = useSubscription();
   const [clients, setClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'recent' | 'frequent'>('all');
@@ -186,7 +188,7 @@ const ClientsList: React.FC = () => {
       return;
     }
 
-    if (!confirm('Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita.')) {
+    if (!confirm('Tem certeza que deseja excluir este cliente? Todos os eventos, álbuns e fotos relacionados serão permanentemente removidos. Esta ação não pode ser desfeita.')) {
       return;
     }
 
@@ -498,13 +500,15 @@ const ClientsList: React.FC = () => {
                           <Edit className="w-4 h-4" />
                           Editar
                         </button>
-                        <button
-                          onClick={() => handleDelete(client.id)}
-                          className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Excluir
-                        </button>
+                        {isMasterUser && (
+                          <button
+                            onClick={() => handleDelete(client.id)}
+                            className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Excluir
+                          </button>
+                        )}
                       </>
                     ) : (
                       <div className="px-3 py-2 bg-yellow-100 text-yellow-800 rounded-lg text-sm">

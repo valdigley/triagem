@@ -1023,6 +1023,30 @@ export const useSupabaseData = () => {
   // Excluir cliente
   const deleteClient = async (id: string) => {
     try {
+      // Buscar eventos do cliente para excluir dados relacionados
+      const { data: clientEvents } = await supabase
+        .from('events')
+        .select('id')
+        .eq('client_email', (await supabase.from('clients').select('email').eq('id', id).single()).data?.email || '');
+
+      // Excluir álbuns e fotos relacionados aos eventos do cliente
+      if (clientEvents && clientEvents.length > 0) {
+        for (const event of clientEvents) {
+          // Buscar álbuns do evento
+          const { data: eventAlbums } = await supabase
+            .from('albums')
+            .select('id')
+            .eq('event_id', event.id);
+
+          // Excluir fotos dos álbuns
+          if (eventAlbums && eventAlbums.length > 0) {
+            for (const album of eventAlbums) {
+              await deleteAlbumPhotos(album.id);
+            }
+          }
+        }
+      }
+
       const { error } = await supabase
         .from('clients')
         .delete()
@@ -1035,7 +1059,7 @@ export const useSupabaseData = () => {
       }
 
       setClients(prev => prev.filter(client => client.id !== id));
-      toast.success('Cliente excluído!');
+      toast.success('Cliente e todos os dados relacionados excluídos!');
       return true;
     } catch (error) {
       console.error('Error deleting client:', error);
