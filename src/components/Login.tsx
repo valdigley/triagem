@@ -11,10 +11,12 @@ const Login: React.FC = () => {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [loginError, setLoginError] = useState('');
   const { login, register, isLoading, resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoginError(''); // Limpar erro anterior
     
     if (!email || !password || (isRegisterMode && !name)) {
       toast.error('Preencha todos os campos');
@@ -59,7 +61,8 @@ const Login: React.FC = () => {
       if (isRegisterMode) {
         toast.error(`❌ Erro no cadastro: ${result}`);
       } else {
-        toast.error(`❌ Erro no login: ${result}`);
+        setLoginError(result); // Mostrar erro na tela
+        toast.error(`❌ ${result}`);
       }
     }
   };
