@@ -102,16 +102,6 @@ serve(async (req) => {
           number: '00000000000' // Será substituído pelo valor real quando disponível
         }
       },
-      items: items || [
-        {
-          id: `photo_package_${Date.now()}`,
-          title: description,
-          description: `Pacote de fotos - ${selected_photos.length} fotos selecionadas`,
-          category_id: 'photography',
-          quantity: selected_photos.length || 1,
-          unit_price: selected_photos.length > 0 ? transaction_amount / selected_photos.length : transaction_amount
-        }
-      ],
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
       external_reference: `order_${Date.now()}`,
       metadata: {
