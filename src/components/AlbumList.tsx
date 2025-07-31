@@ -587,7 +587,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const selectedCount = getSelectedPhotosCount(album.id);
             
             return (
-              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative max-w-lg mx-auto">
+              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative w-full">
                 {/* Status no canto superior direito */}
                 <div className="absolute top-6 right-6">
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
@@ -599,47 +599,45 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </span>
                 </div>
 
-                <div className="pr-32 mb-4">
+                {/* Header compacto */}
+                <div className="flex items-center justify-between pr-24 mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Image className="w-6 h-6 text-purple-600" />
+                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Image className="w-4 h-4 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">{album.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{album.name}</h3>
                       {event && (
-                        <p className="text-gray-600 flex items-center gap-1 mt-1">
-                          <User className="w-4 h-4" />
-                          {event.client_name}
-                        </p>
+                        <p className="text-sm text-gray-600">{event.client_name}</p>
                       )}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
+                {/* Informações em linha */}
+                <div className="flex items-center gap-6 text-sm text-gray-600 mb-3">
                   {event && (
-                    <div className="flex items-center gap-2 text-gray-700">
+                    <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      <span className="font-medium">{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
+                      <span>{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-gray-700">
+                  <div className="flex items-center gap-1">
                     <Camera className="w-4 h-4" />
-                    <span><span className="font-medium">{albumPhotos.length}</span> fotos</span>
+                    <span>{albumPhotos.length} fotos</span>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-700">
+                  <div className="flex items-center gap-1">
                     <Eye className="w-4 h-4" />
-                    <span><span className="font-medium">{selectedCount}</span> selecionadas</span>
+                    <span>{selectedCount} selecionadas</span>
                   </div>
                 </div>
 
                 {/* Preview das fotos */}
                 {albumPhotos.length > 0 ? (
-                  <div className="mb-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Preview das Fotos</h4>
-                    <div className="flex gap-2 overflow-x-auto pb-2">
+                  <div className="mb-3">
+                    <div className="flex gap-2 overflow-x-auto pb-1">
                       {albumPhotos.slice(0, 6).map((photo) => (
-                        <div key={photo.id} className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
+                        <div key={photo.id} className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded overflow-hidden">
                           <img
                             src={photo.thumbnail_path}
                             alt={photo.filename}
@@ -652,69 +650,48 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         </div>
                       ))}
                       {albumPhotos.length > 6 && (
-                        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <span className="text-sm text-gray-500 font-medium">+{albumPhotos.length - 6}</span>
+                        <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
+                          <span className="text-xs text-gray-500">+{albumPhotos.length - 6}</span>
                         </div>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="mb-4 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                    <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 text-sm">Nenhuma foto carregada</p>
-                    <p className="text-gray-500 text-xs">Adicione fotos para que o cliente possa fazer a seleção</p>
+                  <div className="mb-3 text-center py-3 bg-gray-50 rounded border border-dashed border-gray-300">
+                    <Camera className="w-5 h-5 text-gray-400 mx-auto mb-1" />
+                    <p className="text-gray-600 text-xs">Nenhuma foto carregada</p>
                   </div>
                 )}
 
-                {/* Log de Atividades */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    Histórico de Atividades
-                  </h4>
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    {album.activity_log && album.activity_log.length > 0 ? (
-                      <div className="space-y-2">
-                        {album.activity_log.slice(-3).map((activity: any, index: number) => (
-                          <div key={index} className="flex items-start gap-2 text-xs">
-                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                            <div className="flex-1">
-                              <p className="text-gray-700">{activity.description}</p>
-                              <p className="text-gray-500 mt-0.5">
-                                {format(new Date(activity.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                        {album.activity_log.length > 3 && (
-                          <p className="text-xs text-gray-500 text-center pt-1 border-t border-gray-200">
-                            +{album.activity_log.length - 3} atividades anteriores
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-2">
-                        <p className="text-xs text-gray-500">Nenhuma atividade registrada</p>
-                      </div>
-                    )}
+                {/* Log de Atividades compacto */}
+                {album.activity_log && album.activity_log.length > 0 && (
+                  <div className="mb-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Clock className="w-3 h-3" />
+                      <span>Última atividade:</span>
+                    </div>
+                    <p>{album.activity_log[album.activity_log.length - 1]?.description}</p>
+                    <p className="text-gray-400">
+                      {format(new Date(album.activity_log[album.activity_log.length - 1]?.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
                   </div>
-                </div>
+                )}
 
                 {/* Upload de fotos - apenas quando não há seleção */}
                 {selectedCount === 0 && (
-                  <div className="mb-4">
-                    <label className="flex items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="mb-3">
+                    <label className="flex items-center justify-center w-full h-12 border border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                       <div className="flex flex-col items-center justify-center">
                         {uploadingAlbumId === album.id ? (
                           <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mb-1"></div>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                             <p className="text-xs text-gray-600">Enviando...</p>
                           </>
                         ) : (
                           <>
-                            <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                            <Upload className="w-4 h-4 text-gray-400" />
                             <p className="text-xs text-gray-600">
-                              <span className="font-semibold">Adicionar fotos</span>
+                              Adicionar fotos
                             </p>
                           </>
                         )}
@@ -869,189 +846,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                           <p><strong>Formato:</strong> Nomes originais dos arquivos enviados</p>
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Google Drive Link */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-xs font-medium text-gray-700 flex items-center gap-1">
-                      <Link className="w-4 h-4" />
-                      Link Google Drive (Fotos Editadas)
-                    </h4>
-                    {!editingDriveLink && (
-                      <button
-                        onClick={() => startEditingDriveLink(album.id, album.google_drive_link || '')}
-                        className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
-                      >
-                        {album.google_drive_link ? 'Editar' : 'Adicionar'}
-                      </button>
-                    )}
-                  </div>
-                  
-                  {editingDriveLink === album.id ? (
-                    <div className="bg-gray-50 border border-gray-200 rounded p-2">
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="url"
-                          value={driveLink}
-                          onChange={(e) => setDriveLink(e.target.value)}
-                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
-                          placeholder="https://drive.google.com/drive/folders/..."
-                        />
-                        <button
-                          onClick={() => saveDriveLink(album.id)}
-                          disabled={savingDriveLink}
-                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors disabled:opacity-50"
-                        >
-                          {savingDriveLink ? 'Salvando...' : 'Salvar'}
-                        </button>
-                        <button
-                          onClick={cancelEditingDriveLink}
-                          className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Cole o link da pasta do Google Drive com as fotos editadas
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="bg-gray-50 border border-gray-200 rounded p-2">
-                      {album.google_drive_link ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 text-xs text-gray-700 break-all">
-                            {album.google_drive_link}
-                          </div>
-                          <button
-                            onClick={() => navigator.clipboard.writeText(album.google_drive_link)}
-                            className="flex-shrink-0 p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="Copiar link"
-                          >
-                            <Copy className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-500">Nenhum link configurado</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                {/* Upload de fotos */}
-                {/* Upload de fotos - apenas quando não há seleção */}
-                {selectedCount === 0 && (
-                  <div className="mb-4">
-                    <label className="flex items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
-                      <div className="flex flex-col items-center justify-center">
-                        {uploadingAlbumId === album.id ? (
-                          <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mb-1"></div>
-                            <p className="text-xs text-gray-600">Enviando...</p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                            <p className="text-xs text-gray-600">
-                              <span className="font-semibold">Adicionar fotos</span>
-                            </p>
-                          </>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        multiple
-                        accept="image/*"
-                        onChange={(e) => e.target.files && handlePhotoUpload(album.id, e.target.files)}
-                        disabled={uploadingAlbumId === album.id}
-                      />
-                    </label>
-                  </div>
-                )}
-
-                {/* Botões de ação - só aparecem quando há fotos */}
-                {albumPhotos.length > 0 ? (
-                  <div className="flex justify-end gap-2 flex-wrap">
-                    {event && (
-                      <>
-                        {selectedCount > 0 && (
-                          <button 
-                            onClick={() => copyFilenames(generateSearchableFilenames(album.id, event))}
-                            className="flex items-center gap-1 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg text-sm transition-colors"
-                            title="Copiar nomes para busca no PC"
-                          >
-                            <Copy className="w-4 h-4" />
-                            Copiar Nomes
-                          </button>
-                        )}
-                        {album.google_drive_link && selectedCount > 0 && (
-                          <button 
-                            onClick={() => sendDriveLinkViaWhatsApp(album, event)}
-                            disabled={sendingDriveMessage}
-                            className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm transition-colors disabled:opacity-50"
-                            title="Enviar link do Google Drive via WhatsApp"
-                          >
-                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                            </svg>
-                            {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
-                          </button>
-                        )}
-                        <button 
-                          onClick={() => shareViaWhatsApp(album.share_token, event.client_name, event.client_phone)}
-                          className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm transition-colors"
-                        >
-                          <MessageCircle className="w-4 h-4" />
-                          WhatsApp
-                        </button>
-                        <button 
-                          onClick={() => shareViaEmail(album.share_token, event.client_name, event.client_email)}
-                          className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm transition-colors"
-                        >
-                          <Mail className="w-4 h-4" />
-                          E-mail
-                        </button>
-                      </>
-                    )}
-                    {selectedCount > 0 && (
-                    <>
-                        <button 
-                          onClick={() => reactivateSelection(album.id)}
-                          disabled={reactivatingAlbumId === album.id}
-                          className="flex items-center gap-1 px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-lg text-sm transition-colors disabled:opacity-50"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          {reactivatingAlbumId === album.id ? 'Reativando...' : 'Reativar'}
-                        </button>
-                    </>
-                    )}
-                    <button 
-                      onClick={() => {
-                        console.log('Clicking Ver Fotos for album:', album.id);
-                        onViewAlbum?.(album.id);
-                      }}
-                      className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm transition-colors"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Ver Fotos
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteAlbum(album.id)}
-                      className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Excluir
-                    </button>
-                  </div>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-sm text-gray-500">Adicione fotos para que o cliente possa fazer a seleção</p>
-                  </div>
-                )}
               </div>
             );
           })}
