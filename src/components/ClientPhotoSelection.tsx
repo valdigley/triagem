@@ -642,7 +642,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                         )}
                       </p>
                     </div>
-                  )}
+      {editingComment && lightboxPhotoIndex === null && (
                 </div>
               </div>
               <button
@@ -887,6 +887,54 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 </button>
               </div>
 
+                {/* Comment overlay - appears when editing comment */}
+                {editingComment === photos[lightboxPhotoIndex].id && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+                      <div className="flex justify-between items-center p-4 border-b">
+                        <h3 className="text-lg font-semibold text-gray-900">Comentário da Foto</h3>
+                        <button
+                          onClick={cancelEditingComment}
+                          className="text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="p-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Seu comentário ou dúvida sobre esta foto:
+                          </label>
+                          <textarea
+                            value={tempComment}
+                            onChange={(e) => setTempComment(e.target.value)}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Ex: Pode deixar esta foto mais clara? Gostaria de uma versão em preto e branco..."
+                            autoFocus
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-3 p-4 border-t">
+                        <button
+                          onClick={cancelEditingComment}
+                          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => saveComment(editingComment)}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Salvar Comentário
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
               <div className="p-4">
                 <div className="mb-4">
                   <img
@@ -1000,7 +1048,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     <p className="text-sm text-gray-300">
                       {lightboxPhotoIndex + 1} de {photos.length}
                       {selectedPhotos.size > pricingConfig.packagePhotos && (
-                        <span> • R$ {pricingConfig.photoPrice.toFixed(2)}</span>
+                      <p className="text-sm font-medium">{photos[lightboxPhotoIndex].filename}</p>
                       )}
                     </p>
                     {photoComments[photos[lightboxPhotoIndex].id] && (
@@ -1018,14 +1066,14 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                           selectedPhotos.has(photos[lightboxPhotoIndex].id)
                             ? 'bg-green-500 text-white hover:bg-green-600'
                             : 'bg-white text-gray-900 hover:bg-gray-100'
-                        }`}
-                      >
+                        <p className="text-xs text-blue-200 mt-2 max-w-xs sm:max-w-sm md:max-w-md break-words">
+                          💬 Cliente: {photoComments[photos[lightboxPhotoIndex].id]}
                         {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
                       </button>
                     )}
                     
                     <button
-                      onClick={() => startEditingComment(photos[lightboxPhotoIndex].id)}
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                       className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
                     >
                       💬 Comentar
