@@ -413,6 +413,7 @@ const Login: React.FC = () => {
                   Precisa de ajuda? Entre em contato pelo WhatsApp
                 </p>
               </div>
+              </div>
             ) : (
             showForgotPassword ? (
               <form onSubmit={handleForgotPassword} className="space-y-4 sm:space-y-6">
@@ -433,8 +434,8 @@ const Login: React.FC = () => {
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
                       className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm sm:text-base"
-                      <p className="text-xl sm:text-2xl font-bold text-blue-900 mb-1">R$ 30,00</p>
-                      <p className="text-xs sm:text-sm text-blue-700">por mês</p>
+                      placeholder="seu@email.com"
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -460,8 +461,8 @@ const Login: React.FC = () => {
               <div>
                 <div className="text-center mb-6">
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  <h4 className="text-sm sm:text-base font-medium text-blue-900 mb-2">🎁 Período de Teste</h4>
-                  <p className="text-xs sm:text-sm text-blue-800">
+                    {isRegisterMode ? 'Criar Conta' : 'Entrar'}
+                  </h2>
                   <p className="text-sm sm:text-base text-gray-600 mt-2">
                     {isRegisterMode ? 'Crie sua conta para começar' : 'Acesse sua conta'}
                   </p>
