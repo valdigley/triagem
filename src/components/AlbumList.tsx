@@ -406,6 +406,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       setIsSubmitting(false);
     }
   };
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -784,7 +785,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       Excluir
                     </button>
                   </div>
-                }
+                ) : null}
 
                 {selectedCount > 0 && albumPhotos.length > 0 && (
                   <div className="mb-4">
