@@ -173,6 +173,43 @@ const PaymentsList: React.FC = () => {
   };
 
   const getTotalRevenue = () => {
+    // Função para calcular taxas do Mercado Pago dinamicamente
+    const calculateMercadoPagoFees = (amount: number, paymentMethod: string = 'pix') => {
+      // Taxas atuais do Mercado Pago (2024/2025)
+      const fees = {
+        pix: 0.99, // 0.99% para PIX
+        credit_card: 4.99, // 4.99% + R$ 0.39 para cartão de crédito
+        debit_card: 3.99, // 3.99% para cartão de débito
+        boleto: 3.49, // R$ 3.49 fixo para boleto
+      };
+      
+      let feeAmount = 0;
+      
+      switch (paymentMethod.toLowerCase()) {
+        case 'pix':
+          feeAmount = amount * (fees.pix / 100);
+          break;
+        case 'credit_card':
+        case 'visa':
+        case 'master':
+        case 'mastercard':
+          feeAmount = (amount * (fees.credit_card / 100)) + 0.39;
+          break;
+        case 'debit_card':
+        case 'maestro':
+          feeAmount = amount * (fees.debit_card / 100);
+          break;
+        case 'boleto':
+          feeAmount = fees.boleto;
+          break;
+        default:
+          // Para métodos desconhecidos, assumir PIX (taxa mais baixa)
+          feeAmount = amount * (fees.pix / 100);
+      }
+      
+      return Math.round(feeAmount * 100) / 100; // Arredondar para 2 casas decimais
+    };
+    
     const grossRevenue = payments
       .filter(p => p.status === 'paid')
       .reduce((sum, p) => sum + p.total_amount, 0);
@@ -180,7 +217,17 @@ const PaymentsList: React.FC = () => {
     const netRevenue = payments
       .filter(p => p.status === 'paid')
       .reduce((sum, p) => {
-        const netAmount = p.metadata?.net_amount || p.total_amount;
+        // Usar taxa real do webhook se disponível, senão calcular dinamicamente
+        let netAmount;
+        if (p.metadata?.net_amount && p.metadata?.mercadopago_fee) {
+          // Usar dados reais do webhook
+          netAmount = p.metadata.net_amount;
+        } else {
+          // Calcular dinamicamente baseado no método de pagamento
+          const paymentMethod = p.metadata?.payment_method || 'pix';
+          const fee = calculateMercadoPagoFees(p.total_amount, paymentMethod);
+          netAmount = p.total_amount - fee;
+        }
         return sum + netAmount;
       }, 0);
     
@@ -489,9 +536,98 @@ const PaymentsList: React.FC = () => {
                 <h3 className="font-medium text-gray-900 mb-3">Informações do Pagamento</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-600">Valor:</span>
+                    <span className="text-gray-600">Valor Bruto:</span>
                     <span className="ml-2 font-medium">
                       R$ {selectedPayment.total_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Valor Líquido:</span>
+                    <span className="ml-2 font-medium text-green-600">
+                      {(() => {
+                        // Calcular valor líquido
+                        let netAmount;
+                        if (selectedPayment.metadata?.net_amount) {
+                          netAmount = selectedPayment.metadata.net_amount;
+                        } else {
+                          // Calcular dinamicamente
+                          const paymentMethod = selectedPayment.metadata?.payment_method || 'pix';
+                          const fees = {
+                            pix: 0.99,
+                            credit_card: 4.99,
+                            debit_card: 3.99,
+                            boleto: 3.49,
+                          };
+                          
+                          let feeAmount = 0;
+                          switch (paymentMethod.toLowerCase()) {
+                            case 'pix':
+                              feeAmount = selectedPayment.total_amount * (fees.pix / 100);
+                              break;
+                            case 'credit_card':
+                            case 'visa':
+                            case 'master':
+                            case 'mastercard':
+                              feeAmount = (selectedPayment.total_amount * (fees.credit_card / 100)) + 0.39;
+                              break;
+                            case 'debit_card':
+                            case 'maestro':
+                              feeAmount = selectedPayment.total_amount * (fees.debit_card / 100);
+                              break;
+                            case 'boleto':
+                              feeAmount = fees.boleto;
+                              break;
+                            default:
+                              feeAmount = selectedPayment.total_amount * (fees.pix / 100);
+                          }
+                          netAmount = selectedPayment.total_amount - feeAmount;
+                        }
+                        return `R$ ${netAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                      })()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Taxa MP:</span>
+                    <span className="ml-2 font-medium text-red-600">
+                      {(() => {
+                        // Calcular taxa
+                        let feeAmount;
+                        if (selectedPayment.metadata?.mercadopago_fee) {
+                          feeAmount = selectedPayment.metadata.mercadopago_fee;
+                        } else {
+                          // Calcular dinamicamente
+                          const paymentMethod = selectedPayment.metadata?.payment_method || 'pix';
+                          const fees = {
+                            pix: 0.99,
+                            credit_card: 4.99,
+                            debit_card: 3.99,
+                            boleto: 3.49,
+                          };
+                          
+                          switch (paymentMethod.toLowerCase()) {
+                            case 'pix':
+                              feeAmount = selectedPayment.total_amount * (fees.pix / 100);
+                              break;
+                            case 'credit_card':
+                            case 'visa':
+                            case 'master':
+                            case 'mastercard':
+                              feeAmount = (selectedPayment.total_amount * (fees.credit_card / 100)) + 0.39;
+                              break;
+                            case 'debit_card':
+                            case 'maestro':
+                              feeAmount = selectedPayment.total_amount * (fees.debit_card / 100);
+                              break;
+                            case 'boleto':
+                              feeAmount = fees.boleto;
+                              break;
+                            default:
+                              feeAmount = selectedPayment.total_amount * (fees.pix / 100);
+                          }
+                        }
+                        const feePercentage = (feeAmount / selectedPayment.total_amount) * 100;
+                        return `R$ ${feeAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${feePercentage.toFixed(2)}%)`;
+                      })()}
                     </span>
                   </div>
                   <div>
@@ -554,16 +690,6 @@ const PaymentsList: React.FC = () => {
                           </span>
                         )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end p-6 border-t">
-              <button
-                onClick={() => setSelectedPayment(null)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Fechar
               </button>

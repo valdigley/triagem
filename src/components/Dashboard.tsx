@@ -100,8 +100,56 @@ const Dashboard: React.FC = () => {
   
   // Receita de clientes (fotos extras)
   const clientRevenue = paidOrdersThisMonth.reduce((sum, order) => sum + order.total_amount, 0);
+  
+  // Função para calcular taxas do Mercado Pago dinamicamente
+  const calculateMercadoPagoFees = (amount: number, paymentMethod: string = 'pix') => {
+    // Taxas atuais do Mercado Pago (2024/2025)
+    const fees = {
+      pix: 0.99, // 0.99% para PIX
+      credit_card: 4.99, // 4.99% + R$ 0.39 para cartão de crédito
+      debit_card: 3.99, // 3.99% para cartão de débito
+      boleto: 3.49, // R$ 3.49 fixo para boleto
+    };
+    
+    let feeAmount = 0;
+    
+    switch (paymentMethod.toLowerCase()) {
+      case 'pix':
+        feeAmount = amount * (fees.pix / 100);
+        break;
+      case 'credit_card':
+      case 'visa':
+      case 'master':
+      case 'mastercard':
+        feeAmount = (amount * (fees.credit_card / 100)) + 0.39;
+        break;
+      case 'debit_card':
+      case 'maestro':
+        feeAmount = amount * (fees.debit_card / 100);
+        break;
+      case 'boleto':
+        feeAmount = fees.boleto;
+        break;
+      default:
+        // Para métodos desconhecidos, assumir PIX (taxa mais baixa)
+        feeAmount = amount * (fees.pix / 100);
+    }
+    
+    return Math.round(feeAmount * 100) / 100; // Arredondar para 2 casas decimais
+  };
+  
   const clientNetRevenue = paidOrdersThisMonth.reduce((sum, order) => {
-    const netAmount = order.metadata?.net_amount || order.total_amount;
+    // Usar taxa real do webhook se disponível, senão calcular dinamicamente
+    let netAmount;
+    if (order.metadata?.net_amount && order.metadata?.mercadopago_fee) {
+      // Usar dados reais do webhook
+      netAmount = order.metadata.net_amount;
+    } else {
+      // Calcular dinamicamente baseado no método de pagamento
+      const paymentMethod = order.metadata?.payment_method || 'pix';
+      const fee = calculateMercadoPagoFees(order.total_amount, paymentMethod);
+      netAmount = order.total_amount - fee;
+    }
     return sum + netAmount;
   }, 0);
   
@@ -172,6 +220,8 @@ const Dashboard: React.FC = () => {
     paidOrders: orders.filter(o => o.status === 'paid').length,
     subscriptionRevenue: subscriptionStats.monthlyRevenue,
     clientRevenue: clientRevenue,
+    clientNetRevenue: clientNetRevenue,
+    totalFees: clientRevenue - clientNetRevenue,
   };
 
   // Usar dados reais calculados
@@ -323,15 +373,11 @@ const Dashboard: React.FC = () => {
         />
         <StatCard
           title="Receita Mensal"
-          value={stats.monthlyRevenue > 0 
-            ? `R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
-            : 'R$ 0,00'
-          }
+          value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           change={stats.monthlyRevenue > 0 
-            ? `Bruto: R$ ${(stats.subscriptionRevenue + stats.clientRevenue).toFixed(2)} | Líquido: R$ ${(stats.subscriptionRevenue + clientNetRevenue).toFixed(2)}`
-            : 'Nenhum pagamento este mês'
-          }
+            ? `Líquido: R$ ${(stats.subscriptionRevenue + stats.clientNetRevenue).toFixed(2)} | Taxas: R$ ${stats.totalFees.toFixed(2)}`
+            : 'Nenhum pagamento este mês'}
         />
         <StatCard
           title="Total de Clientes"
