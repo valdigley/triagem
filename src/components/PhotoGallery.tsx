@@ -489,21 +489,17 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   <p className="font-semibold">{albumPhotos[lightboxPhotoIndex].filename}</p>
                   <p className="text-sm text-gray-300">
                     {lightboxPhotoIndex + 1} de {albumPhotos.length}
+                    {isClientView && ` • R$ ${albumPhotos[lightboxPhotoIndex].price.toFixed(2)}`}
                   </p>
-                  {isClientView && (
-                    <p className="text-sm text-gray-300">
-                      R$ {albumPhotos[lightboxPhotoIndex].price.toFixed(2)}
-                    </p>
-                  )}
-                  {!isClientView && photoComments[albumPhotos[lightboxPhotoIndex].id] && (
-                    <p className="text-sm text-yellow-300 mt-1">
-                      💬 {photoComments[albumPhotos[lightboxPhotoIndex].id]}
-                    </p>
-                  )}
-                  {photoComments[albumPhotos[lightboxPhotoIndex].id] && (
-                    <p className="text-sm text-blue-300 mt-1">
-                      💬 Cliente: {photoComments[albumPhotos[lightboxPhotoIndex].id]}
-                    </p>
+                  
+                  {/* Comentário do cliente */}
+                  {albumPhotos[lightboxPhotoIndex].metadata?.client_comment && (
+                    <div className="mt-2 p-2 bg-blue-900 bg-opacity-50 rounded border border-blue-400">
+                      <p className="text-xs text-blue-200 mb-1">💬 Comentário do cliente:</p>
+                      <p className="text-sm text-blue-100">
+                        {albumPhotos[lightboxPhotoIndex].metadata.client_comment}
+                      </p>
+                    </div>
                   )}
                 </div>
                 
