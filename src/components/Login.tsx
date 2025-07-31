@@ -673,7 +673,7 @@ const Login: React.FC = () => {
       </div>
       
       {/* CSS para animação das linhas */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideLines {
           0% {
             transform: translateX(-100px) translateY(-100px);
