@@ -770,6 +770,39 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         <span className="text-gray-500">Fotos editadas não disponibilizadas</span>
                       </div>
                     )}
+
+                    {/* Comentários do cliente */}
+                    {(() => {
+                      const photosWithComments = albumPhotos.filter(photo => 
+                        photo.metadata?.client_comment && photo.metadata.client_comment.trim()
+                      );
+                      
+                      if (photosWithComments.length > 0) {
+                        return (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                              <span className="text-gray-600 font-medium">Comentários do cliente:</span>
+                              <span className="text-blue-600 font-medium">{photosWithComments.length} foto{photosWithComments.length > 1 ? 's' : ''}</span>
+                            </div>
+                            <div className="ml-4 space-y-1">
+                              {photosWithComments.slice(0, 3).map(photo => (
+                                <div key={photo.id} className="text-xs">
+                                  <span className="text-gray-500">{photo.filename}:</span>
+                                  <span className="text-gray-700 ml-1">"{photo.metadata.client_comment}"</span>
+                                </div>
+                              ))}
+                              {photosWithComments.length > 3 && (
+                                <div className="text-xs text-blue-600">
+                                  +{photosWithComments.length - 3} comentários adicionais
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
 

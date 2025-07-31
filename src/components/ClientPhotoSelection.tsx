@@ -56,6 +56,11 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     loadAlbumData();
     loadWatermarkConfig();
     loadPricingConfig();
+    
+    // Registrar visualização do álbum
+    if (shareToken) {
+      registerAlbumView();
+    }
   }, [shareToken]);
 
   const loadAlbumData = async () => {
@@ -177,6 +182,41 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       console.error('Error loading pricing config:', error);
     }
   };
+
+  const registerAlbumView = async () => {
+    if (!album) return;
+
+    try {
+      // Verificar se já foi registrada uma visualização
+      const { data: currentAlbum } = await supabase
+        .from('albums')
+        .select('activity_log')
+        .eq('id', album.id)
+        .single();
+
+      const currentLog = currentAlbum?.activity_log || [];
+      const hasViewLog = currentLog.some(log => log.type === 'album_viewed');
+
+      if (!hasViewLog) {
+        const newActivity = {
+          timestamp: new Date().toISOString(),
+          type: 'album_viewed',
+          description: 'Cliente visualizou o álbum pela primeira vez'
+        };
+
+        await supabase
+          .from('albums')
+          .update({ 
+            activity_log: [...currentLog, newActivity]
+          })
+          .eq('id', album.id);
+
+        console.log('Album view registered');
+      }
+    } catch (error) {
+      console.error('Error registering album view:', error);
+    }
+  };
   const togglePhotoSelection = async (photoId: string) => {
     // Verificar se a seleção está bloqueada
     if (selectionLocked) {
@@ -207,6 +247,37 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         // Reverter se falhou
         setSelectedPhotos(prev => isSelected ? new Set([...prev, photoId]) : new Set([...prev].filter(id => id !== photoId)));
         toast.error('Erro ao atualizar seleção');
+        return;
+      }
+
+      // Atualizar log de atividade do álbum
+      if (album) {
+        try {
+          const { data: currentAlbum } = await supabase
+            .from('albums')
+            .select('activity_log')
+            .eq('id', album.id)
+            .single();
+
+          const currentLog = currentAlbum?.activity_log || [];
+          const photo = photos.find(p => p.id === photoId);
+          const newActivity = {
+            timestamp: new Date().toISOString(),
+            type: !isSelected ? 'photo_selected' : 'photo_deselected',
+            description: !isSelected 
+              ? `Cliente selecionou a foto "${photo?.filename}"`
+              : `Cliente removeu a foto "${photo?.filename}" da seleção`
+          };
+
+          await supabase
+            .from('albums')
+            .update({ 
+              activity_log: [...currentLog, newActivity]
+            })
+            .eq('id', album.id);
+        } catch (error) {
+          console.error('Error updating activity log:', error);
+        }
       }
     } catch (error) {
       console.error('Error updating photo selection:', error);
@@ -401,6 +472,33 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       // Para seleções gratuitas, apenas atualizar as fotos como selecionadas
       // Não criar entrada na tabela orders pois não houve pagamento
       console.log('Free selection confirmed - no payment record needed');
+
+      // Registrar finalização da seleção no log de atividades
+      if (album) {
+        try {
+          const { data: currentAlbum } = await supabase
+            .from('albums')
+            .select('activity_log')
+            .eq('id', album.id)
+            .single();
+
+          const currentLog = currentAlbum?.activity_log || [];
+          const newActivity = {
+            timestamp: new Date().toISOString(),
+            type: 'selection_completed',
+            description: `Cliente finalizou a seleção com ${selectedPhotos.size} fotos (seleção gratuita)`
+          };
+
+          await supabase
+            .from('albums')
+            .update({ 
+              activity_log: [...currentLog, newActivity]
+            })
+            .eq('id', album.id);
+        } catch (error) {
+          console.error('Error updating activity log:', error);
+        }
+      }
 
       // Bloquear futuras alterações
       setSelectionLocked(true);

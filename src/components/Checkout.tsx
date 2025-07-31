@@ -364,6 +364,33 @@ const Checkout: React.FC<CheckoutProps> = ({
         return;
       }
 
+      // Registrar finalização da seleção no log de atividades
+      if (album) {
+        try {
+          const { data: currentAlbum } = await supabase
+            .from('albums')
+            .select('activity_log')
+            .eq('id', album.id)
+            .single();
+
+          const currentLog = currentAlbum?.activity_log || [];
+          const newActivity = {
+            timestamp: new Date().toISOString(),
+            type: 'selection_completed',
+            description: `Cliente finalizou a seleção com ${selectedPhotos.length} fotos e iniciou pagamento de R$ ${totalAmount.toFixed(2)}`
+          };
+
+          await supabase
+            .from('albums')
+            .update({ 
+              activity_log: [...currentLog, newActivity]
+            })
+            .eq('id', album.id);
+        } catch (error) {
+          console.error('Error updating activity log:', error);
+        }
+      }
+
       if (!showPaymentScreen && !orderCompleted) {
         toast.success('Pedido criado! Aguardando confirmação do pagamento.');
       }
