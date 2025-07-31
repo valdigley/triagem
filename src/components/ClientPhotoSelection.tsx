@@ -149,7 +149,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         .from('photographers')
         .select('watermark_config')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (photographer?.watermark_config) {
         const config = photographer.watermark_config;

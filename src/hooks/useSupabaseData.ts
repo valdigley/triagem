@@ -534,7 +534,7 @@ export const useSupabaseData = () => {
           .from('photographers')
           .select('watermark_config')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (photographer?.watermark_config?.photoPrice) {
           currentPrice = photographer.watermark_config.photoPrice;
@@ -697,7 +697,7 @@ export const useSupabaseData = () => {
           .from('photographers')
           .select('watermark_config')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (photographer?.watermark_config?.photoPrice) {
           currentPrice = photographer.watermark_config.photoPrice;
