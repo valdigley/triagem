@@ -57,7 +57,7 @@ const ClientsList: React.FC = () => {
   });
 
   useEffect(() => {
-    if (events.length > 0 || supabaseClients.length > 0) {
+    if (events.length >= 0 || supabaseClients.length >= 0) {
       processClientsData();
     }
   }, [events, orders, supabaseClients]);

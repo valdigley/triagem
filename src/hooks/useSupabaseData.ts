@@ -900,12 +900,18 @@ export const useSupabaseData = () => {
 
   // Função para criar ou atualizar cliente
   const upsertClient = async (clientData: { name: string; email: string; phone: string; notes?: string }) => {
+    if (!photographerId) {
+      console.error('Photographer ID not available for client upsert');
+      return;
+    }
+
     try {
       // Verificar se cliente já existe
       const { data: existingClient } = await supabase
         .from('clients')
         .select('id')
         .eq('email', clientData.email)
+        .eq('photographer_id', photographerId)
         .maybeSingle();
 
       if (existingClient) {
@@ -927,6 +933,7 @@ export const useSupabaseData = () => {
         const { error } = await supabase
           .from('clients')
           .insert({
+            photographer_id: photographerId,
             name: clientData.name,
             email: clientData.email,
             phone: clientData.phone,
@@ -954,10 +961,18 @@ export const useSupabaseData = () => {
 
   // Adicionar cliente manualmente
   const addClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!photographerId) {
+      toast.error('Perfil do fotógrafo não encontrado');
+      return null;
+    }
+
     try {
       const { data, error } = await supabase
         .from('clients')
-        .insert(clientData)
+        .insert({
+          ...clientData,
+          photographer_id: photographerId,
+        })
         .select()
         .single();
 
