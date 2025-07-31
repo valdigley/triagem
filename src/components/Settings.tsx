@@ -312,11 +312,10 @@ const Settings: React.FC = () => {
       toast.success('Configurações salvas com sucesso!');
       console.log('🔄 Forcing page reload to apply changes...');
       
-      // Limpar localStorage e recarregar
-      localStorage.clear();
+      // Apenas recarregar os dados sem fazer logout
       setTimeout(() => {
-        window.location.reload();
-      }, 2000);
+        loadSettings();
+      }, 500);
       
     } catch (error) {
       console.error('Error saving settings:', error);

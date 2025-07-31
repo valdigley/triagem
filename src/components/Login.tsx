@@ -43,7 +43,7 @@ const Login: React.FC = () => {
     try {
       console.log('🔍 Loading studio settings for login background...');
       // Carregar configurações de TODOS os fotógrafos para encontrar imagens personalizadas
-      const { data: photographer } = await supabase
+      const { data: photographer, error } = await supabase
         .from('photographers')
         .select('business_name, watermark_config')
         .not('watermark_config', 'is', null);
