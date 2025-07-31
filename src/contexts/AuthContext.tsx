@@ -41,7 +41,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Session error:', error.message);
+          if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
+            console.warn('Session token expired, signing out user:', error.message);
+          } else {
+            console.error('Session error:', error.message);
+          }
           // Clear invalid tokens and reset auth state
           await supabase.auth.signOut();
           setSupabaseUser(null);
@@ -63,7 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         }
       } catch (error) {
-        console.error('Unexpected session error:', error instanceof Error ? error.message : 'Unknown error');
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        if (errorMessage.includes('Invalid Refresh Token') || errorMessage.includes('Refresh Token Not Found')) {
+          console.warn('Session token expired, signing out user:', errorMessage);
+        } else {
+          console.error('Unexpected session error:', errorMessage);
+        }
         // Clear invalid tokens and reset auth state
         await supabase.auth.signOut();
         setSupabaseUser(null);
