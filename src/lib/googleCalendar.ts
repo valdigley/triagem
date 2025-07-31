@@ -42,7 +42,9 @@ export class GoogleCalendarService {
         // Verificar se é erro de autenticação
         if (errorData.details?.error?.code === 401 || 
             errorData.details?.error?.message?.includes('invalid authentication')) {
-          throw new Error('Google Calendar token expirado. Configure um novo token em Configurações → Google Calendar');
+          console.warn('🔑 Google Calendar token expirado ou inválido');
+          console.warn('💡 Configure um novo token em Configurações → Google Calendar');
+          return null; // Retornar null em vez de lançar erro
         }
         
         throw new Error(errorData.error || 'Failed to create calendar event');
