@@ -494,12 +494,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   
                   {/* Comentário do cliente */}
                   {albumPhotos[lightboxPhotoIndex].metadata?.client_comment && (
-                    <div className="mt-2 p-2 bg-blue-900 bg-opacity-50 rounded border border-blue-400 max-w-xs sm:max-w-sm md:max-w-md">
-                      <p className="text-xs text-blue-200 mb-1">💬 Cliente:</p>
-                      <p className="text-xs text-blue-100 break-words">
-                        {albumPhotos[lightboxPhotoIndex].metadata.client_comment}
-                      </p>
-                    </div>
+                    <p className="text-xs text-blue-200 mt-2 max-w-xs sm:max-w-sm md:max-w-md break-words">
+                      💬 {albumPhotos[lightboxPhotoIndex].metadata.client_comment}
+                    </p>
                   )}
                 </div>
                 
