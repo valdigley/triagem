@@ -957,6 +957,18 @@ const Settings: React.FC = () => {
                   </p>
                 </div>
               )}
+              
+              {/* Debug info */}
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Debug Info:</h4>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <p>Imagens carregadas: {generalSettings.loginBackgrounds?.length || 0}</p>
+                  <p>Estado atual: {generalSettings.loginBackgrounds ? 'Array existe' : 'Array não existe'}</p>
+                  {generalSettings.loginBackgrounds && generalSettings.loginBackgrounds.length > 0 && (
+                    <p>Primeira imagem: {generalSettings.loginBackgrounds[0].substring(0, 50)}...</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}

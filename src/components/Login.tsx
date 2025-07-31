@@ -44,14 +44,13 @@ const Login: React.FC = () => {
       console.log('🔍 Loading studio settings for login background...');
       
       // Buscar configurações do primeiro fotógrafo com imagens personalizadas
-      const { data: photographers, error } = await supabase
+      const { data: photographers, error: photographersError } = await supabase
         .from('photographers')
         .select('business_name, watermark_config')
-        .not('watermark_config', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('❌ Error loading photographers:', error);
+      if (photographersError) {
+        console.error('❌ Error loading photographers:', photographersError);
         setBackgroundImages([
           'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
         ]);
@@ -59,6 +58,7 @@ const Login: React.FC = () => {
       }
 
       console.log('📊 Photographers found:', photographers?.length || 0);
+      console.log('📋 All photographers data:', photographers);
 
       // Buscar o primeiro fotógrafo que tenha configurações personalizadas
       let selectedPhotographer = null;
