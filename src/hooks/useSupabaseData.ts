@@ -243,7 +243,10 @@ export const useSupabaseData = () => {
       // Tentar criar evento no Google Calendar primeiro
       let googleEventId: string | null = null;
       
-      if (user) {
+      // Verificar se Google Calendar está configurado antes de tentar
+      const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
+      
+      if (user && googleCalendarConfig?.accessToken) {
         try {
           console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
           console.log('📋 Dados do evento:', {
@@ -254,18 +257,13 @@ export const useSupabaseData = () => {
           });
           
           // Tentar integração real com Google Calendar
-          const googleCalendarService = await createGoogleCalendarService(user.id);
+          const googleCalendarService = new GoogleCalendarService(googleCalendarConfig);
           
-          if (googleCalendarService) {
-            console.log('✅ Google Calendar configurado, criando evento...');
-            googleEventId = await googleCalendarService.createEvent(eventData);
-            console.log('🎉 Google Calendar event criado com sucesso!');
-            console.log('📅 Event ID:', googleEventId);
-            console.log('🔗 Acesse: https://calendar.google.com para verificar');
-          } else {
-            console.log('❌ Google Calendar não configurado - pulando sincronização');
-            console.log('💡 Configure em: Configurações → Google Calendar');
-          }
+          console.log('✅ Google Calendar configurado, criando evento...');
+          googleEventId = await googleCalendarService.createEvent(eventData);
+          console.log('🎉 Google Calendar event criado com sucesso!');
+          console.log('📅 Event ID:', googleEventId);
+          console.log('🔗 Acesse: https://calendar.google.com para verificar');
           
         } catch (error) {
           console.error('❌ ERRO no Google Calendar:', error);
@@ -284,6 +282,9 @@ export const useSupabaseData = () => {
           // Não falhar o processo se o Google Calendar der erro
           console.log('⚠️ Continuando sem Google Calendar devido ao erro');
         }
+      } else {
+        console.log('❌ Google Calendar não configurado - pulando sincronização');
+        console.log('💡 Configure em: Configurações → Google Calendar');
       }
 
       const { data, error } = await supabase

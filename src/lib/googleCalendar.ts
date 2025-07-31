@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 
+export { getGoogleCalendarConfig };
+
 interface GoogleCalendarConfig {
   accessToken: string;
   calendarId?: string;
