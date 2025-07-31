@@ -401,15 +401,15 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
-          <p className="text-gray-600">Visualize as sessões criadas automaticamente a partir dos agendamentos ({albums.length} sessões)</p>
+          <h1 className="text-2xl font-bold text-gray-900">Seleções</h1>
+          <p className="text-gray-600">Visualize as seleções criadas automaticamente a partir dos agendamentos ({albums.length} seleções)</p>
         </div>
         <button
           onClick={() => setShowCreateForm(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
-          Adicionar Sessão
+          Adicionar Seleção
         </button>
       </div>
 
@@ -417,7 +417,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Criar Nova Sessão</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Criar Nova Seleção</h3>
             <button
               onClick={() => setShowCreateForm(false)}
               className="text-gray-500 hover:text-gray-700"
@@ -445,13 +445,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tipo de Sessão *
+                  Tipo de Seleção *
                 </label>
                 <select
                   {...register('sessionType')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  <option value="">Selecione...</option>
+                  <option value="">Selecione o tipo...</option>
                   {sessionTypes.map((type) => (
                     <option key={type.value} value={type.value}>
                       {type.label}

@@ -493,26 +493,6 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    {event.status === 'completed' && (
-                      <button 
-                        onClick={() => handleGoogleDriveShare(event)}
-                        className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M12.01 2C6.5 2 2.01 6.49 2.01 12s4.49 10 9.99 10c5.51 0 10-4.49 10-10S17.52 2 12.01 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
-                        </svg>
-                        Compartilhar Drive
-                      </button>
-                    )}
-                    <button 
-                      onClick={() => handleGoogleDriveShare(event)}
-                      className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                    >
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                      </svg>
-                      Enviar Drive
-                    </button>
                     {(() => {
                       // Buscar álbum relacionado ao evento
                       const relatedAlbum = albums.find(album => album.event_id === event.id);
@@ -525,7 +505,7 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                         className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
                         <Eye className="w-4 h-4" />
-                        Ver Sessão
+                        Ver Seleção
                       </button>
                     );
                     })()}
