@@ -373,7 +373,7 @@ const Dashboard: React.FC = () => {
           title="Sessões Ativas"
           value={stats.activeAlbums}
           icon={Image}
-          change="5 aguardando seleção"
+          change={`${stats.pendingSelections} aguardando seleção`}
         />
         <StatCard
           title="Receita Bruta"
