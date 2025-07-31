@@ -28,7 +28,7 @@ const SubscriptionManagement: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null);
-  const [creatingSubscription, setCreatingSubscription] = useState<string | null>(null);
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSubscriptions: 0,
@@ -369,6 +369,78 @@ const SubscriptionManagement: React.FC = () => {
     }
   };
 
+  const deleteSubscriptionUser = async (subscription: UserSubscription) => {
+    if (!subscription.user?.name || !subscription.user?.email) {
+      toast.error('Dados do usuário incompletos');
+      return;
+    }
+
+    const confirmMessage = `⚠️ ATENÇÃO: Esta ação irá excluir PERMANENTEMENTE:
+
+👤 Usuário: ${subscription.user.name}
+📧 E-mail: ${subscription.user.email}
+📊 Assinatura: ${subscription.plan_type}
+
+🗑️ Todos os dados serão removidos:
+• Perfil do fotógrafo
+• Eventos e agendamentos
+• Álbuns e fotos
+• Pedidos e pagamentos
+• Configurações
+• Histórico completo
+
+Esta ação NÃO PODE ser desfeita!
+
+Digite "EXCLUIR" para confirmar:`;
+
+    const confirmation = prompt(confirmMessage);
+    
+    if (confirmation !== 'EXCLUIR') {
+      toast.error('Exclusão cancelada');
+      return;
+    }
+
+    setDeletingUser(subscription.id);
+
+    try {
+      console.log('Deleting user and all related data:', subscription.user_id);
+      
+      // Chamar edge function para exclusão completa
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user-complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          user_id: subscription.user_id,
+          subscription_id: subscription.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Delete user error:', errorData);
+        toast.error(errorData.error || 'Erro ao excluir usuário');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('User deleted successfully:', result);
+      
+      toast.success(`Usuário ${subscription.user.name} e todos os dados foram excluídos permanentemente!`);
+      
+      // Recarregar lista
+      await loadSubscriptions();
+      
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error(`Erro ao excluir usuário: ${error.message}`);
+    } finally {
+      setDeletingUser(null);
+    }
+  };
+
   if (!isMasterUser) {
     return (
       <div className="text-center py-12">
@@ -569,7 +641,18 @@ const SubscriptionManagement: React.FC = () => {
                       </button>
                       
                       {/* Criar Assinatura - apenas para usuários sem assinatura ativa */}
-                      {/* Apenas visualização no master - sem botão de pagamento */}
+                      {/* Excluir usuário - apenas para master */}
+                      <button
+                        onClick={() => deleteSubscriptionUser(subscription)}
+                        disabled={deletingUser === subscription.id}
+                        className="flex items-center gap-1 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir usuário e todos os dados"
+                      >
+                        <X className="w-4 h-4" />
+                        {deletingUser === subscription.id ? 'Excluindo...' : 'Excluir'}
+                      </button>
+                      
+                      {/* Ver detalhes */}
                       <button
                         className="flex items-center gap-1 px-3 py-1 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                         title="Visualizar detalhes"
