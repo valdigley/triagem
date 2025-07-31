@@ -170,6 +170,19 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       return;
     }
     
+    // Verificar se excedeu o limite do pacote e não há pagamento confirmado
+    const currentSelectedCount = selectedPhotos.size;
+    const isSelecting = !selectedPhotos.has(photoId);
+    
+    if (isSelecting && currentSelectedCount >= pricingConfig.packagePhotos) {
+      // Verificar se há pagamento confirmado para fotos extras
+      const hasExtraPayment = await checkExtraPhotosPayment();
+      if (!hasExtraPayment) {
+        toast.error(`Você pode selecionar até ${pricingConfig.packagePhotos} fotos gratuitamente. Para mais fotos, é necessário pagamento.`);
+        return;
+      }
+    }
+    
     const newSelected = new Set(selectedPhotos);
     const isSelected = selectedPhotos.has(photoId);
     
