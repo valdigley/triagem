@@ -832,6 +832,37 @@ export const useSupabaseData = () => {
       setPhotos(prev => prev.map(photo => 
         photo.id === photoId ? data : photo
       ));
+      
+      // Atualizar log de atividade do álbum quando foto for selecionada/desselecionada
+      if (updates.is_selected !== undefined) {
+        try {
+          const photo = photos.find(p => p.id === photoId);
+          if (photo) {
+            const album = albums.find(a => a.id === photo.album_id);
+            if (album) {
+              const currentLog = album.activity_log || [];
+              const newActivity = {
+                timestamp: new Date().toISOString(),
+                type: updates.is_selected ? 'photo_selected' : 'photo_deselected',
+                description: updates.is_selected 
+                  ? `Foto "${photo.filename}" selecionada pelo cliente`
+                  : `Foto "${photo.filename}" removida da seleção`
+              };
+              
+              await supabase
+                .from('albums')
+                .update({ 
+                  activity_log: [...currentLog, newActivity]
+                })
+                .eq('id', photo.album_id);
+            }
+          }
+        } catch (error) {
+          console.error('Error updating activity log:', error);
+          // Não falhar a operação principal se o log falhar
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating photo:', error);

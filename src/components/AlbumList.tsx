@@ -293,9 +293,27 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     setSavingDriveLink(true);
     try {
       const { supabase } = await import('../lib/supabase');
+      
+      // Buscar log atual do álbum
+      const { data: currentAlbum } = await supabase
+        .from('albums')
+        .select('activity_log')
+        .eq('id', albumId)
+        .single();
+      
+      const currentLog = currentAlbum?.activity_log || [];
+      const newActivity = {
+        timestamp: new Date().toISOString(),
+        type: 'drive_link_added',
+        description: 'Link do Google Drive adicionado'
+      };
+      
       const { error } = await supabase
         .from('albums')
-        .update({ google_drive_link: driveLink.trim() })
+        .update({ 
+          google_drive_link: driveLink.trim(),
+          activity_log: [...currentLog, newActivity]
+        })
         .eq('id', albumId);
 
       if (error) {
