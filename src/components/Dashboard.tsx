@@ -357,7 +357,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <StatCard
           title="Eventos Este Mês"
           value={stats.totalEvents}
@@ -372,12 +372,26 @@ const Dashboard: React.FC = () => {
           change="5 aguardando seleção"
         />
         <StatCard
-          title="Receita Mensal"
+          title="Receita Bruta"
           value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
-          change={stats.monthlyRevenue > 0 
-            ? `Líquido: R$ ${(stats.subscriptionRevenue + stats.clientNetRevenue).toFixed(2)} | Taxas: R$ ${stats.totalFees.toFixed(2)}`
-            : 'Nenhum pagamento este mês'}
+          change={`Antes das taxas do Mercado Pago`}
+        />
+        <StatCard
+          title="Valor Líquido Recebido"
+          value={`R$ ${(stats.subscriptionRevenue + stats.clientNetRevenue).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={TrendingUp}
+          change={stats.totalFees > 0 
+            ? `Taxas MP: R$ ${stats.totalFees.toFixed(2)} (${((stats.totalFees / stats.monthlyRevenue) * 100).toFixed(1)}%)`
+            : 'Sem taxas este mês'}
+        />
+        <StatCard
+          title="Taxas Mercado Pago"
+          value={`R$ ${stats.totalFees.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={DollarSign}
+          change={stats.totalFees > 0 
+            ? `${((stats.totalFees / stats.monthlyRevenue) * 100).toFixed(1)}% da receita bruta`
+            : 'Nenhuma taxa cobrada'}
         />
         <StatCard
           title="Total de Clientes"
