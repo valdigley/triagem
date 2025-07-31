@@ -43,16 +43,10 @@ const SubscriptionManagement: React.FC = () => {
 
   const loadSubscriptions = async () => {
     try {
-      // Buscar todas as assinaturas com dados do usuário
+      // Buscar todas as assinaturas
       const { data: subscriptionsData, error } = await supabase
         .from('subscriptions')
-        .select(`
-          *,
-          users:user_id (
-            email,
-            raw_user_meta_data
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -61,14 +55,19 @@ const SubscriptionManagement: React.FC = () => {
         return;
       }
 
-      // Processar dados
-      const processedSubscriptions = subscriptionsData.map(sub => ({
-        ...sub,
-        user: {
-          email: sub.users?.email || 'Email não encontrado',
-          name: sub.users?.raw_user_meta_data?.name || 'Nome não encontrado',
-        }
-      }));
+      // Buscar dados dos usuários separadamente
+      const processedSubscriptions = await Promise.all(
+        subscriptionsData.map(async (sub) => {
+          const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id);
+          return {
+            ...sub,
+            user: {
+              email: userData.user?.email || 'Email não encontrado',
+              name: userData.user?.user_metadata?.name || userData.user?.user_metadata?.full_name || 'Nome não encontrado',
+            }
+          };
+        })
+      );
 
       setSubscriptions(processedSubscriptions);
 
