@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Client } from '../types';
-import { createGoogleCalendarService } from '../lib/googleCalendar';
+import { createGoogleCalendarService, getGoogleCalendarConfig } from '../lib/googleCalendar';
 import toast from 'react-hot-toast';
 
 const sessionTypeLabels: Record<string, string> = {
