@@ -70,6 +70,10 @@ const PublicScheduling: React.FC = () => {
 
   useEffect(() => {
     loadStudioSettings();
+    
+    // Debug: Log para verificar se o componente está carregando
+    console.log('PublicScheduling component mounted');
+    console.log('Current URL:', window.location.href);
   }, []);
 
   const loadStudioSettings = async () => {

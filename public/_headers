@@ -1,43 +1,28 @@
 # Cloudflare Pages headers
-# Este arquivo deve estar em /public/ para ser copiado para /dist/
 
-# Headers globais
-/*
-  X-Frame-Options: SAMEORIGIN
-  X-Content-Type-Options: nosniff
-  X-XSS-Protection: 1; mode=block
-  Referrer-Policy: strict-origin-when-cross-origin
+# Cache control for HTML files
+/*.html
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
 
-# JavaScript modules
+# Cache control for assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# JavaScript files
 /*.js
   Content-Type: application/javascript; charset=utf-8
   Cache-Control: public, max-age=31536000
 
-/*.mjs  
-  Content-Type: application/javascript; charset=utf-8
-  Cache-Control: public, max-age=31536000
-
-# CSS files
+# CSS files  
 /*.css
   Content-Type: text/css; charset=utf-8
   Cache-Control: public, max-age=31536000
 
-# HTML files - sem cache para SPA
-/*.html
-  Content-Type: text/html; charset=utf-8
-  Cache-Control: no-cache, no-store, must-revalidate
-
-# Rotas SPA específicas - sem cache
+# SPA routes - no cache
 /agendar
   Cache-Control: no-cache, no-store, must-revalidate
-  Pragma: no-cache
-  Expires: 0
 
 /album/*
   Cache-Control: no-cache, no-store, must-revalidate
-  Pragma: no-cache
-  Expires: 0
-
-# Assets com cache longo
-/assets/*
-  Cache-Control: public, max-age=31536000, immutable

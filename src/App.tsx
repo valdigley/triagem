@@ -118,7 +118,12 @@ function App() {
             <BrowserRouter>
               <Routes>
                 {/* Rota pública para agendamento */}
-                <Route path="/agendar" element={<PublicScheduling />} />
+                <Route path="/agendar" element={
+                  <div>
+                    {console.log('Agendar route matched!')}
+                    <PublicScheduling />
+                  </div>
+                } />
                 {/* Rota pública para seleção de fotos */}
                 <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
                 {/* Rotas do sistema interno */}

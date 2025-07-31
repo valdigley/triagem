@@ -1,9 +1,6 @@
 # Cloudflare Pages redirects
-# Este arquivo deve estar em /public/ para ser copiado para /dist/
+# SPA routing - todas as rotas devem servir index.html
 
-# Rotas específicas da SPA
 /agendar /index.html 200
 /album/* /index.html 200
-
-# Fallback para todas as outras rotas SPA  
 /* /index.html 200
