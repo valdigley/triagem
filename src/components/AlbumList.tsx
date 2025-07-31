@@ -417,7 +417,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Seleções</h1>
@@ -581,7 +581,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           <p className="text-gray-600">As seleções aparecerão aqui quando forem criadas ou quando agendamentos forem confirmados</p>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="space-y-4">
           {albums.map((album) => {
             const event = getEventForAlbum(album.event_id);
             const albumPhotos = getAlbumPhotos(album.id);

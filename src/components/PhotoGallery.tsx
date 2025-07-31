@@ -295,7 +295,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -339,14 +339,14 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           <p className="text-gray-600">Este álbum ainda não possui fotos.</p>
         </div>
       ) : (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
         {albumPhotos.map((photo, index) => {
           const isSelected = selectedPhotos.has(photo.id);
           
           return (
             <div
               key={photo.id}
-              className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all duration-200 ${
+              className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-smooth ${
                 isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
               }`}
             >

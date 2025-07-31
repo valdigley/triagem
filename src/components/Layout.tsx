@@ -73,7 +73,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 main-layout">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div 
@@ -83,7 +83,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 sidebar ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
@@ -141,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
       </div>
 
       {/* Main content */}
-      <div className="lg:ml-64">
+      <div className="lg:ml-64 main-content">
         {/* Top navigation */}
         <header className="h-16 bg-white shadow-sm border-b border-gray-200">
           <div className="flex items-center justify-between h-full px-6">

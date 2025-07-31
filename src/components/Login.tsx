@@ -41,6 +41,7 @@ const Login: React.FC = () => {
 
   const loadStudioSettings = async () => {
     try {
+      console.log('Loading studio settings...');
       // Carregar configurações do primeiro fotógrafo (assumindo um estúdio)
       const { data: photographer } = await supabase
         .from('photographers')
@@ -48,49 +49,53 @@ const Login: React.FC = () => {
         .limit(1)
         .maybeSingle();
 
+      console.log('Photographer data:', photographer);
+
       if (photographer) {
         // Logo personalizada
         if (photographer.watermark_config?.logo) {
+          console.log('Setting studio logo');
           setStudioLogo(photographer.watermark_config.logo);
         }
 
         // Nome do estúdio
         if (photographer.business_name) {
+          console.log('Setting studio name:', photographer.business_name);
           setStudioName(photographer.business_name);
         }
 
         // Imagens de fundo personalizadas
-        if (photographer.watermark_config?.loginBackgrounds && 
-            Array.isArray(photographer.watermark_config.loginBackgrounds) && 
-            photographer.watermark_config.loginBackgrounds.length > 0) {
+        const customBackgrounds = photographer.watermark_config?.loginBackgrounds;
+        console.log('Custom backgrounds found:', customBackgrounds);
+        
+        if (customBackgrounds && 
+            Array.isArray(customBackgrounds) && 
+            customBackgrounds.length > 0) {
           console.log('Loading custom background images:', photographer.watermark_config.loginBackgrounds.length);
-          setBackgroundImages(photographer.watermark_config.loginBackgrounds);
+          setBackgroundImages(customBackgrounds);
         } else {
           console.log('No custom backgrounds found, using default images');
           // Imagens padrão de alta qualidade para estúdios fotográficos
           setBackgroundImages([
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
-            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Estúdio fotográfico
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Equipamentos
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Sessão de fotos
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Retrato profissional
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
+            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
           ]);
         }
       } else {
         console.log('No photographer found, using default settings');
         // Configurações padrão se não houver fotógrafo
         setBackgroundImages([
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
-          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Estúdio fotográfico
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Equipamentos
+          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
+          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
         ]);
       }
     } catch (error) {
       console.error('Error loading studio settings:', error);
       // Usar imagens padrão em caso de erro
       setBackgroundImages([
-        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
-        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Estúdio fotográfico
+        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
+        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
       ]);
     }
   };
@@ -673,7 +678,8 @@ const Login: React.FC = () => {
       </div>
       
       {/* CSS para animação das linhas */}
-      <style>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes slideLines {
           0% {
             transform: translateX(-100px) translateY(-100px);
@@ -682,7 +688,8 @@ const Login: React.FC = () => {
             transform: translateX(100px) translateY(100px);
           }
         }
-      `}</style>
+        `
+      }} />
     </div>
   );
 };
