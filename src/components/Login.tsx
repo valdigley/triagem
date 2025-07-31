@@ -19,18 +19,18 @@ const Login: React.FC = () => {
       return;
     }
 
-    const success = isRegisterMode 
+    const result = isRegisterMode 
       ? await register(email, password, name)
       : await login(email, password);
       
-    if (success) {
+    if (result === true) {
       if (isRegisterMode) {
         toast.success('Conta criada com sucesso! Verifique seu e-mail.');
       } else {
         toast.success('Login realizado com sucesso!');
       }
     } else {
-      toast.error(isRegisterMode ? 'Erro ao criar conta' : 'Credenciais inválidas');
+      toast.error(result);
     }
   };
 

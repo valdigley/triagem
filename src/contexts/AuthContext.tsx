@@ -12,8 +12,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<string | true>;
+  register: (email: string, password: string, name: string) => Promise<string | true>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<string | true> => {
     setIsLoading(true);
     
     try {
@@ -85,22 +85,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Login error:', error);
         setIsLoading(false);
-        return false;
+        
+        // Retornar mensagens específicas baseadas no tipo de erro
+        if (error.message.includes('Invalid login credentials')) {
+          return 'E-mail ou senha incorretos';
+        }
+        if (error.message.includes('Email not confirmed')) {
+          return 'E-mail não confirmado. Verifique sua caixa de entrada';
+        }
+        if (error.message.includes('Too many requests')) {
+          return 'Muitas tentativas. Tente novamente em alguns minutos';
+        }
+        
+        return error.message || 'Erro ao fazer login';
       }
 
       // O usuário será definido automaticamente pelo listener onAuthStateChange
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Login error:', error);
       setIsLoading(false);
-      return false;
+      return 'Erro inesperado ao fazer login';
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string): Promise<string | true> => {
     setIsLoading(true);
     
     try {
@@ -115,17 +125,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        console.error('Register error:', error);
         setIsLoading(false);
-        return false;
+        
+        // Retornar mensagens específicas baseadas no tipo de erro
+        if (error.message.includes('User already registered')) {
+          return 'Este e-mail já está cadastrado';
+        }
+        if (error.message.includes('Password should be at least')) {
+          return 'A senha deve ter pelo menos 6 caracteres';
+        }
+        if (error.message.includes('Invalid email')) {
+          return 'E-mail inválido';
+        }
+        
+        return error.message || 'Erro ao criar conta';
       }
 
       setIsLoading(false);
       return true;
     } catch (error) {
-      console.error('Register error:', error);
       setIsLoading(false);
-      return false;
+      return 'Erro inesperado ao criar conta';
     }
   };
 
