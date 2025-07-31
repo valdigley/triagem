@@ -8,6 +8,7 @@ export interface Subscription {
   payment_date?: string;
   payment_amount?: number;
   payment_intent_id?: string;
+  expires_at?: string;
   created_at: string;
   updated_at: string;
 }
