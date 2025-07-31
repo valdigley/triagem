@@ -86,9 +86,9 @@ export const useSupabaseData = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (existingPhotographer) {
-        setPhotographerId(existingPhotographer.id);
-        return existingPhotographer.id;
+      if (existingProfile) {
+        setPhotographerId(existingProfile.id);
+        return existingProfile.id;
       }
 
       // Se não existe, criar um novo perfil
@@ -452,7 +452,7 @@ export const useSupabaseData = () => {
         const filesToDelete: string[] = [];
         
         albumPhotos.forEach(photo => {
-          // Extrair nome do arquivo da URL (assumindo formato: /storage/v1/object/public/photos/original/filename)
+          // Extrair nome do arquivo da URL (assumindo formato: /storage/v1/object/public/photos/filename)
           if (photo.original_path && photo.original_path.includes('/photos/')) {
             const originalFile = photo.original_path.split('/photos/')[1];
             if (originalFile) filesToDelete.push(originalFile);
