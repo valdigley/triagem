@@ -1,4 +1,1 @@
 # Redirects para SPA no Cloudflare Pages
-/agendar /index.html 200
-/album/* /index.html 200
-/* /index.html 200

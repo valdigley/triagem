@@ -4,21 +4,26 @@
   X-Content-Type-Options: nosniff
   X-XSS-Protection: 1; mode=block
   Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: no-cache
 
 # JavaScript modules
 /*.js
   Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000
 
 /*.mjs  
   Content-Type: application/javascript; charset=utf-8
+  Cache-Control: public, max-age=31536000
 
 # CSS files
 /*.css
   Content-Type: text/css; charset=utf-8
+  Cache-Control: public, max-age=31536000
 
 # HTML files
 /*.html
   Content-Type: text/html; charset=utf-8
+  Cache-Control: no-cache, no-store, must-revalidate
 
 # JSON files
 /*.json
@@ -27,19 +32,35 @@
 # Images
 /*.png
   Content-Type: image/png
+  Cache-Control: public, max-age=31536000
 
 /*.jpg
   Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000
 
 /*.jpeg
   Content-Type: image/jpeg
+  Cache-Control: public, max-age=31536000
 
 /*.svg
   Content-Type: image/svg+xml
+  Cache-Control: public, max-age=31536000
 
 /*.ico
   Content-Type: image/x-icon
+  Cache-Control: public, max-age=31536000
 
 # Assets with cache
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# SPA routes - force no cache
+/agendar
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0
+
+/album/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  Pragma: no-cache
+  Expires: 0

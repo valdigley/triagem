@@ -121,18 +121,14 @@ function App() {
                 <Route 
                   path="/agendar" 
                   element={
-                    <div style={{ isolation: 'isolate' }}>
-                      <PublicScheduling />
-                    </div>
+                    <PublicScheduling />
                   } 
                 />
                 {/* Rota pública para seleção de fotos */}
                 <Route 
                   path="/album/:shareToken" 
                   element={
-                    <div style={{ isolation: 'isolate' }}>
-                      <ClientPhotoSelection />
-                    </div>
+                    <ClientPhotoSelection />
                   } 
                 />
                 {/* Rotas do sistema interno */}

@@ -711,7 +711,7 @@ const PublicScheduling: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100" data-testid="public-scheduling">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -727,7 +727,9 @@ const PublicScheduling: React.FC = () => {
                 <Camera className="w-10 h-10 text-white" />
               </div>
             )}
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{studioSettings.businessName}</h1>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              {studioSettings.businessName || 'Carregando...'}
+            </h1>
             <p className="text-xl text-gray-600 mb-6">Agende sua sessão de fotos</p>
             
             {/* Informações do estúdio */}
