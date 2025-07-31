@@ -576,8 +576,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       {albums.length === 0 ? (
         <div className="text-center py-12">
           <Image className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma sessão encontrada</h3>
-          <p className="text-gray-600">As sessões aparecerão aqui automaticamente quando os agendamentos forem confirmados</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma seleção encontrada</h3>
+          <p className="text-gray-600">As seleções aparecerão aqui quando forem criadas ou quando agendamentos forem confirmados</p>
         </div>
       ) : (
         <div className="grid gap-6">
