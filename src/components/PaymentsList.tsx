@@ -541,20 +541,20 @@ const PaymentsList: React.FC = () => {
                       <span className="ml-2 font-medium">
                         {selectedPayment.event.session_type 
                           ? sessionTypeLabels[selectedPayment.event.session_type] || selectedPayment.event.session_type
-                      {selectedPayment.metadata?.net_amount && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Líquido: R$ {selectedPayment.metadata.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          {selectedPayment.metadata.mercadopago_fee && (
-                            <span className="text-red-600 ml-2">
-                              (Taxa: R$ {selectedPayment.metadata.mercadopago_fee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
-                            </span>
-                          )}
-                        </div>
-                      )}
                           : 'Não definido'
                         }
                       </span>
                     </div>
+                    {selectedPayment.metadata?.net_amount && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Líquido: R$ {selectedPayment.metadata.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {selectedPayment.metadata.mercadopago_fee && (
+                          <span className="text-red-600 ml-2">
+                            (Taxa: R$ {selectedPayment.metadata.mercadopago_fee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
