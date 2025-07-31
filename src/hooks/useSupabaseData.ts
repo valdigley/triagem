@@ -246,7 +246,7 @@ export const useSupabaseData = () => {
       // Verificar se Google Calendar está configurado antes de tentar
       const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
       
-      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim()) {
+      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
         try {
           console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
           console.log('📋 Dados do evento:', {
@@ -262,32 +262,20 @@ export const useSupabaseData = () => {
           if (googleCalendarService) {
             console.log('✅ Google Calendar configurado, criando evento...');
             googleEventId = await googleCalendarService.createEvent(eventData);
-            console.log('🎉 Google Calendar event criado com sucesso!');
-            console.log('📅 Event ID:', googleEventId);
-            console.log('🔗 Acesse: https://calendar.google.com para verificar');
+            if (googleEventId) {
+              console.log('🎉 Google Calendar event criado com sucesso!');
+              console.log('📅 Event ID:', googleEventId);
+              console.log('🔗 Acesse: https://calendar.google.com para verificar');
+            } else {
+              console.log('❌ Google Calendar retornou null - token pode estar inválido');
+            }
           } else {
             console.log('❌ Google Calendar não pôde ser inicializado');
           }
           
         } catch (error) {
-          console.error('❌ ERRO no Google Calendar:', error);
-          
-          // Verificar se é erro de autenticação
-          if (error.message?.includes('invalid authentication') || 
-              error.message?.includes('Invalid Credentials') ||
-              error.message?.includes('authError') ||
-              error.message?.includes('token expirado')) {
-            console.warn('🔑 Token do Google Calendar expirado ou inválido');
-            console.warn('💡 Vá em Configurações → Google Calendar para renovar o token');
-            // Não mostrar toast de erro para não confundir o usuário
-            // Não relançar o erro - apenas continuar sem Google Calendar
-          } else {
-            console.error('📝 Detalhes do erro:', error.message);
-          }
-          
-          // Não falhar o processo se o Google Calendar der erro
-          console.log('⚠️ Continuando sem Google Calendar devido ao erro');
-          googleEventId = null; // Garantir que não há ID inválido
+          console.warn('⚠️ Google Calendar falhou silenciosamente, continuando sem sincronização');
+          googleEventId = null;
         }
       } else {
         console.log('❌ Google Calendar não configurado - pulando sincronização');
