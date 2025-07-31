@@ -9,7 +9,34 @@ const Login: React.FC = () => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [isCreatingDefaultUser, setIsCreatingDefaultUser] = useState(false);
   const { login, register, isLoading } = useAuth();
+
+  // Criar usuário padrão para desenvolvimento
+  const createDefaultUser = async () => {
+    setIsCreatingDefaultUser(true);
+    try {
+      const result = await register('admin@triagem.com', '123456', 'Administrador');
+      if (result === true) {
+        toast.success('Usuário padrão criado! Fazendo login...');
+        // Fazer login automaticamente
+        setTimeout(async () => {
+          const loginResult = await login('admin@triagem.com', '123456');
+          if (loginResult === true) {
+            toast.success('Login realizado com sucesso!');
+          } else {
+            toast.error('Erro no login automático. Tente fazer login manualmente.');
+          }
+        }, 1000);
+      } else {
+        toast.error(result);
+      }
+    } catch (error) {
+      toast.error('Erro ao criar usuário padrão');
+    } finally {
+      setIsCreatingDefaultUser(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +163,18 @@ const Login: React.FC = () => {
               ? 'Já tem uma conta? Fazer login' 
               : 'Não tem conta? Criar uma nova'
             }
+          </button>
+        </div>
+
+        {/* Botão para criar usuário padrão */}
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={createDefaultUser}
+            disabled={isLoading || isCreatingDefaultUser}
+            className="text-gray-500 hover:text-gray-700 text-xs font-medium disabled:opacity-50"
+          >
+            {isCreatingDefaultUser ? 'Criando usuário padrão...' : 'Criar usuário padrão (admin@triagem.com)'}
           </button>
         </div>
       </div>
