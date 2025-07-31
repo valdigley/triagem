@@ -1,6 +1,1 @@
-# Cloudflare Pages redirects
-# SPA routing - todas as rotas devem servir index.html
-
-/agendar /index.html 200
-/album/* /index.html 200
 /* /index.html 200
