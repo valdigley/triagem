@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 
 const ApiDocumentation: React.FC = () => {
   const { user } = useAuth();
+  const [apiAccessId, setApiAccessId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
   const [ftpConfig, setFtpConfig] = useState({
@@ -42,6 +43,7 @@ const ApiDocumentation: React.FC = () => {
       }
 
       if (data) {
+        setApiAccessId(data.id);
         setApiKey(data.api_key);
         setWebhookUrl(data.webhook_url || '');
         setFtpConfig(data.ftp_config || {
@@ -66,19 +68,31 @@ const ApiDocumentation: React.FC = () => {
     try {
       const newApiKey = `tk_${Date.now()}_${Math.random().toString(36).substr(2, 16)}`;
       
-      const { error } = await supabase
+      const upsertData: any = {
+        user_id: user.id,
+        api_key: newApiKey,
+        webhook_url: webhookUrl,
+        ftp_config: ftpConfig,
+      };
+
+      if (apiAccessId) {
+        upsertData.id = apiAccessId;
+      }
+
+      const { data, error } = await supabase
         .from('api_access')
-        .upsert({
-          user_id: user.id,
-          api_key: newApiKey,
-          webhook_url: webhookUrl,
-          ftp_config: ftpConfig,
-        });
+        .upsert(upsertData)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error generating API key:', error);
         toast.error('Erro ao gerar nova chave');
         return;
+      }
+
+      if (data && !apiAccessId) {
+        setApiAccessId(data.id);
       }
 
       setApiKey(newApiKey);
@@ -94,19 +108,31 @@ const ApiDocumentation: React.FC = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
+      const upsertData: any = {
+        user_id: user.id,
+        api_key: apiKey,
+        webhook_url: webhookUrl,
+        ftp_config: ftpConfig,
+      };
+
+      if (apiAccessId) {
+        upsertData.id = apiAccessId;
+      }
+
+      const { data, error } = await supabase
         .from('api_access')
-        .upsert({
-          user_id: user.id,
-          api_key: apiKey,
-          webhook_url: webhookUrl,
-          ftp_config: ftpConfig,
-        });
+        .upsert(upsertData)
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving config:', error);
         toast.error('Erro ao salvar configurações');
         return;
+      }
+
+      if (data && !apiAccessId) {
+        setApiAccessId(data.id);
       }
 
       toast.success('Configurações salvas!');
