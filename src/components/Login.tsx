@@ -236,7 +236,10 @@ const Login: React.FC = () => {
             <div>
               <button
                 type="button"
-                onClick={() => setShowForgotPassword(true)}
+                onClick={() => {
+                  setShowForgotPassword(true);
+                  setLoginError(''); // Limpar erro ao ir para recuperação
+                }}
                 className="text-gray-500 hover:text-gray-700 text-sm"
                 disabled={isLoading}
               >
