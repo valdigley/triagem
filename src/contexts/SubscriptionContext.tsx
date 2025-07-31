@@ -91,7 +91,7 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
           plan_type: 'trial',
           status: 'active',
           trial_start_date: new Date().toISOString(),
-          trial_end_date: new Date().toISOString(), // 0 dias
+          trial_end_date: new Date().toISOString(), // Expira imediatamente (0 dias)
           expires_at: new Date().toISOString(),
         })
         .select()
