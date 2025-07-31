@@ -8,7 +8,12 @@ html, body, #root {
   width: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+}
+
+/* Garantir viewport responsivo */
+* {
+  box-sizing: border-box;
 }
 
 /* Garantir que a tela de login ocupe toda a viewport */
@@ -19,6 +24,8 @@ html, body, #root {
   right: 0;
   bottom: 0;
   overflow: hidden;
+  height: 100vh;
+  width: 100vw;
 }
 
 /* Garantir que imagens de fundo preencham completamente */
@@ -27,6 +34,33 @@ html, body, #root {
   height: 100vh;
   object-fit: cover;
   object-position: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* Garantir que o conteúdo da tela de login seja responsivo */
+.login-content {
+  min-height: 100vh;
+  min-height: 100dvh; /* Para dispositivos móveis modernos */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+/* Responsividade específica para mobile */
+@media (max-height: 600px) {
+  .login-content {
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-content {
+    padding: 0.75rem;
+  }
 }
 
 /* Scrollbar personalizada */
