@@ -587,9 +587,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const selectedCount = getSelectedPhotosCount(album.id);
             
             return (
-              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative">
+              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative max-w-2xl mx-auto">
                 {/* Status no canto superior direito */}
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-6 right-6">
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
                     selectedCount > 0 
                       ? 'bg-green-100 text-green-800 border border-green-200' 
@@ -599,15 +599,15 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </span>
                 </div>
 
-                <div className="pr-32 mb-4">
+                <div className="pr-40 mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <Image className="w-5 h-5 text-purple-600" />
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                      <Image className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{album.name}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900">{album.name}</h3>
                       {event && (
-                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                        <p className="text-gray-600 flex items-center gap-1 mt-1">
                           <User className="w-4 h-4" />
                           {event.client_name}
                         </p>
@@ -616,27 +616,30 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
+                <div className="grid grid-cols-3 gap-6 mb-6">
                   {event && (
-                    <div className="flex items-center gap-2 text-gray-600">
+                    <div className="flex items-center gap-2 text-gray-700">
                       <Calendar className="w-4 h-4" />
-                      <span>{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
+                      <span className="font-medium">{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
                     </div>
                   )}
-                  <div className="text-gray-600">
-                    <span className="font-medium">{albumPhotos.length}</span> fotos
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Camera className="w-4 h-4" />
+                    <span><span className="font-medium">{albumPhotos.length}</span> fotos</span>
                   </div>
-                  <div className="text-gray-600">
-                    <span className="font-medium">{selectedCount}</span> selecionadas
+                  <div className="flex items-center gap-2 text-gray-700">
+                    <Eye className="w-4 h-4" />
+                    <span><span className="font-medium">{selectedCount}</span> selecionadas</span>
                   </div>
                 </div>
 
                 {/* Preview das fotos */}
-                {albumPhotos.length > 0 && (
-                  <div className="mb-3">
-                    <div className="flex gap-1 overflow-x-auto pb-1">
+                {albumPhotos.length > 0 ? (
+                  <div className="mb-6">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Preview das Fotos</h4>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
                       {albumPhotos.slice(0, 6).map((photo) => (
-                        <div key={photo.id} className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded overflow-hidden">
+                        <div key={photo.id} className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
                           <img
                             src={photo.thumbnail_path}
                             alt={photo.filename}
@@ -649,11 +652,17 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         </div>
                       ))}
                       {albumPhotos.length > 6 && (
-                        <div className="flex-shrink-0 w-12 h-12 bg-gray-100 rounded flex items-center justify-center">
-                          <span className="text-xs text-gray-500">+{albumPhotos.length - 6}</span>
+                        <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <span className="text-sm text-gray-500 font-medium">+{albumPhotos.length - 6}</span>
                         </div>
                       )}
                     </div>
+                  </div>
+                ) : (
+                  <div className="mb-6 text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600 text-sm">Nenhuma foto carregada</p>
+                    <p className="text-gray-500 text-xs">Adicione fotos para que o cliente possa fazer a seleção</p>
                   </div>
                 )}
 
