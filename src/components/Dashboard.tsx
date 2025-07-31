@@ -100,6 +100,10 @@ const Dashboard: React.FC = () => {
   
   // Receita de clientes (fotos extras)
   const clientRevenue = paidOrdersThisMonth.reduce((sum, order) => sum + order.total_amount, 0);
+  const clientNetRevenue = paidOrdersThisMonth.reduce((sum, order) => {
+    const netAmount = order.metadata?.net_amount || order.total_amount;
+    return sum + netAmount;
+  }, 0);
   
   // Receita dos últimos 6 meses
   const last6MonthsRevenue = [];
@@ -325,7 +329,7 @@ const Dashboard: React.FC = () => {
           }
           icon={DollarSign}
           change={stats.monthlyRevenue > 0 
-            ? `Assinaturas: R$ ${stats.subscriptionRevenue.toFixed(2)} | Clientes: R$ ${stats.clientRevenue.toFixed(2)}`
+            ? `Bruto: R$ ${(stats.subscriptionRevenue + stats.clientRevenue).toFixed(2)} | Líquido: R$ ${(stats.subscriptionRevenue + clientNetRevenue).toFixed(2)}`
             : 'Nenhum pagamento este mês'
           }
         />

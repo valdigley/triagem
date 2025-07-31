@@ -104,10 +104,15 @@ serve(async (req) => {
       const transactionAmount = paymentData.transaction_amount
       const paymentMethodId = paymentData.payment_method_id
       const payerEmail = paymentData.payer?.email
+      const feeDetails = paymentData.fee_details || []
+      const totalFees = feeDetails.reduce((sum: number, fee: any) => sum + (fee.amount || 0), 0)
+      const netAmount = transactionAmount - totalFees
 
       console.log('Payment status:', status)
       console.log('External reference:', externalReference)
       console.log('Amount:', transactionAmount)
+      console.log('Fees:', totalFees)
+      console.log('Net amount:', netAmount)
       console.log('Payer email:', payerEmail)
 
       // Buscar o pedido no nosso banco de dados pelo payment_intent_id
@@ -196,7 +201,16 @@ serve(async (req) => {
         .from('orders')
         .update({ 
           status: newOrderStatus,
-          payment_intent_id: paymentId.toString() // Manter ID original para consultas
+          payment_intent_id: paymentId.toString(), // Manter ID original para consultas
+          metadata: {
+            ...order.metadata,
+            mercadopago_fee: totalFees,
+            net_amount: netAmount,
+            payment_method: paymentMethodId,
+            fee_details: feeDetails,
+            updated_by_webhook: true,
+            webhook_timestamp: new Date().toISOString()
+          }
         })
         .eq('id', order.id)
 

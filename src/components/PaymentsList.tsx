@@ -14,6 +14,12 @@ interface PaymentDetails {
   status: 'pending' | 'paid' | 'cancelled' | 'expired';
   payment_intent_id: string | null;
   created_at: string;
+  metadata?: {
+    payment_type?: string;
+    mercadopago_fee?: number;
+    net_amount?: number;
+    payment_method?: string;
+  };
   event?: {
     client_name: string;
     client_phone: string;
@@ -167,9 +173,20 @@ const PaymentsList: React.FC = () => {
   };
 
   const getTotalRevenue = () => {
-    return payments
+    const grossRevenue = payments
       .filter(p => p.status === 'paid')
       .reduce((sum, p) => sum + p.total_amount, 0);
+    
+    const netRevenue = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => {
+        const netAmount = p.metadata?.net_amount || p.total_amount;
+        return sum + netAmount;
+      }, 0);
+    
+    const totalFees = grossRevenue - netRevenue;
+    
+    return { grossRevenue, netRevenue, totalFees };
   };
 
   const getPaymentStats = () => {
@@ -182,6 +199,7 @@ const PaymentsList: React.FC = () => {
   };
 
   const stats = getPaymentStats();
+  const revenueStats = getTotalRevenue();
 
   if (loading || eventsLoading) {
     return (
@@ -251,9 +269,12 @@ const PaymentsList: React.FC = () => {
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Receita Total</p>
+              <p className="text-sm font-medium text-gray-600">Receita Bruta</p>
               <p className="text-2xl font-bold text-green-600">
-                R$ {getTotalRevenue().toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                R$ {revenueStats.grossRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className="text-xs text-gray-500">
+                Líquido: R$ {revenueStats.netRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
@@ -261,6 +282,27 @@ const PaymentsList: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {revenueStats.totalFees > 0 && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Taxas MP</p>
+                <p className="text-2xl font-bold text-red-600">
+                  R$ {revenueStats.totalFees.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {((revenueStats.totalFees / revenueStats.grossRevenue) * 100).toFixed(1)}% do total
+                </p>
+              </div>
+              <div className="p-3 bg-red-50 rounded-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Payments List */}
@@ -464,6 +506,14 @@ const PaymentsList: React.FC = () => {
                       {getPaymentOrigin(selectedPayment)}
                     </span>
                   </div>
+                  {selectedPayment.metadata?.payment_method && (
+                    <div>
+                      <span className="text-gray-600">Método:</span>
+                      <span className="ml-2 font-medium capitalize">
+                        {selectedPayment.metadata.payment_method}
+                      </span>
+                    </div>
+                  )}
                   <div>
                     <span className="text-gray-600">Data de Criação:</span>
                     <span className="ml-2 font-medium">
@@ -491,6 +541,16 @@ const PaymentsList: React.FC = () => {
                       <span className="ml-2 font-medium">
                         {selectedPayment.event.session_type 
                           ? sessionTypeLabels[selectedPayment.event.session_type] || selectedPayment.event.session_type
+                      {selectedPayment.metadata?.net_amount && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Líquido: R$ {selectedPayment.metadata.net_amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {selectedPayment.metadata.mercadopago_fee && (
+                            <span className="text-red-600 ml-2">
+                              (Taxa: R$ {selectedPayment.metadata.mercadopago_fee.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                            </span>
+                          )}
+                        </div>
+                      )}
                           : 'Não definido'
                         }
                       </span>
