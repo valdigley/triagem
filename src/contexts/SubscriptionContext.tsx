@@ -45,6 +45,13 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
+      // Verificar se as variáveis de ambiente estão configuradas
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.error('Supabase environment variables not configured');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -53,12 +60,17 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error) {
         console.error('Error loading subscription:', error);
+        setLoading(false);
         return;
       }
 
       setSubscription(data);
     } catch (error) {
       console.error('Error loading subscription:', error);
+      // Se for erro de rede/fetch, não mostrar erro para o usuário
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Network error loading subscription - Supabase may not be configured');
+      }
     } finally {
       setLoading(false);
     }
