@@ -709,11 +709,19 @@ const Settings: React.FC = () => {
             <div className="bg-yellow-50 p-4 rounded-lg">
               <h4 className="font-medium text-yellow-900 mb-2">⚠️ Importante:</h4>
               <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• O Access Token expira periodicamente e precisa ser renovado</li>
+                <li>• <strong>O Access Token expira periodicamente</strong> e precisa ser renovado</li>
                 <li>• Configure os escopos: calendar.events</li>
-                <li>• Teste a integração após configurar</li>
+                <li>• <strong>Se houver erro 401</strong>, gere um novo token</li>
                 <li>• Eventos são criados com duração de 2 horas por padrão</li>
               </ul>
+              <div className="mt-3 p-2 bg-yellow-100 rounded">
+                <p className="text-xs text-yellow-900 font-medium">
+                  🔧 Token inválido? Gere um novo em: 
+                  <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline ml-1">
+                    Google Cloud Console
+                  </a>
+                </p>
+              </div>
             </div>
 
             {pricingSettings.googleCalendarAccessToken && (

@@ -250,37 +250,27 @@ export const useSupabaseData = () => {
       if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
         try {
           console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
-          console.log('📋 Dados do evento:', {
-            client_name: eventData.client_name,
-            session_type: eventData.session_type,
-            event_date: eventData.event_date,
-            location: eventData.location
-          });
           
           // Tentar integração real com Google Calendar
           const googleCalendarService = await createGoogleCalendarService(user.id);
           
           if (googleCalendarService) {
-            console.log('✅ Google Calendar configurado, criando evento...');
             googleEventId = await googleCalendarService.createEvent(eventData);
             if (googleEventId) {
-              console.log('🎉 Google Calendar event criado com sucesso!');
-              console.log('📅 Event ID:', googleEventId);
-              console.log('🔗 Acesse: https://calendar.google.com para verificar');
+              console.log('✅ Google Calendar event criado com sucesso');
             } else {
-              console.log('❌ Google Calendar retornou null - token pode estar inválido');
+              console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
             }
           } else {
-            console.log('❌ Google Calendar não pôde ser inicializado');
+            console.warn('⚠️ Google Calendar não configurado');
           }
           
         } catch (error) {
-          console.warn('⚠️ Google Calendar falhou silenciosamente, continuando sem sincronização');
+          console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
           googleEventId = null;
         }
       } else {
-        console.log('❌ Google Calendar não configurado - pulando sincronização');
-        console.log('💡 Configure em: Configurações → Google Calendar');
+        console.log('ℹ️ Google Calendar não configurado');
       }
 
       const { data, error } = await supabase
