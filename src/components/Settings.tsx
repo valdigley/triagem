@@ -40,11 +40,31 @@ const Settings: React.FC = () => {
   const [evolutionApiUrl, setEvolutionApiUrl] = useState('');
   const [evolutionApiKey, setEvolutionApiKey] = useState('');
   const [evolutionInstance, setEvolutionInstance] = useState('');
+  const [showEvolutionKey, setShowEvolutionKey] = useState(false);
+  
+  // Login backgrounds
+  const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
+  const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
+  
+  // Email templates
+  const [emailTemplates, setEmailTemplates] = useState({
+    bookingConfirmation: {
+      enabled: true,
+      subject: '✅ Agendamento Confirmado - {{studioName}}',
+      message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\nEstamos ansiosos para te ver!\n{{studioName}}'
     },
     dayOfReminder: {
       enabled: true,
       subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
       message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
+    }
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, [user]);
+
+  const loadSettings = async () => {
     if (!user) return;
 
     try {
