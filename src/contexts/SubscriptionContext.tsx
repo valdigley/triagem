@@ -104,6 +104,30 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       console.log('New subscription created:', data.id);
       setSubscription(data);
+
+      // Forçar atualização para 0 dias de teste (sobrescrever trigger)
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          trial_end_date: new Date().toISOString(),
+          expires_at: new Date().toISOString(),
+        })
+        .eq('id', data.id);
+
+      if (updateError) {
+        console.error('Error forcing zero trial days:', updateError);
+      } else {
+        console.log('Forced zero trial days successfully');
+        // Recarregar subscription atualizada
+        const { data: updatedSub } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('id', data.id)
+          .single();
+        if (updatedSub) {
+          setSubscription(updatedSub);
+        }
+      }
     } catch (error) {
       console.error('Error creating new subscription:', error);
     }

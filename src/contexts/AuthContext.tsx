@@ -201,7 +201,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('Creating subscription for Google OAuth user');
         
         // Criar subscription de teste
-        const { error: subscriptionError } = await supabase
+        const { data, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert({
             user_id: user.id,
@@ -210,12 +210,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             trial_start_date: new Date().toISOString(),
             trial_end_date: new Date().toISOString(), // Expira imediatamente
             expires_at: new Date().toISOString(), // Expira imediatamente
-          });
+          })
+          .select()
+          .single();
 
         if (subscriptionError) {
           console.error('Error creating subscription:', subscriptionError);
         } else {
           console.log('Subscription created successfully');
+
+          // Forçar atualização para 0 dias de teste (sobrescrever trigger)
+          const { error: updateError } = await supabase
+            .from('subscriptions')
+            .update({
+              trial_end_date: new Date().toISOString(),
+              expires_at: new Date().toISOString(),
+            })
+            .eq('id', data.id);
+
+          if (updateError) {
+            console.error('Error forcing zero trial days:', updateError);
+          } else {
+            console.log('Forced zero trial days successfully');
+          }
         }
       }
 
