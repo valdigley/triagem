@@ -177,8 +177,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.message.includes('Email rate limit exceeded')) {
           return 'Muitas tentativas de cadastro. Aguarde alguns minutos';
         }
+        if (error.message.includes('Database error')) {
+          return 'Erro no banco de dados. Tente novamente em alguns minutos';
+        }
+        if (error.message.includes('Network error') || error.message.includes('fetch')) {
+          return 'Erro de conexão. Verifique sua internet e tente novamente';
+        }
         
-        return error.message || 'Erro ao criar conta';
+        return `Erro no cadastro: ${error.message}`;
       }
 
       console.log('Registration successful:', {
@@ -207,7 +213,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Registration exception:', error instanceof Error ? error.message : 'Unknown error');
       setIsLoading(false);
-      return 'Erro inesperado ao criar conta';
+      return `Erro inesperado ao criar conta: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
     }
   };
 
