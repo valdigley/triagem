@@ -328,6 +328,12 @@ const PublicScheduling: React.FC = () => {
           total_amount: advanceAmount,
           status: 'paid',
           payment_intent_id: paymentData.id.toString(),
+          metadata: {
+            payment_type: 'advance_booking',
+            session_type: pendingEventData.session_type,
+            advance_percentage: studioSettings.advancePaymentPercentage,
+            description: `Pagamento antecipado de ${sessionTypeLabel}`
+          }
         });
 
       if (orderError) {

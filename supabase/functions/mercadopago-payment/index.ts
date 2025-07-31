@@ -109,7 +109,8 @@ serve(async (req) => {
         event_id: event_id || '',
         client_email: payer.email,
         package_type: selected_photos.length > 10 ? 'extra_photos' : 'basic_package',
-        photo_count: selected_photos.length
+        photo_count: selected_photos.length,
+        payment_type: selected_photos.length > 0 ? 'extra_photos' : 'advance_booking'
       }
     }
 

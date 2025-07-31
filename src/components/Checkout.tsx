@@ -356,6 +356,12 @@ const Checkout: React.FC<CheckoutProps> = ({
           total_amount: totalAmount,
           status: 'pending', // Sempre pending inicialmente, webhook atualiza para 'paid'
           payment_intent_id: paymentResult?.id || `local_${Date.now()}`,
+          metadata: {
+            payment_type: 'extra_photos',
+            photo_count: selectedPhotos.length,
+            unit_price: 25.00,
+            description: `Compra de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} extra${selectedPhotos.length > 1 ? 's' : ''}`
+          }
         });
 
       if (orderError) {

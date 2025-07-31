@@ -146,20 +146,24 @@ const PaymentsList: React.FC = () => {
   };
 
   const getPaymentTypeLabel = (amount: number) => {
-    // Determinar se é pagamento de agendamento ou fotos extras
-    // Pagamentos de agendamento geralmente são valores fixos maiores (150-300)
-    // Fotos extras são valores menores e múltiplos do preço unitário (25, 50, 75, etc.)
-    
-    if (amount >= 150 && amount <= 300) {
-      return 'Agendamento';
-    } else if (amount > 0 && amount < 150) {
-      return 'Fotos Extras';
-    } else if (amount > 300) {
-      // Pode ser um pacote grande de fotos extras
-      return 'Fotos Extras';
-    } else {
-      return 'Outros';
+    return 'Fotos Extras';
+  };
+
+  const getPaymentOrigin = (payment: PaymentDetails) => {
+    // Verificar metadata primeiro para identificação precisa
+    if (payment.metadata?.payment_type === 'advance_booking') {
+      return 'Pagamento antecipado do agendamento';
     }
+    if (payment.metadata?.payment_type === 'extra_photos') {
+      return 'Compra de fotos extras';
+    }
+    
+    // Fallback: usar valor para determinar tipo
+    if (payment.total_amount >= 150 && payment.total_amount <= 300) {
+      return 'Pagamento antecipado do agendamento';
+    }
+    
+    return 'Compra de fotos extras';
   };
 
   const getTotalRevenue = () => {
@@ -457,10 +461,7 @@ const PaymentsList: React.FC = () => {
                   <div>
                     <span className="text-gray-600">Origem:</span>
                     <span className="ml-2 font-medium">
-                      {selectedPayment.total_amount >= 150 && selectedPayment.total_amount <= 300 
-                        ? 'Pagamento antecipado do agendamento'
-                        : 'Compra de fotos extras'
-                      }
+                      {getPaymentOrigin(selectedPayment)}
                     </span>
                   </div>
                   <div>
