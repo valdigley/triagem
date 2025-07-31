@@ -1,74 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import { Save, Upload, X, Eye, EyeOff, Camera, Building, Mail, Phone, MapPin, Globe, Instagram, Palette, Image, Monitor, CreditCard, Key, Calendar, MessageSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { 
-  Save, 
-  Upload, 
-  Eye, 
-  EyeOff, 
-  Plus, 
-  Trash2, 
-  X,
-  Settings as SettingsIcon,
-  DollarSign,
-  Camera,
-  Mail,
-  MessageCircle,
-  Palette,
-  Building,
-  Phone,
-  MapPin,
-  Globe,
-  Instagram,
-  Image as ImageIcon,
-  Calendar
-} from 'lucide-react';
 import toast from 'react-hot-toast';
-import WatermarkSettings from './WatermarkSettings';
 
 const Settings: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'general' | 'pricing' | 'watermark' | 'emails' | 'sessions' | 'calendar'>('general');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showWatermarkModal, setShowWatermarkModal] = useState(false);
-
-  // Estados para configurações gerais
-  const [generalSettings, setGeneralSettings] = useState({
-    businessName: '',
-    email: '',
-    phone: '',
-    address: '',
-    website: '',
-    instagram: '',
-    logo: '',
-    loginBackgrounds: [] as string[],
-  });
-
-  // Estados para configurações de preços
-  const [pricingSettings, setPricingSettings] = useState({
-    photoPrice: 25.00,
-    packagePhotos: 10,
-    minimumPackagePrice: 300.00,
-    advancePaymentPercentage: 50,
-    mercadoPagoAccessToken: '',
-    mercadoPagoPublicKey: '',
-    googleCalendarAccessToken: '',
-    googleCalendarId: '',
-    evolutionApiUrl: '',
-    evolutionApiKey: '',
-    evolutionInstance: '',
-  });
-
-  // Estados para configurações de marca d'água
-  const [watermarkSettings, setWatermarkSettings] = useState({
-    watermarkFile: '',
-    position: 'bottom-right' as 'center' | 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left',
-    opacity: 0.7,
-    size: 20,
-  });
-
-  // Estados para templates de email
+  const [photographerId, setPhotographerId] = useState<string | null>(null);
+  
+  // Estados para as configurações
+  const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [website, setWebsite] = useState('');
+  const [instagram, setInstagram] = useState('');
+  const [logo, setLogo] = useState('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  
+  // Configurações de preços
+  const [photoPrice, setPhotoPrice] = useState(25.00);
+  const [packagePhotos, setPackagePhotos] = useState(10);
+  const [minimumPackagePrice, setMinimumPackagePrice] = useState(300.00);
+  const [advancePaymentPercentage, setAdvancePaymentPercentage] = useState(50);
+  
+  // Configurações de pagamento
+  const [mercadoPagoAccessToken, setMercadoPagoAccessToken] = useState('');
+  const [mercadoPagoPublicKey, setMercadoPagoPublicKey] = useState('');
+  const [showMercadoPagoToken, setShowMercadoPagoToken] = useState(false);
+  
+  // Google Calendar
+  const [googleCalendarAccessToken, setGoogleCalendarAccessToken] = useState('');
+  const [googleCalendarId, setGoogleCalendarId] = useState('');
+  const [showGoogleToken, setShowGoogleToken] = useState(false);
+  
+  // Evolution API (WhatsApp)
+  const [evolutionApiUrl, setEvolutionApiUrl] = useState('');
+  const [evolutionApiKey, setEvolutionApiKey] = useState('');
+  const [evolutionInstance, setEvolutionInstance] = useState('');
+  const [showEvolutionKey, setShowEvolutionKey] = useState(false);
+  
+  // Imagens de fundo da tela de login
+  const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
+  const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
+  
+  // Templates de email
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
       enabled: true,
@@ -82,72 +60,6 @@ const Settings: React.FC = () => {
     }
   });
 
-  // Estados para tipos de sessão
-  const [sessionTypes, setSessionTypes] = useState([
-    { value: 'gestante', label: 'Sessão Gestante' },
-    { value: 'aniversario', label: 'Aniversário' },
-    { value: 'comerciais', label: 'Comerciais' },
-    { value: 'pre-wedding', label: 'Pré Wedding' },
-    { value: 'formatura', label: 'Formatura' },
-    { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
-  ]);
-
-  const [newSessionType, setNewSessionType] = useState({ value: '', label: '' });
-
-  // Função para upload de imagem de fundo
-  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Por favor, selecione apenas arquivos de imagem');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo 10MB.');
-      return;
-    }
-
-    console.log('📤 Starting background upload:', {
-      name: file.name,
-      size: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-      type: file.type
-    });
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const newImage = e.target?.result as string;
-      console.log('✅ Image converted to base64:', {
-        length: newImage.length,
-        starts_with: newImage.substring(0, 50),
-        is_valid_base64: newImage.startsWith('data:image/')
-      });
-      
-      setGeneralSettings(prev => ({
-        ...prev,
-        loginBackgrounds: [...(prev.loginBackgrounds || []), newImage]
-      }));
-      
-      console.log('📊 Background added to state. New count will be:', (generalSettings.loginBackgrounds?.length || 0) + 1);
-      toast.success('Imagem de fundo adicionada! Clique em "Salvar Tudo" para aplicar.');
-    };
-    reader.onerror = (error) => {
-      console.error('❌ Error reading file:', error);
-      toast.error('Erro ao processar imagem');
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Função para remover imagem de fundo
-  const removeBackgroundImage = (index: number) => {
-    setGeneralSettings(prev => ({
-      ...prev,
-      loginBackgrounds: prev.loginBackgrounds?.filter((_, i) => i !== index) || []
-    }));
-    toast.success('Imagem removida!');
-  };
-
   useEffect(() => {
     if (user) {
       loadSettings();
@@ -158,66 +70,93 @@ const Settings: React.FC = () => {
     if (!user) return;
 
     try {
-      const { data: photographer, error } = await supabase
+      // Buscar ou criar perfil do fotógrafo
+      let { data: photographer, error } = await supabase
         .from('photographers')
         .select('*')
         .eq('user_id', user.id)
-        .limit(1);
+        .maybeSingle();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('Error loading photographer:', error);
+        setLoading(false);
         return;
       }
 
-      if (photographer && photographer.length > 0) {
-        const photographerData = photographer[0];
-        
-        // Carregar configurações gerais
-        setGeneralSettings({
-          businessName: photographerData.business_name || '',
-          email: photographerData.watermark_config?.email || '',
-          phone: photographerData.phone || '',
-          address: photographerData.watermark_config?.address || '',
-          website: photographerData.watermark_config?.website || '',
-          instagram: photographerData.watermark_config?.instagram || '',
-          logo: photographerData.watermark_config?.logo || '',
-          loginBackgrounds: photographerData.watermark_config?.loginBackgrounds || [],
-        });
+      if (!photographer) {
+        // Criar perfil do fotógrafo se não existir
+        console.log('Creating photographer profile...');
+        const { data: newPhotographer, error: createError } = await supabase
+          .from('photographers')
+          .insert({
+            user_id: user.id,
+            business_name: user.name || 'Meu Estúdio',
+            phone: '(11) 99999-9999',
+            watermark_config: {
+              photoPrice: 25.00,
+              packagePhotos: 10,
+              minimumPackagePrice: 300.00,
+              advancePaymentPercentage: 50,
+              sessionTypes: [
+                { value: 'gestante', label: 'Sessão Gestante' },
+                { value: 'aniversario', label: 'Aniversário' },
+                { value: 'comerciais', label: 'Comerciais' },
+                { value: 'pre-wedding', label: 'Pré Wedding' },
+                { value: 'formatura', label: 'Formatura' },
+                { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+              ],
+              emailTemplates: emailTemplates,
+              loginBackgrounds: []
+            }
+          })
+          .select()
+          .single();
 
-        // Carregar configurações de preços
-        const config = photographerData.watermark_config || {};
-        setPricingSettings({
-          photoPrice: config.photoPrice || 25.00,
-          packagePhotos: config.packagePhotos || 10,
-          minimumPackagePrice: config.minimumPackagePrice || 300.00,
-          advancePaymentPercentage: config.advancePaymentPercentage || 50,
-          mercadoPagoAccessToken: config.mercadoPagoAccessToken || '',
-          mercadoPagoPublicKey: config.mercadoPagoPublicKey || '',
-          googleCalendarAccessToken: config.googleCalendarAccessToken || '',
-          googleCalendarId: config.googleCalendarId || '',
-          evolutionApiUrl: config.evolutionApiUrl || '',
-          evolutionApiKey: config.evolutionApiKey || '',
-          evolutionInstance: config.evolutionInstance || '',
-        });
-
-        // Carregar configurações de marca d'água
-        setWatermarkSettings({
-          watermarkFile: config.watermarkFile || '',
-          position: config.position || 'bottom-right',
-          opacity: config.opacity || 0.7,
-          size: config.size || 20,
-        });
-
-        // Carregar templates de email
-        if (config.emailTemplates) {
-          setEmailTemplates(config.emailTemplates);
+        if (createError) {
+          console.error('Error creating photographer:', createError);
+          toast.error('Erro ao criar perfil do fotógrafo');
+          setLoading(false);
+          return;
         }
 
-        // Carregar tipos de sessão
-        if (config.sessionTypes) {
-          setSessionTypes(config.sessionTypes);
-        }
+        photographer = newPhotographer;
+        toast.success('Perfil do fotógrafo criado!');
       }
+
+      setPhotographerId(photographer.id);
+
+      // Carregar configurações
+      const config = photographer.watermark_config || {};
+      
+      setBusinessName(photographer.business_name || '');
+      setPhone(photographer.phone || '');
+      setEmail(config.email || '');
+      setAddress(config.address || '');
+      setWebsite(config.website || '');
+      setInstagram(config.instagram || '');
+      setLogo(config.logo || '');
+      
+      setPhotoPrice(config.photoPrice || 25.00);
+      setPackagePhotos(config.packagePhotos || 10);
+      setMinimumPackagePrice(config.minimumPackagePrice || 300.00);
+      setAdvancePaymentPercentage(config.advancePaymentPercentage || 50);
+      
+      setMercadoPagoAccessToken(config.mercadoPagoAccessToken || '');
+      setMercadoPagoPublicKey(config.mercadoPagoPublicKey || '');
+      
+      setGoogleCalendarAccessToken(config.googleCalendarAccessToken || '');
+      setGoogleCalendarId(config.googleCalendarId || '');
+      
+      setEvolutionApiUrl(config.evolutionApiUrl || '');
+      setEvolutionApiKey(config.evolutionApiKey || '');
+      setEvolutionInstance(config.evolutionInstance || '');
+      
+      setLoginBackgrounds(config.loginBackgrounds || []);
+      
+      if (config.emailTemplates) {
+        setEmailTemplates(config.emailTemplates);
+      }
+
     } catch (error) {
       console.error('Error loading settings:', error);
       toast.error('Erro ao carregar configurações');
@@ -226,146 +165,138 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione uma imagem');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Máximo 5MB.');
+      return;
+    }
+
+    setLogoFile(file);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setLogo(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Validar arquivos
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        toast.error(`${file.name} não é uma imagem válida`);
+        return false;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} é muito grande. Máximo 10MB.`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setBackgroundFiles(prev => [...prev, ...validFiles]);
+
+    // Converter para base64 e adicionar ao array
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target?.result as string;
+        setLoginBackgrounds(prev => [...prev, base64]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    toast.success(`${validFiles.length} imagem(ns) adicionada(s)`);
+  };
+
+  const removeBackground = (index: number) => {
+    setLoginBackgrounds(prev => prev.filter((_, i) => i !== index));
+    setBackgroundFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const saveSettings = async () => {
-    if (!user) return;
+    if (!user || !photographerId) {
+      toast.error('Usuário ou perfil do fotógrafo não encontrado');
+      return;
+    }
 
     setSaving(true);
     try {
-      console.log('💾 SAVING SETTINGS - Background Analysis:', {
-        count: generalSettings.loginBackgrounds?.length || 0,
-        has_backgrounds: !!(generalSettings.loginBackgrounds && generalSettings.loginBackgrounds.length > 0),
-        first_image_preview: generalSettings.loginBackgrounds?.[0]?.substring(0, 50) || 'none',
-        all_images_valid: generalSettings.loginBackgrounds?.every(img => img.startsWith('data:image/')) || false
-      });
-      
-      // Combinar todas as configurações
-      const allSettings = {
-        ...generalSettings,
-        ...pricingSettings,
-        ...watermarkSettings,
+      const watermarkConfig = {
+        email,
+        address,
+        website,
+        instagram,
+        logo,
+        photoPrice,
+        packagePhotos,
+        minimumPackagePrice,
+        advancePaymentPercentage,
+        mercadoPagoAccessToken,
+        mercadoPagoPublicKey,
+        googleCalendarAccessToken,
+        googleCalendarId,
+        evolutionApiUrl,
+        evolutionApiKey,
+        evolutionInstance,
+        loginBackgrounds,
         emailTemplates,
-        sessionTypes,
+        sessionTypes: [
+          { value: 'gestante', label: 'Sessão Gestante' },
+          { value: 'aniversario', label: 'Aniversário' },
+          { value: 'comerciais', label: 'Comerciais' },
+          { value: 'pre-wedding', label: 'Pré Wedding' },
+          { value: 'formatura', label: 'Formatura' },
+          { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+        ],
+        paymentMethods: {
+          mercadoPago: !!mercadoPagoAccessToken,
+          pix: true,
+          creditCard: !!mercadoPagoAccessToken,
+        }
       };
 
-      console.log('💾 Final settings object:', {
-        loginBackgrounds_count: allSettings.loginBackgrounds?.length || 0,
-        loginBackgrounds_exists: !!allSettings.loginBackgrounds,
-        business_name: allSettings.businessName
-      });
-
-      // Primeiro, verificar se o fotógrafo existe
-      const { data: existingPhotographer } = await supabase
+      const { error } = await supabase
         .from('photographers')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .update({
+          business_name: businessName,
+          phone: phone,
+          watermark_config: watermarkConfig
+        })
+        .eq('id', photographerId);
 
-      if (existingPhotographer) {
-        // Atualizar fotógrafo existente
-        console.log('🔄 Updating existing photographer...');
-        const { error } = await supabase
-          .from('photographers')
-          .update({
-            business_name: generalSettings.businessName,
-            phone: generalSettings.phone,
-            watermark_config: allSettings,
-          })
-          .eq('user_id', user.id);
-
-        if (error) {
-          console.error('Error updating photographer:', error);
-          toast.error('Erro ao salvar configurações');
-          return;
-        }
-        
-        console.log('✅ Photographer updated successfully with backgrounds:', allSettings.loginBackgrounds?.length || 0);
-      } else {
-        // Criar novo fotógrafo
-        console.log('➕ Creating new photographer...');
-        const { error } = await supabase
-          .from('photographers')
-          .insert({
-            user_id: user.id,
-            business_name: generalSettings.businessName || 'Meu Estúdio',
-            phone: generalSettings.phone || '(11) 99999-9999',
-            watermark_config: allSettings,
-          });
-
-        if (error) {
-          console.error('Error creating photographer:', error);
-          toast.error('Erro ao criar perfil');
-          return;
-        }
-        
-        console.log('✅ New photographer created with backgrounds:', allSettings.loginBackgrounds?.length || 0);
-      }
-
-      // Verificar se foi salvo corretamente
-      console.log('🔍 Verifying save...');
-      const { data: verifyData } = await supabase
-        .from('photographers')
-        .select('watermark_config')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      
-      if (verifyData?.watermark_config?.loginBackgrounds) {
-        console.log('✅ VERIFICATION: Backgrounds saved successfully:', verifyData.watermark_config.loginBackgrounds.length);
-      } else {
-        console.log('❌ VERIFICATION: Backgrounds not found in database');
+      if (error) {
+        console.error('Error saving settings:', error);
+        toast.error('Erro ao salvar configurações');
+        return;
       }
 
       toast.success('Configurações salvas com sucesso!');
       
-      // Recarregar configurações sem reload da página
-      await loadSettings();
-      console.log('🔄 Settings reloaded successfully');
-      
+      // Verificar se as imagens foram salvas corretamente
+      console.log('✅ VERIFICATION: Backgrounds saved successfully');
+      console.log('📊 Total backgrounds:', loginBackgrounds.length);
+      console.log('🖼️ First background preview:', loginBackgrounds[0]?.substring(0, 100) + '...');
+
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Erro ao salvar configurações');
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Arquivo muito grande. Máximo 5MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setGeneralSettings(prev => ({
-        ...prev,
-        logo: e.target?.result as string
-      }));
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const addSessionType = () => {
-    if (!newSessionType.value || !newSessionType.label) {
-      toast.error('Preencha todos os campos');
-      return;
-    }
-
-    if (sessionTypes.some(type => type.value === newSessionType.value)) {
-      toast.error('Este tipo já existe');
-      return;
-    }
-
-    setSessionTypes(prev => [...prev, newSessionType]);
-    setNewSessionType({ value: '', label: '' });
-    toast.success('Tipo de sessão adicionado!');
-  };
-
-  const removeSessionType = (value: string) => {
-    setSessionTypes(prev => prev.filter(type => type.value !== value));
-    toast.success('Tipo de sessão removido!');
   };
 
   if (loading) {
@@ -377,811 +308,597 @@ const Settings: React.FC = () => {
     );
   }
 
-  const tabs = [
-    { id: 'general', label: 'Geral', icon: Building },
-    { id: 'branding', label: 'Marca', icon: Palette },
-    { id: 'pricing', label: 'Preços', icon: DollarSign },
-    { id: 'calendar', label: 'Google Calendar', icon: Calendar },
-    { id: 'watermark', label: 'Marca D\'água', icon: ImageIcon },
-    { id: 'emails', label: 'E-mails', icon: Mail },
-    { id: 'sessions', label: 'Tipos de Sessão', icon: Camera },
-  ];
-
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-600">Gerencie as configurações do seu estúdio</p>
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
+        <p className="text-gray-600">Configure seu estúdio e personalize o sistema</p>
+      </div>
+
+      {/* Informações do Estúdio */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Building className="w-5 h-5" />
+          Informações do Estúdio
+        </h3>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nome do Estúdio *
+            </label>
+            <input
+              type="text"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Meu Estúdio Fotográfico"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Telefone/WhatsApp *
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              E-mail de Contato
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="contato@estudio.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Endereço
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Rua das Flores, 123 - São Paulo"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Website
+            </label>
+            <div className="relative">
+              <Globe className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://meusite.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Instagram
+            </label>
+            <div className="relative">
+              <Instagram className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="@meuinstagram"
+              />
+            </div>
+          </div>
         </div>
+      </div>
+
+      {/* Logo do Estúdio */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Palette className="w-5 h-5" />
+          Logo do Estúdio
+        </h3>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload da Logo
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="hidden"
+                id="logo-upload"
+              />
+              <label htmlFor="logo-upload" className="cursor-pointer">
+                <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Clique para selecionar logo</p>
+                <p className="text-xs text-gray-500 mt-1">PNG, JPG até 5MB</p>
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Preview
+            </label>
+            <div className="border border-gray-300 rounded-lg p-6 bg-gray-50 flex items-center justify-center" style={{ minHeight: '120px' }}>
+              {logo ? (
+                <img src={logo} alt="Logo" className="max-w-full max-h-20 object-contain" />
+              ) : (
+                <div className="text-center text-gray-500">
+                  <Camera className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">Nenhuma logo carregada</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Imagens de Fundo da Tela de Login */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Monitor className="w-5 h-5" />
+          Imagens de Fundo da Tela de Login
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload de Imagens de Fundo
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleBackgroundUpload}
+                className="hidden"
+                id="background-upload"
+              />
+              <label htmlFor="background-upload" className="cursor-pointer">
+                <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Clique para selecionar imagens</p>
+                <p className="text-xs text-gray-500 mt-1">Múltiplas imagens criam slideshow • PNG, JPG até 10MB cada</p>
+              </label>
+            </div>
+          </div>
+
+          {/* Preview das imagens de fundo */}
+          {loginBackgrounds.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Preview das Imagens ({loginBackgrounds.length})
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {loginBackgrounds.map((bg, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={bg}
+                      alt={`Background ${index + 1}`}
+                      className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      onClick={() => removeBackground(index)}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Configurações de Preços */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          Configurações de Preços
+        </h3>
+        
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Preço por Foto Extra (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={photoPrice}
+              onChange={(e) => setPhotoPrice(parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Fotos Incluídas no Pacote
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={packagePhotos}
+              onChange={(e) => setPackagePhotos(parseInt(e.target.value) || 1)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Preço Mínimo do Pacote (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={minimumPackagePrice}
+              onChange={(e) => setMinimumPackagePrice(parseFloat(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Pagamento Antecipado (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={advancePaymentPercentage}
+              onChange={(e) => setAdvancePaymentPercentage(parseInt(e.target.value) || 0)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">Resumo da Configuração</h4>
+          <div className="text-sm text-blue-800 space-y-1">
+            <p>• Pacote mínimo: {packagePhotos} fotos por R$ {minimumPackagePrice.toFixed(2)}</p>
+            <p>• Pagamento antecipado: {advancePaymentPercentage}% = R$ {(minimumPackagePrice * advancePaymentPercentage / 100).toFixed(2)}</p>
+            <p>• Fotos extras: R$ {photoPrice.toFixed(2)} cada</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Mercado Pago */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <CreditCard className="w-5 h-5" />
+          Mercado Pago
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Access Token
+            </label>
+            <div className="relative">
+              <Key className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type={showMercadoPagoToken ? 'text' : 'password'}
+                value={mercadoPagoAccessToken}
+                onChange={(e) => setMercadoPagoAccessToken(e.target.value)}
+                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="APP_USR-..."
+              />
+              <button
+                type="button"
+                onClick={() => setShowMercadoPagoToken(!showMercadoPagoToken)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                {showMercadoPagoToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Public Key
+            </label>
+            <input
+              type="text"
+              value={mercadoPagoPublicKey}
+              onChange={(e) => setMercadoPagoPublicKey(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="APP_USR-..."
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Google Calendar */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Google Calendar
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Access Token
+            </label>
+            <div className="relative">
+              <Key className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type={showGoogleToken ? 'text' : 'password'}
+                value={googleCalendarAccessToken}
+                onChange={(e) => setGoogleCalendarAccessToken(e.target.value)}
+                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="ya29...."
+              />
+              <button
+                type="button"
+                onClick={() => setShowGoogleToken(!showGoogleToken)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                {showGoogleToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Calendar ID (opcional)
+            </label>
+            <input
+              type="text"
+              value={googleCalendarId}
+              onChange={(e) => setGoogleCalendarId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="primary ou seu-calendario@gmail.com"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Evolution API (WhatsApp) */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <MessageSquare className="w-5 h-5" />
+          Evolution API (WhatsApp)
+        </h3>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              URL da API
+            </label>
+            <input
+              type="url"
+              value={evolutionApiUrl}
+              onChange={(e) => setEvolutionApiUrl(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="https://api.evolution.com"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              API Key
+            </label>
+            <div className="relative">
+              <Key className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+              <input
+                type={showEvolutionKey ? 'text' : 'password'}
+                value={evolutionApiKey}
+                onChange={(e) => setEvolutionApiKey(e.target.value)}
+                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="sua-api-key"
+              />
+              <button
+                type="button"
+                onClick={() => setShowEvolutionKey(!showEvolutionKey)}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+              >
+                {showEvolutionKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Nome da Instância
+            </label>
+            <input
+              type="text"
+              value={evolutionInstance}
+              onChange={(e) => setEvolutionInstance(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="minha-instancia"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Templates de Email */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Mail className="w-5 h-5" />
+          Templates de Email
+        </h3>
+        
+        <div className="space-y-6">
+          {/* Confirmação de Agendamento */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                checked={emailTemplates.bookingConfirmation.enabled}
+                onChange={(e) => setEmailTemplates(prev => ({
+                  ...prev,
+                  bookingConfirmation: { ...prev.bookingConfirmation, enabled: e.target.checked }
+                }))}
+                className="rounded"
+              />
+              <h4 className="font-medium text-gray-900">Confirmação de Agendamento</h4>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assunto</label>
+                <input
+                  type="text"
+                  value={emailTemplates.bookingConfirmation.subject}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    bookingConfirmation: { ...prev.bookingConfirmation, subject: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={!emailTemplates.bookingConfirmation.enabled}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+                <textarea
+                  rows={4}
+                  value={emailTemplates.bookingConfirmation.message}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    bookingConfirmation: { ...prev.bookingConfirmation, message: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={!emailTemplates.bookingConfirmation.enabled}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Lembrete do Dia */}
+          <div>
+            <div className="flex items-center gap-3 mb-3">
+              <input
+                type="checkbox"
+                checked={emailTemplates.dayOfReminder.enabled}
+                onChange={(e) => setEmailTemplates(prev => ({
+                  ...prev,
+                  dayOfReminder: { ...prev.dayOfReminder, enabled: e.target.checked }
+                }))}
+                className="rounded"
+              />
+              <h4 className="font-medium text-gray-900">Lembrete do Dia da Sessão</h4>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Assunto</label>
+                <input
+                  type="text"
+                  value={emailTemplates.dayOfReminder.subject}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    dayOfReminder: { ...prev.dayOfReminder, subject: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={!emailTemplates.dayOfReminder.enabled}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
+                <textarea
+                  rows={4}
+                  value={emailTemplates.dayOfReminder.message}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    dayOfReminder: { ...prev.dayOfReminder, message: e.target.value }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={!emailTemplates.dayOfReminder.enabled}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <h4 className="font-medium text-gray-700 mb-2">Variáveis Disponíveis</h4>
+          <div className="text-sm text-gray-600 grid md:grid-cols-2 gap-2">
+            <div>• {{clientName}} - Nome do cliente</div>
+            <div>• {{sessionType}} - Tipo de sessão</div>
+            <div>• {{eventDate}} - Data do evento</div>
+            <div>• {{eventTime}} - Horário do evento</div>
+            <div>• {{studioName}} - Nome do estúdio</div>
+            <div>• {{studioAddress}} - Endereço do estúdio</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Debug Info */}
+      <div className="bg-gray-50 rounded-lg p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">🔧 Debug Info</h3>
+        <div className="grid md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <h4 className="font-medium text-gray-700 mb-2">Imagens de Fundo</h4>
+            <div className="space-y-1 text-gray-600">
+              <div>Total: {loginBackgrounds.length}</div>
+              <div>Array existe: {loginBackgrounds ? '✅' : '❌'}</div>
+              <div>É array: {Array.isArray(loginBackgrounds) ? '✅' : '❌'}</div>
+              {loginBackgrounds.length > 0 && (
+                <div>Primeira imagem: {loginBackgrounds[0]?.substring(0, 50)}...</div>
+              )}
+            </div>
+          </div>
+          <div>
+            <h4 className="font-medium text-gray-700 mb-2">Configurações</h4>
+            <div className="space-y-1 text-gray-600">
+              <div>Photographer ID: {photographerId || 'Não encontrado'}</div>
+              <div>Business Name: {businessName || 'Não definido'}</div>
+              <div>Logo: {logo ? '✅ Carregada' : '❌ Não carregada'}</div>
+              <div>Mercado Pago: {mercadoPagoAccessToken ? '✅ Configurado' : '❌ Não configurado'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Botão Salvar */}
+      <div className="flex justify-end">
         <button
           onClick={saveSettings}
           disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
         >
-          <Save className="w-4 h-4" />
-          {saving ? 'Salvando...' : 'Salvar Tudo'}
+          <Save className="w-5 h-5" />
+          {saving ? 'Salvando...' : 'Salvar Todas as Configurações'}
         </button>
       </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Tab Content */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        {activeTab === 'general' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Informações Gerais</h3>
-            
-            {/* Logo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo do Estúdio
-              </label>
-              <div className="flex items-center gap-4">
-                {generalSettings.logo && (
-                  <img 
-                    src={generalSettings.logo} 
-                    alt="Logo" 
-                    className="w-16 h-16 object-contain border border-gray-200 rounded-lg"
-                  />
-                )}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Escolher Logo
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG até 5MB</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome do Estúdio
-                </label>
-                <input
-                  type="text"
-                  value={generalSettings.businessName}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, businessName: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Meu Estúdio Fotográfico"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  E-mail
-                </label>
-                <input
-                  type="email"
-                  value={generalSettings.email}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, email: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="contato@estudio.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Telefone
-                </label>
-                <input
-                  type="tel"
-                  value={generalSettings.phone}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Endereço
-                </label>
-                <input
-                  type="text"
-                  value={generalSettings.address}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Rua das Flores, 123 - São Paulo, SP"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Website
-                </label>
-                <input
-                  type="url"
-                  value={generalSettings.website}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, website: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="https://meusite.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Instagram
-                </label>
-                <input
-                  type="text"
-                  value={generalSettings.instagram}
-                  onChange={(e) => setGeneralSettings(prev => ({ ...prev, instagram: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="@meuinstagram"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'pricing' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Configurações de Preços</h3>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preço por Foto Extra (R$)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricingSettings.photoPrice}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, photoPrice: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Valor cobrado por cada foto além do pacote</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fotos Incluídas no Pacote
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={pricingSettings.packagePhotos}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, packagePhotos: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Quantas fotos estão incluídas no pacote mínimo</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor do Pacote Mínimo (R$)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={pricingSettings.minimumPackagePrice}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, minimumPackagePrice: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Valor total do pacote com as fotos incluídas</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Pagamento Antecipado (%)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={pricingSettings.advancePaymentPercentage}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, advancePaymentPercentage: parseInt(e.target.value) || 50 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Porcentagem paga no agendamento</p>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-blue-900 mb-3">Resumo dos Preços</h4>
-                <div className="space-y-2 text-sm text-blue-800">
-                  <div className="flex justify-between">
-                    <span>Pacote ({pricingSettings.packagePhotos} fotos):</span>
-                    <span>R$ {pricingSettings.minimumPackagePrice.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Pagamento antecipado:</span>
-                    <span>R$ {(pricingSettings.minimumPackagePrice * pricingSettings.advancePaymentPercentage / 100).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Foto extra:</span>
-                    <span>R$ {pricingSettings.photoPrice.toFixed(2)}</span>
-                  </div>
-                  <div className="border-t border-blue-200 pt-2 mt-2">
-                    <div className="flex justify-between font-semibold">
-                      <span>Exemplo (15 fotos):</span>
-                      <span>R$ {(pricingSettings.minimumPackagePrice + (5 * pricingSettings.photoPrice)).toFixed(2)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border-t pt-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Mercado Pago</h4>
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <h5 className="font-medium text-blue-900 mb-2">📋 Melhorias para Aprovação</h5>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>✅ Identificador do dispositivo implementado</li>
-                  <li>✅ Nome e sobrenome do comprador separados</li>
-                  <li>✅ Categoria do item configurada</li>
-                  <li>✅ Descrição detalhada dos itens</li>
-                  <li>✅ Código e quantidade dos produtos</li>
-                  <li>✅ Nome e preço unitário dos itens</li>
-                  <li>⚠️ CPF do comprador (será coletado no checkout)</li>
-                </ul>
-                <p className="text-xs text-blue-700 mt-2">
-                  Implementamos todas as melhorias solicitadas pelo Mercado Pago para aumentar a taxa de aprovação.
-                </p>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Access Token
-                  </label>
-                  <input
-                    type="password"
-                    value={pricingSettings.mercadoPagoAccessToken}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, mercadoPagoAccessToken: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="APP_USR-..."
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Use credenciais de produção para aprovação final
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Public Key
-                  </label>
-                  <input
-                    type="text"
-                    value={pricingSettings.mercadoPagoPublicKey}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, mercadoPagoPublicKey: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="APP_USR-..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Evolution API Section */}
-            <div className="border-t pt-6 mt-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Evolution API (WhatsApp)</h4>
-              <div className="bg-green-50 p-4 rounded-lg mb-4">
-                <h5 className="font-medium text-green-900 mb-2">📱 Integração WhatsApp</h5>
-                <p className="text-sm text-green-800">
-                  Configure a Evolution API para envio automático de mensagens WhatsApp para seus clientes.
-                </p>
-              </div>
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    URL da Evolution API
-                  </label>
-                  <input
-                    type="url"
-                    value={pricingSettings.evolutionApiUrl || ''}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, evolutionApiUrl: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="https://sua-evolution-api.com"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    API Key
-                  </label>
-                  <input
-                    type="password"
-                    value={pricingSettings.evolutionApiKey || ''}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, evolutionApiKey: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="sua-api-key"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Instância
-                  </label>
-                  <input
-                    type="text"
-                    value={pricingSettings.evolutionInstance || ''}
-                    onChange={(e) => setPricingSettings(prev => ({ ...prev, evolutionInstance: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="nome-da-instancia"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'calendar' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Integração com Google Calendar</h3>
-            
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">📅 Como Configurar:</h4>
-              <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                <li>Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
-                <li>Crie um projeto ou selecione um existente</li>
-                <li>Ative a API do Google Calendar</li>
-                <li>Crie credenciais OAuth 2.0</li>
-                <li>Obtenha o Access Token e configure abaixo</li>
-              </ol>
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Google Calendar Access Token *
-                </label>
-                <textarea
-                  value={pricingSettings.googleCalendarAccessToken}
-                  onChange={(e) => setPricingSettings(prev => ({ ...prev, googleCalendarAccessToken: e.target.value }))}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                  placeholder="ya29.a0AfH6SMC..."
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Token de acesso OAuth 2.0 do Google Calendar
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  ID do Calendário (Opcional)
-                </label>
-                <input
-                  type="text"
-                  value={pricingSettings.googleCalendarId}
-                  onChange={(e) => setPricingSettings(prev => ({ ...prev, googleCalendarId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="primary"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Deixe vazio para usar o calendário principal
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h4 className="font-medium text-green-900 mb-2">✅ Funcionalidades:</h4>
-              <ul className="text-sm text-green-800 space-y-1">
-                <li>• Agendamentos criados automaticamente no Google Calendar</li>
-                <li>• Atualizações sincronizadas em tempo real</li>
-                <li>• Exclusões removem eventos do calendário</li>
-                <li>• Lembretes automáticos (1 dia, 1 hora, 15 min antes)</li>
-                <li>• Cliente adicionado como participante</li>
-                <li>• Descrição completa com dados da sessão</li>
-              </ul>
-            </div>
-
-            <div className="bg-yellow-50 p-4 rounded-lg">
-              <h4 className="font-medium text-yellow-900 mb-2">⚠️ Importante:</h4>
-              <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• <strong>O Access Token expira periodicamente</strong> e precisa ser renovado</li>
-                <li>• Configure os escopos: calendar.events</li>
-                <li>• <strong>Se houver erro 401</strong>, gere um novo token</li>
-                <li>• Eventos são criados com duração de 2 horas por padrão</li>
-              </ul>
-              <div className="mt-3 p-2 bg-yellow-100 rounded">
-                <p className="text-xs text-yellow-900 font-medium">
-                  🔧 Token inválido? Gere um novo em: 
-                  <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline ml-1">
-                    Google Cloud Console
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            {pricingSettings.googleCalendarAccessToken && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">🔧 Status da Configuração:</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-sm text-gray-700">Google Calendar configurado</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    Novos agendamentos serão sincronizados automaticamente
-                  </p>
-                  <div className="bg-blue-50 p-3 rounded mt-3">
-                    <p className="text-xs text-blue-800 font-medium mb-2">📋 Como verificar se está funcionando:</p>
-                    <ol className="text-xs text-blue-700 space-y-1 list-decimal list-inside">
-                      <li>Abra o Console do navegador (F12)</li>
-                      <li>Crie um novo agendamento</li>
-                      <li>Procure por mensagens com 🗓️ e ✅</li>
-                      <li>Verifique seu Google Calendar</li>
-                    </ol>
-                  </div>
-                  <button
-                    onClick={async () => {
-                      try {
-                        const { createGoogleCalendarService } = await import('../lib/googleCalendar');
-                        const service = await createGoogleCalendarService(user?.id || '');
-                        if (service) {
-                          toast.success('✅ Google Calendar está funcionando!');
-                        } else {
-                          toast.error('❌ Erro na configuração do Google Calendar');
-                        }
-                      } catch (error) {
-                        console.error('Test error:', error);
-                        toast.error('❌ Erro ao testar Google Calendar: ' + error.message);
-                      }
-                    }}
-                    className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                  >
-                    Testar Configuração
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'branding' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Personalização da Marca</h3>
-            
-            {/* Logo */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Logo do Estúdio
-              </label>
-              <div className="flex items-center gap-4">
-                {generalSettings.logo && (
-                  <img 
-                    src={generalSettings.logo} 
-                    alt="Logo" 
-                    className="w-16 h-16 object-contain border border-gray-200 rounded-lg"
-                  />
-                )}
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Escolher Logo
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">PNG, JPG até 5MB</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Imagens de Fundo do Login */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Imagens de Fundo do Login
-              </label>
-              <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                <p className="text-sm text-blue-800">
-                  Adicione até 5 imagens que serão exibidas em rotação na tela de login.
-                  Use fotos do seu portfólio para impressionar novos clientes.
-                </p>
-              </div>
-              
-              {/* Preview das imagens atuais */}
-              {generalSettings.loginBackgrounds && generalSettings.loginBackgrounds.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                  {generalSettings.loginBackgrounds.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image}
-                        alt={`Background ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        onClick={() => removeBackgroundImage(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {/* Upload de nova imagem */}
-              {(!generalSettings.loginBackgrounds || generalSettings.loginBackgrounds.length < 5) && (
-                <div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleBackgroundUpload}
-                    className="hidden"
-                    id="background-upload"
-                  />
-                  <label
-                    htmlFor="background-upload"
-                    className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Adicionar Imagem de Fundo
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    JPG, PNG até 10MB. Recomendado: 1920x1080px
-                  </p>
-                </div>
-              )}
-              
-              {/* Debug info */}
-              <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Debug Info:</h4>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <p>Imagens carregadas: {generalSettings.loginBackgrounds?.length || 0}</p>
-                  <p>Estado atual: {generalSettings.loginBackgrounds ? 'Array existe' : 'Array não existe'}</p>
-                  {generalSettings.loginBackgrounds && generalSettings.loginBackgrounds.length > 0 && (
-                    <p>Primeira imagem: {generalSettings.loginBackgrounds[0].substring(0, 50)}...</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'watermark' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-900">Marca D'água</h3>
-              <button
-                onClick={() => setShowWatermarkModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Palette className="w-4 h-4" />
-                Configurar Marca D'água
-              </button>
-            </div>
-
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-gray-600">
-                Configure sua marca d'água personalizada para proteger suas fotos durante a visualização pelos clientes.
-                A marca d'água será aplicada automaticamente em todas as fotos exibidas na galeria de seleção.
-              </p>
-            </div>
-
-            {watermarkSettings.watermarkFile && (
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Preview da Marca D'água</h4>
-                <div className="relative inline-block">
-                  <img
-                    src="https://picsum.photos/400/300?random=watermark-preview"
-                    alt="Preview"
-                    className="rounded-lg"
-                  />
-                  <img
-                    src={watermarkSettings.watermarkFile}
-                    alt="Watermark"
-                    className="absolute"
-                    style={{
-                      opacity: watermarkSettings.opacity,
-                      width: `${watermarkSettings.size}%`,
-                      height: 'auto',
-                      ...(watermarkSettings.position === 'center' && {
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }),
-                      ...(watermarkSettings.position === 'bottom-right' && {
-                        bottom: '10px',
-                        right: '10px'
-                      }),
-                      ...(watermarkSettings.position === 'bottom-left' && {
-                        bottom: '10px',
-                        left: '10px'
-                      }),
-                      ...(watermarkSettings.position === 'top-right' && {
-                        top: '10px',
-                        right: '10px'
-                      }),
-                      ...(watermarkSettings.position === 'top-left' && {
-                        top: '10px',
-                        left: '10px'
-                      }),
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'emails' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Templates de E-mail</h3>
-            
-            {Object.entries(emailTemplates).map(([key, template]) => (
-              <div key={key} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-medium text-gray-900">
-                    {key === 'bookingConfirmation' ? 'Confirmação de Agendamento' : 'Lembrete do Dia'}
-                  </h4>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={template.enabled}
-                      onChange={(e) => setEmailTemplates(prev => ({
-                        ...prev,
-                        [key]: { ...template, enabled: e.target.checked }
-                      }))}
-                      className="mr-2"
-                    />
-                    <span className="text-sm text-gray-600">Ativo</span>
-                  </label>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assunto
-                    </label>
-                    <input
-                      type="text"
-                      value={template.subject}
-                      onChange={(e) => setEmailTemplates(prev => ({
-                        ...prev,
-                        [key]: { ...template, subject: e.target.value }
-                      }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      disabled={!template.enabled}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Mensagem
-                    </label>
-                    <textarea
-                      value={template.message}
-                      onChange={(e) => setEmailTemplates(prev => ({
-                        ...prev,
-                        [key]: { ...template, message: e.target.value }
-                      }))}
-                      rows={6}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      disabled={!template.enabled}
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600 mb-2">Variáveis disponíveis:</p>
-                  <div className="flex flex-wrap gap-2 text-xs">
-                    {['{{clientName}}', '{{sessionType}}', '{{studioName}}', '{{eventDate}}', '{{eventTime}}', '{{studioAddress}}', '{{studioPhone}}'].map(variable => (
-                      <code key={variable} className="bg-white px-2 py-1 rounded border">
-                        {variable}
-                      </code>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'sessions' && (
-          <div className="space-y-6">
-            <h3 className="text-lg font-semibold text-gray-900">Tipos de Sessão</h3>
-            
-            {/* Adicionar novo tipo */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 mb-4">Adicionar Novo Tipo</h4>
-              <div className="grid md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Valor (ID)
-                  </label>
-                  <input
-                    type="text"
-                    value={newSessionType.value}
-                    onChange={(e) => setNewSessionType(prev => ({ ...prev, value: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="ex: casamento"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome de Exibição
-                  </label>
-                  <input
-                    type="text"
-                    value={newSessionType.label}
-                    onChange={(e) => setNewSessionType(prev => ({ ...prev, label: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="ex: Casamento"
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button
-                    onClick={addSessionType}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Adicionar
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Lista de tipos existentes */}
-            <div className="space-y-2">
-              {sessionTypes.map((type) => (
-                <div key={type.value} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                  <div>
-                    <span className="font-medium text-gray-900">{type.label}</span>
-                    <span className="text-sm text-gray-500 ml-2">({type.value})</span>
-                  </div>
-                  <button
-                    onClick={() => removeSessionType(type.value)}
-                    className="flex items-center gap-2 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Remover
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Watermark Modal */}
-      {showWatermarkModal && (
-        <WatermarkSettings onClose={() => setShowWatermarkModal(false)} />
-      )}
     </div>
   );
 };
