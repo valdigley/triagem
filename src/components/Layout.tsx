@@ -12,7 +12,8 @@ import {
   X,
   CreditCard,
   Crown,
-  Code
+  Code,
+  Clock
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
