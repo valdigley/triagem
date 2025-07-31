@@ -589,16 +589,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             
             return (
               <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative w-full">
-                {/* Status no canto superior direito */}
-                <div className="absolute top-6 right-6">
-                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
-                    selectedCount > 0 
-                      ? 'bg-green-100 text-green-800 border border-green-200' 
-                      : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                  }`}>
-                    {selectedCount > 0 ? 'Seleção Feita' : 'Aguardando Seleção'}
-                  </span>
-                </div>
                 {/* Header compacto */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
@@ -611,6 +601,17 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         <p className="text-sm text-gray-600">{event.client_name}</p>
                       )}
                     </div>
+                  </div>
+                  
+                  {/* Status da seleção */}
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                      selectedCount > 0 
+                        ? 'bg-green-100 text-green-800 border border-green-200' 
+                        : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                    }`}>
+                      {selectedCount > 0 ? 'Seleção Feita' : 'Aguardando Seleção'}
+                    </span>
                   </div>
                 </div>
 
@@ -634,7 +635,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
                 {/* Campo para adicionar/editar link do Google Drive */}
                 {selectedCount > 0 && (
-                  <div className="mb-3 bg-blue-50 rounded-lg p-3">
+                  <div className="mb-3 bg-blue-50 rounded-lg p-3 mr-64">
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-xs font-medium text-blue-900 flex items-center gap-1">
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -708,7 +709,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 )}
                 {/* Preview das fotos */}
                 {/* Histórico da Seleção */}
-                <div className="absolute top-4 right-4 bg-gray-50 rounded-lg p-3 max-w-xs">
+                <div className="absolute top-16 right-4 bg-gray-50 rounded-lg p-3 w-60 z-10">
                   <h4 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
                     <Clock className="w-4 h-4" />
                     Histórico
