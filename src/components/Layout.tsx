@@ -64,7 +64,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     ...(isMasterUser ? [
       { name: 'Assinaturas', key: 'subscriptions', icon: Crown },
       { name: 'API & FTP', key: 'api', icon: Code },
-      { name: 'Teste Subscription', key: 'subscription-test', icon: Crown },
     ] : []),
     { name: 'Configurações', key: 'settings', icon: Settings },
   ];

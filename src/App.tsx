@@ -19,7 +19,6 @@ import PaymentsList from './components/PaymentsList';
 import ClientsList from './components/ClientsList';
 import SubscriptionManagement from './components/SubscriptionManagement';
 import ApiDocumentation from './components/ApiDocumentation';
-import SubscriptionTest from './components/SubscriptionTest';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -72,8 +71,6 @@ const AppContent: React.FC = () => {
         return <ApiDocumentation />;
       case 'settings':
         return <Settings />;
-      case 'subscription-test':
-        return <SubscriptionTest />;
       case 'gallery':
         if (!selectedAlbumId) {
           return (
