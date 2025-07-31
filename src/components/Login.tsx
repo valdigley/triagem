@@ -46,13 +46,25 @@ const Login: React.FC = () => {
       return;
     }
 
+    // Validações adicionais para registro
+    if (isRegisterMode) {
+      if (password.length < 6) {
+        toast.error('A senha deve ter pelo menos 6 caracteres');
+        return;
+      }
+      if (name.length < 2) {
+        toast.error('O nome deve ter pelo menos 2 caracteres');
+        return;
+      }
+    }
+
     const result = isRegisterMode 
       ? await register(email, password, name)
       : await login(email, password);
       
     if (result === true) {
       if (isRegisterMode) {
-        toast.success('Conta criada com sucesso! Verifique seu e-mail.');
+        toast.success('Conta criada com sucesso!');
       } else {
         toast.success('Login realizado com sucesso!');
       }

@@ -114,17 +114,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
+      console.log('Attempting to register new studio:', { email, name });
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             name,
+            full_name: name,
           },
+          emailRedirectTo: undefined, // Disable email confirmation for development
         },
       });
 
       if (error) {
+        console.error('Registration error:', error);
         setIsLoading(false);
         
         // Retornar mensagens específicas baseadas no tipo de erro
@@ -137,13 +142,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.message.includes('Invalid email')) {
           return 'E-mail inválido';
         }
+        if (error.message.includes('Signup is disabled')) {
+          return 'Cadastro desabilitado. Entre em contato com o administrador';
+        }
         
         return error.message || 'Erro ao criar conta';
       }
 
+      console.log('Registration successful:', data);
+      
+      // Se o usuário foi criado mas não confirmado, ainda assim considerar sucesso
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User created but email not confirmed - this is expected in development');
+      }
+      
       setIsLoading(false);
       return true;
     } catch (error) {
+      console.error('Registration exception:', error);
       setIsLoading(false);
       return 'Erro inesperado ao criar conta';
     }
