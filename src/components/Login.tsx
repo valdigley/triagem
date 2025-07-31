@@ -14,6 +14,8 @@ const Login: React.FC = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [loginError, setLoginError] = useState('');
   const [registerError, setRegisterError] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
   const { login, register, isLoading, resetPassword } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -72,14 +74,10 @@ const Login: React.FC = () => {
 
     if (result === true) {
       if (isRegisterMode) {
-        toast.success('🎉 Conta criada com sucesso! Você pode fazer login agora.');
-        // Limpar formulário e voltar para login
-        setEmail('');
-        setPassword('');
-        setName('');
-        setWhatsapp('');
-        setRegisterError('');
-        setIsRegisterMode(false);
+        // Mostrar tela de sucesso
+        setRegistrationSuccess(true);
+        setRegisteredEmail(email);
+        toast.success('🎉 Conta criada com sucesso!');
       } else {
         toast.success('Login realizado com sucesso!');
       }
@@ -92,6 +90,17 @@ const Login: React.FC = () => {
         toast.error(`❌ ${result}`);
       }
     }
+  };
+
+  const handleBackToLogin = () => {
+    setRegistrationSuccess(false);
+    setRegisteredEmail('');
+    setEmail('');
+    setPassword('');
+    setName('');
+    setWhatsapp('');
+    setRegisterError('');
+    setIsRegisterMode(false);
   };
 
   const handleForgotPassword = async (e: React.FormEvent) => {
@@ -129,6 +138,73 @@ const Login: React.FC = () => {
           </p>
         </div>
 
+        {/* Tela de Sucesso do Cadastro */}
+        {registrationSuccess ? (
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+              <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                🎉 Cadastro Realizado com Sucesso!
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Sua conta foi criada e você já pode fazer login no sistema.
+              </p>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-green-900 mb-4">
+                ✅ Próximos Passos
+              </h3>
+              <div className="text-left space-y-3 text-green-800">
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</div>
+                  <div>
+                    <p className="font-medium">Faça seu primeiro login</p>
+                    <p className="text-sm text-green-700">Use o e-mail: <strong>{registeredEmail}</strong></p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</div>
+                  <div>
+                    <p className="font-medium">Configure seu estúdio</p>
+                    <p className="text-sm text-green-700">Adicione logo, preços e informações de contato</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</div>
+                  <div>
+                    <p className="font-medium">Comece a usar</p>
+                    <p className="text-sm text-green-700">Crie agendamentos e compartilhe fotos com clientes</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-medium text-blue-900 mb-2">🎁 Período de Teste</h4>
+              <p className="text-sm text-blue-800">
+                Você tem <strong>7 dias gratuitos</strong> para testar todas as funcionalidades do sistema.
+                Após o período, assine por apenas <strong>R$ 30,00/mês</strong>.
+              </p>
+            </div>
+
+            <button
+              onClick={handleBackToLogin}
+              className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium"
+            >
+              Fazer Login Agora
+            </button>
+
+            <p className="text-xs text-gray-500">
+              Precisa de ajuda? Entre em contato pelo WhatsApp
+            </p>
+          </div>
+        ) : (
         {showForgotPassword ? (
           <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
@@ -172,6 +248,7 @@ const Login: React.FC = () => {
             </button>
           </form>
         ) : (
+        )}
           <form onSubmit={handleSubmit} className="space-y-6">
           {isRegisterMode && (
             <div>
