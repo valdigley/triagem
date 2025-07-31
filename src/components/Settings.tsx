@@ -185,7 +185,6 @@ const Settings: React.FC = () => {
         .limit(1);
 
       if (existingPhotographer && existingPhotographer.length > 0) {
-      if (existingPhotographer) {
         // Atualizar fotógrafo existente
         const { error } = await supabase
           .from('photographers')
