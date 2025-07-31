@@ -67,8 +67,9 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Clock className="w-8 h-8 text-blue-600" />
             </div>
+          )}
         {!isMasterUser && !hasActiveAccess && (
-
+          <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             {isMasterUser ? 'Conta Master' : isTrialExpired ? 'Período de Teste Expirado' : 'Acesso Limitado'}
           </h1>
@@ -77,25 +78,6 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
             {isMasterUser 
               ? 'Você tem acesso total ao sistema'
               : isTrialExpired 
-        {!isMasterUser && hasActiveAccess && (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Assinatura Ativa</h2>
-            <p className="text-gray-600 mb-4">
-              Você tem acesso completo ao sistema por mais {daysRemaining} dias.
-            </p>
-            <button
-              onClick={handleUpgradeClick}
-              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-medium flex items-center justify-center gap-2"
-            >
-              <CreditCard className="w-5 h-5" />
-              Renovar Assinatura
-            </button>
-          </div>
-        )}
-
               ? 'Seu período de teste de 7 dias expirou. Assine para continuar usando o sistema.'
               : `Você tem ${daysRemaining} dias restantes no seu período de teste.`
             }
@@ -159,6 +141,26 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
               Você ainda pode usar o sistema por {daysRemaining} dias
             </p>
           )}
+          </div>
+        )}
+        {!isMasterUser && hasActiveAccess && (
+          <div className="text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-8 h-8 text-green-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Assinatura Ativa</h2>
+            <p className="text-gray-600 mb-4">
+              Você tem acesso completo ao sistema por mais {daysRemaining} dias.
+            </p>
+            <button
+              onClick={handleUpgradeClick}
+              className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <CreditCard className="w-5 h-5" />
+              Renovar Assinatura
+            </button>
+          </div>
+        )}
         </div>
       </div>
     </div>
