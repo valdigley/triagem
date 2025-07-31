@@ -38,6 +38,15 @@ const Login: React.FC = () => {
         toast.error('WhatsApp deve ter pelo menos 10 dígitos');
         return;
       }
+      
+      // Validar formato do WhatsApp
+      const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/;
+      if (!phoneRegex.test(whatsapp) && whatsapp.replace(/\D/g, '').length < 10) {
+        setRegisterError('Formato de WhatsApp inválido. Use: (11) 99999-9999');
+        toast.error('Formato de WhatsApp inválido. Use: (11) 99999-9999');
+        return;
+      }
+      
       if (password.length < 6) {
         setRegisterError('A senha deve ter pelo menos 6 caracteres');
         toast.error('A senha deve ter pelo menos 6 caracteres');
@@ -254,28 +263,29 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          <div>
-            <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-2">
-              WhatsApp *
-            </label>
-            <div className="relative">
-              <MessageCircle className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-              <input
-                id="whatsapp"
-                type="tel"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="(11) 99999-9999"
-                disabled={isLoading}
-              />
+          {isRegisterMode && (
+            <div>
+              <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-2">
+                WhatsApp *
+              </label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  id="whatsapp"
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="(11) 99999-9999"
+                  disabled={isLoading}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Necessário para suporte e comunicação sobre sua conta
+              </p>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Necessário para suporte e comunicação sobre sua conta
-            </p>
-          </div>
+          )}
 
-          <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
               Senha
             </label>
