@@ -105,8 +105,6 @@ const WatermarkSettings: React.FC<WatermarkSettingsProps> = ({ onClose }) => {
 
         if (photographer && photographer.length > 0 && photographer[0].watermark_config) {
           const config = photographer[0].watermark_config;
-        if (photographer && photographer.watermark_config) {
-          const config = photographer.watermark_config;
           if (config.watermarkFile) setWatermarkPreview(config.watermarkFile);
           if (config.position) setPosition(config.position);
           if (config.opacity) setOpacity(config.opacity);
