@@ -50,13 +50,13 @@ const Settings: React.FC = () => {
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
       enabled: true,
-      subject: "✅ Agendamento Confirmado - {{studioName}}",
-      message: "Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\nEstamos ansiosos para te ver!\n{{studioName}}"
+      subject: '✅ Agendamento Confirmado - {{studioName}}',
+      message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\nEstamos ansiosos para te ver!\n{{studioName}}'
     },
     dayOfReminder: {
       enabled: true,
-      subject: "🎉 Hoje é o dia da sua sessão! - {{studioName}}",
-      message: "Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}"
+      subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+      message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
     }
   });
 
