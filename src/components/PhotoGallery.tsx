@@ -515,15 +515,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                     {selectedPhotos.has(albumPhotos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
                   </button>
                 )}
-                
-                {!isClientView && (
-                  <button
-                    onClick={() => startEditingComment(albumPhotos[lightboxPhotoIndex].id)}
-                    className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
-                  >
-                    💬 Comentar
-                  </button>
-                )}
               </div>
             </div>
           </div>
