@@ -206,6 +206,11 @@ const Dashboard: React.FC = () => {
   }
 
   const stats = {
+    eventsThisMonth: events.filter(event => {
+      const eventDate = new Date(event.created_at);
+      return eventDate.getMonth() === currentMonth && 
+             eventDate.getFullYear() === currentYear;
+    }).length,
     totalEvents: events.length,
     activeAlbums: albums.filter(album => album.isActive).length,
     pendingSelections: albums.filter(album => {
@@ -360,10 +365,9 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <StatCard
           title="Eventos Este Mês"
-          value={stats.totalEvents}
+          value={stats.eventsThisMonth}
           icon={Calendar}
-          change="+12% vs mês anterior"
-          changeType="positive"
+          change={`${stats.totalEvents} eventos no total`}
         />
         <StatCard
           title="Sessões Ativas"
