@@ -99,6 +99,11 @@ const Settings: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error('Por favor, selecione apenas arquivos de imagem');
+      return;
+    }
+
     if (file.size > 10 * 1024 * 1024) {
       toast.error('Arquivo muito grande. Máximo 10MB.');
       return;
@@ -115,7 +120,7 @@ const Settings: React.FC = () => {
       const newImage = e.target?.result as string;
       console.log('✅ Image converted to base64:', {
         length: newImage.length,
-        starts_with: newImage.substring(0, 30),
+        starts_with: newImage.substring(0, 50),
         is_valid_base64: newImage.startsWith('data:image/')
       });
       
@@ -125,7 +130,7 @@ const Settings: React.FC = () => {
       }));
       
       console.log('📊 Background added to state. New count will be:', (generalSettings.loginBackgrounds?.length || 0) + 1);
-      toast.success('Imagem de fundo adicionada! Salve as configurações para aplicar.');
+      toast.success('Imagem de fundo adicionada! Clique em "Salvar Tudo" para aplicar.');
     };
     reader.onerror = (error) => {
       console.error('❌ Error reading file:', error);

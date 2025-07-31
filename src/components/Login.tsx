@@ -42,11 +42,13 @@ const Login: React.FC = () => {
   const loadStudioSettings = async () => {
     try {
       console.log('🔍 Loading studio settings for login background...');
-      // Carregar configurações de TODOS os fotógrafos para encontrar imagens personalizadas
+      
+      // Buscar configurações do primeiro fotógrafo com imagens personalizadas
       const { data: photographer, error } = await supabase
         .from('photographers')
         .select('business_name, watermark_config')
-        .not('watermark_config', 'is', null);
+        .not('watermark_config', 'is', null)
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('❌ Error loading photographers:', error);
@@ -90,6 +92,12 @@ const Login: React.FC = () => {
           selectedPhotographer = photographer[0];
         }
         
+        console.log('🎯 Final selected photographer:', {
+          business_name: selectedPhotographer?.business_name,
+          has_watermark_config: !!selectedPhotographer?.watermark_config,
+          has_backgrounds: !!(selectedPhotographer?.watermark_config?.loginBackgrounds?.length > 0)
+        });
+        
         // Logo personalizada
         if (selectedPhotographer.watermark_config?.logo) {
           console.log('🖼️ Setting studio logo');
@@ -111,13 +119,11 @@ const Login: React.FC = () => {
             Array.isArray(customBackgrounds) && 
             customBackgrounds.length > 0) {
           console.log('✅ Setting custom background images:', customBackgrounds.length);
-          console.log('🖼️ First image preview:', customBackgrounds[0].substring(0, 100) + '...');
+          console.log('🖼️ First image preview:', customBackgrounds[0]?.substring(0, 50) + '...');
           setBackgroundImages(customBackgrounds);
           
-          // Forçar re-render
-          setTimeout(() => {
-            console.log('🔄 Background images state after timeout:', customBackgrounds.length);
-          }, 100);
+          // Verificar se foi aplicado
+          console.log('🔄 Background images applied to state');
         } else {
           console.log('⚠️ No valid custom backgrounds, using defaults');
           // Imagens padrão de alta qualidade para estúdios fotográficos
