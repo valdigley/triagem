@@ -30,7 +30,53 @@ const Dashboard: React.FC = () => {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   
-  // Pedidos pagos do mês atual
+  // Buscar receita de assinaturas (não de clientes)
+  const [subscriptionRevenue, setSubscriptionRevenue] = React.useState(0);
+  const [subscriptionStats, setSubscriptionStats] = React.useState({
+    totalSubscriptions: 0,
+    activeSubscriptions: 0,
+    monthlyRevenue: 0,
+  });
+
+  // Carregar dados de assinaturas
+  React.useEffect(() => {
+    loadSubscriptionStats();
+  }, []);
+
+  const loadSubscriptionStats = async () => {
+    try {
+      // Buscar transações de assinatura do mês atual
+      const { data: transactions } = await supabase
+        .from('payment_transactions')
+        .select('amount, created_at, status')
+        .eq('status', 'approved')
+        .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
+        .lt('created_at', new Date(currentYear, currentMonth + 1, 1).toISOString());
+
+      const monthlyRevenue = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+
+      // Buscar total de assinaturas ativas
+      const { data: subscriptions } = await supabase
+        .from('subscriptions')
+        .select('status, plan_type, expires_at, trial_end_date');
+
+      const now = new Date();
+      const activeSubscriptions = subscriptions?.filter(s => {
+        const expiresAt = s.expires_at ? new Date(s.expires_at) : new Date(s.trial_end_date);
+        return s.status === 'active' && expiresAt > now;
+      }).length || 0;
+
+      setSubscriptionStats({
+        totalSubscriptions: subscriptions?.length || 0,
+        activeSubscriptions,
+        monthlyRevenue,
+      });
+    } catch (error) {
+      console.error('Error loading subscription stats:', error);
+    }
+  };
+  
+  // Pedidos pagos do mês atual (clientes)
   const paidOrdersThisMonth = orders.filter(order => {
     const orderDate = new Date(order.created_at);
     return order.status === 'paid' && 
@@ -38,8 +84,8 @@ const Dashboard: React.FC = () => {
            orderDate.getFullYear() === currentYear;
   });
   
-  // Receita mensal real
-  const monthlyRevenue = paidOrdersThisMonth.reduce((sum, order) => sum + order.total_amount, 0);
+  // Receita de clientes (fotos extras)
+  const clientRevenue = paidOrdersThisMonth.reduce((sum, order) => sum + order.total_amount, 0);
   
   // Receita dos últimos 6 meses
   const last6MonthsRevenue = [];
@@ -49,6 +95,7 @@ const Dashboard: React.FC = () => {
     const month = date.getMonth();
     const year = date.getFullYear();
     
+    // Combinar receita de assinaturas + clientes
     const monthOrders = orders.filter(order => {
       const orderDate = new Date(order.created_at);
       return order.status === 'paid' && 
@@ -56,7 +103,14 @@ const Dashboard: React.FC = () => {
              orderDate.getFullYear() === year;
     });
     
-    const monthRevenue = monthOrders.reduce((sum, order) => sum + order.total_amount, 0);
+    const clientMonthRevenue = monthOrders.reduce((sum, order) => sum + order.total_amount, 0);
+    
+    // Para mês atual, usar dados reais de assinatura
+    const subscriptionMonthRevenue = (month === currentMonth && year === currentYear) 
+      ? subscriptionStats.monthlyRevenue 
+      : 0; // Para meses anteriores, assumir 0 (implementar busca histórica se necessário)
+    
+    const monthRevenue = clientMonthRevenue + subscriptionMonthRevenue;
     
     last6MonthsRevenue.push({
       month: date.toLocaleDateString('pt-BR', { month: 'short' }),
@@ -92,11 +146,13 @@ const Dashboard: React.FC = () => {
       const selectedPhotos = albumPhotos.filter(p => p.isSelected);
       return albumPhotos.length > 0 && selectedPhotos.length === 0;
     }).length,
-    monthlyRevenue: monthlyRevenue,
+    monthlyRevenue: subscriptionStats.monthlyRevenue + clientRevenue,
     completedEvents: events.filter(e => e.status === 'completed').length,
     totalPhotos: photos.length,
-    totalRevenue: orders.filter(o => o.status === 'paid').reduce((sum, o) => sum + o.total_amount, 0),
+    totalRevenue: orders.filter(o => o.status === 'paid').reduce((sum, o) => sum + o.total_amount, 0) + subscriptionStats.monthlyRevenue,
     paidOrders: orders.filter(o => o.status === 'paid').length,
+    subscriptionRevenue: subscriptionStats.monthlyRevenue,
+    clientRevenue: clientRevenue,
   };
 
   // Usar dados reais calculados
@@ -250,7 +306,7 @@ const Dashboard: React.FC = () => {
           title="Receita Mensal"
           value={`R$ ${stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={DollarSign}
-          change={stats.paidOrders > 0 ? `${stats.paidOrders} pedidos pagos` : 'Nenhum pedido pago'}
+          change={`Assinaturas: R$ ${stats.subscriptionRevenue.toFixed(2)} | Clientes: R$ ${stats.clientRevenue.toFixed(2)}`}
         />
         <StatCard
           title="Total de Clientes"
