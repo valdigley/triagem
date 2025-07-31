@@ -533,15 +533,27 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 Selecione suas fotos favoritas
               </h3>
               <div className="text-blue-700">
-                <p className="mb-2">
-                  <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
-                </p>
-                <p className="text-sm">
-                  Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
-                  {pricingConfig.packagePhotos > 5 && (
-                    <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
-                  )}
-                </p>
+                {checkAdvancePayment() ? (
+                  <>
+                    <p className="mb-2">
+                      <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
+                    </p>
+                    <p className="text-sm">
+                      Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
+                      <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mb-2">
+                      <strong>Agendamento manual</strong> - todas as fotos são cobradas
+                    </p>
+                    <p className="text-sm">
+                      Preço por foto: R$ {pricingConfig.photoPrice.toFixed(2)}
+                      <span className="text-green-600 ml-1">(Descontos: 5% para 5+ fotos, 10% para 10+ fotos)</span>
+                    </p>
+                  </>
+                )}
               </div>
             </div>
           </div>
