@@ -47,6 +47,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSupabaseUser(null);
           setUser(null);
         } else if (session?.user) {
+          console.log('Session user found:', session.user.email);
+          
+          // Para usuários do Google OAuth, criar perfil automaticamente se necessário
+          if (session.user.app_metadata?.provider === 'google') {
+            await handleGoogleUserSetup(session.user);
+          }
+          
           setSupabaseUser(session.user);
           setUser({
             id: session.user.id,
@@ -70,7 +77,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Escutar mudanças de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
         if (session?.user) {
+          // Para usuários do Google OAuth, criar perfil automaticamente
+          if (session.user.app_metadata?.provider === 'google') {
+            await handleGoogleUserSetup(session.user);
+          }
+          
           setSupabaseUser(session.user);
           setUser({
             id: session.user.id,
@@ -90,6 +104,125 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       subscription.unsubscribe();
     };
   }, []);
+
+  // Função para configurar usuário do Google OAuth
+  const handleGoogleUserSetup = async (user: any) => {
+    try {
+      console.log('Setting up Google OAuth user:', user.email);
+      
+      // Verificar se já existe registro na tabela users
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (!existingUser) {
+        console.log('Creating user record for Google OAuth user');
+        
+        // Criar registro na tabela users
+        const { error: userError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
+            role: 'photographer',
+            avatar: user.user_metadata?.avatar_url,
+          });
+
+        if (userError) {
+          console.error('Error creating user record:', userError);
+        } else {
+          console.log('User record created successfully');
+        }
+      }
+
+      // Verificar se já existe perfil de fotógrafo
+      const { data: existingPhotographer } = await supabase
+        .from('photographers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!existingPhotographer) {
+        console.log('Creating photographer profile for Google OAuth user');
+        
+        // Criar perfil de fotógrafo
+        const { error: photographerError } = await supabase
+          .from('photographers')
+          .insert({
+            user_id: user.id,
+            business_name: `Estúdio ${user.user_metadata?.name || user.email?.split('@')[0] || 'Fotográfico'}`,
+            phone: '(11) 99999-9999', // Placeholder - usuário pode atualizar depois
+            watermark_config: {
+              photoPrice: 25.00,
+              packagePhotos: 10,
+              minimumPackagePrice: 300.00,
+              advancePaymentPercentage: 50,
+              sessionTypes: [
+                { value: 'gestante', label: 'Sessão Gestante' },
+                { value: 'aniversario', label: 'Aniversário' },
+                { value: 'comerciais', label: 'Comerciais' },
+                { value: 'pre-wedding', label: 'Pré Wedding' },
+                { value: 'formatura', label: 'Formatura' },
+                { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+              ],
+              emailTemplates: {
+                bookingConfirmation: {
+                  enabled: true,
+                  subject: '📸 Agendamento Confirmado - {{studioName}}',
+                  message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}} às {{eventTime}}\n• Local: {{studioAddress}}\n\nEm breve você receberá suas fotos para seleção.\n\nObrigado!\n{{studioName}}'
+                },
+                dayOfReminder: {
+                  enabled: true,
+                  subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+                  message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
+                }
+              }
+            }
+          });
+
+        if (photographerError) {
+          console.error('Error creating photographer profile:', photographerError);
+        } else {
+          console.log('Photographer profile created successfully');
+        }
+      }
+
+      // Verificar se já existe subscription
+      const { data: existingSubscription } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!existingSubscription) {
+        console.log('Creating subscription for Google OAuth user');
+        
+        // Criar subscription de teste
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_id: user.id,
+            plan_type: 'trial',
+            status: 'active',
+            trial_start_date: new Date().toISOString(),
+            trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+
+        if (subscriptionError) {
+          console.error('Error creating subscription:', subscriptionError);
+        } else {
+          console.log('Subscription created successfully');
+        }
+      }
+
+    } catch (error) {
+      console.error('Error setting up Google OAuth user:', error);
+    }
+  };
 
   const login = async (email: string, password: string): Promise<string | true> => {
     setIsLoading(true);
