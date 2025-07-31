@@ -10,6 +10,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   const { 
     hasActiveAccess, 
     subscription,
+    isMasterUser,
     isTrialExpired, 
     daysRemaining, 
     loading,
