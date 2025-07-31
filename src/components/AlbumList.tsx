@@ -1,9 +1,31 @@
 import React, { useState } from 'react';
-import { Image, MessageCircle, Mail, Eye, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText } from 'lucide-react';
+import { Image, MessageCircle, Mail, Eye, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText, Phone, Clock, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+
+const eventSchema = z.object({
+  clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
+  clientEmail: z.string().email('E-mail inválido'),
+  clientPhone: z.string().min(10, 'Telefone deve ter pelo menos 10 dígitos'),
+  sessionType: z.string().min(1, 'Tipo de sessão é obrigatório'),
+  eventDate: z.string().min(1, 'Data é obrigatória').refine((date) => {
+    const selectedDate = new Date(date + 'T00:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return selectedDate >= today;
+  }, 'A data não pode ser anterior a hoje'),
+  eventTime: z.string().min(1, 'Horário é obrigatório'),
+  notes: z.string().optional(),
+});
+
+type EventFormData = z.infer<typeof eventSchema>;
 
 interface AlbumListProps {
   onViewAlbum?: (albumId: string) => void;
@@ -19,7 +41,8 @@ const sessionTypeLabels: Record<string, string> = {
 };
 
 const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
-  const { events, albums, photos, orders, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
+  const { events, albums, photos, orders, createAlbum, uploadPhotos, deleteAlbum, addEvent, loading } = useSupabaseData();
+  const { user } = useAuth();
   const [uploadingAlbumId, setUploadingAlbumId] = useState<string | null>(null);
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [reactivatingAlbumId, setReactivatingAlbumId] = useState<string | null>(null);
@@ -28,6 +51,51 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [driveLink, setDriveLink] = useState('');
   const [savingDriveLink, setSavingDriveLink] = useState(false);
   const [sendingDriveMessage, setSendingDriveMessage] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<EventFormData>({
+    resolver: zodResolver(eventSchema),
+  });
+
+  // Carregar tipos de sessão das configurações
+  React.useEffect(() => {
+    loadSessionTypes();
+  }, [user]);
+
+  const loadSessionTypes = async () => {
+    if (!user) return;
+
+    try {
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (photographer && photographer.length > 0 && photographer[0].watermark_config?.sessionTypes) {
+        setSessionTypes(photographer[0].watermark_config.sessionTypes);
+      } else {
+        // Tipos padrão se não houver configuração
+        setSessionTypes([
+          { value: 'gestante', label: 'Sessão Gestante' },
+          { value: 'aniversario', label: 'Aniversário' },
+          { value: 'comerciais', label: 'Comerciais' },
+          { value: 'pre-wedding', label: 'Pré Wedding' },
+          { value: 'formatura', label: 'Formatura' },
+          { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading session types:', error);
+    }
+  };
 
   // Forçar re-render quando álbuns mudarem
   React.useEffect(() => {
@@ -289,6 +357,37 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     setEditingDriveLink(null);
     setDriveLink('');
   };
+
+  const onSubmit = async (data: EventFormData) => {
+    setIsSubmitting(true);
+    try {
+      // Combine date and time
+      const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
+      
+      const eventData = {
+        client_name: data.clientName,
+        client_email: data.clientEmail,
+        client_phone: data.clientPhone,
+        session_type: data.sessionType,
+        event_date: eventDateTime.toISOString(),
+        location: 'Estúdio Fotográfico',
+        notes: data.notes,
+        status: 'scheduled',
+      };
+      
+      const success = await addEvent(eventData);
+      if (success) {
+        reset();
+        setShowCreateForm(false);
+        toast.success('Sessão criada com sucesso!');
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast.error('Erro ao criar sessão.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -305,7 +404,156 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           <h1 className="text-2xl font-bold text-gray-900">Sessões</h1>
           <p className="text-gray-600">Visualize as sessões criadas automaticamente a partir dos agendamentos ({albums.length} sessões)</p>
         </div>
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar Sessão
+        </button>
       </div>
+
+      {/* Formulário de Criação de Sessão */}
+      {showCreateForm && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Criar Nova Sessão</h3>
+            <button
+              onClick={() => setShowCreateForm(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Cliente *
+                </label>
+                <input
+                  {...register('clientName')}
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Nome completo do cliente"
+                />
+                {errors.clientName && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientName.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Sessão *
+                </label>
+                <select
+                  {...register('sessionType')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione...</option>
+                  {sessionTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.sessionType && (
+                  <p className="text-red-600 text-sm mt-1">{errors.sessionType.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-mail *
+                </label>
+                <input
+                  {...register('clientEmail')}
+                  type="email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="cliente@email.com"
+                />
+                {errors.clientEmail && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientEmail.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone *
+                </label>
+                <input
+                  {...register('clientPhone')}
+                  type="tel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="(11) 99999-9999"
+                />
+                {errors.clientPhone && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientPhone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Data *
+                </label>
+                <input
+                  {...register('eventDate')}
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {errors.eventDate && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventDate.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Horário *
+                </label>
+                <input
+                  {...register('eventTime')}
+                  type="time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {errors.eventTime && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventTime.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observações
+              </label>
+              <textarea
+                {...register('notes')}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Observações sobre a sessão..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? 'Criando...' : 'Criar Sessão'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {albums.length === 0 ? (
         <div className="text-center py-12">
