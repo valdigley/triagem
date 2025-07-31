@@ -486,17 +486,17 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded-lg p-4">
               <div className="flex justify-between items-center text-white">
                 <div>
-                  <p className="font-semibold">{albumPhotos[lightboxPhotoIndex].filename}</p>
-                  <p className="text-sm text-gray-300">
+                  <p className="text-sm font-medium truncate max-w-xs sm:max-w-sm md:max-w-md">{albumPhotos[lightboxPhotoIndex].filename}</p>
+                  <p className="text-xs text-gray-300">
                     {lightboxPhotoIndex + 1} de {albumPhotos.length}
                     {isClientView && ` • R$ ${albumPhotos[lightboxPhotoIndex].price.toFixed(2)}`}
                   </p>
                   
                   {/* Comentário do cliente */}
                   {albumPhotos[lightboxPhotoIndex].metadata?.client_comment && (
-                    <div className="mt-2 p-2 bg-blue-900 bg-opacity-50 rounded border border-blue-400">
-                      <p className="text-xs text-blue-200 mb-1">💬 Comentário do cliente:</p>
-                      <p className="text-sm text-blue-100">
+                    <div className="mt-2 p-2 bg-blue-900 bg-opacity-50 rounded border border-blue-400 max-w-xs sm:max-w-sm md:max-w-md">
+                      <p className="text-xs text-blue-200 mb-1">💬 Cliente:</p>
+                      <p className="text-xs text-blue-100 break-words">
                         {albumPhotos[lightboxPhotoIndex].metadata.client_comment}
                       </p>
                     </div>
@@ -506,7 +506,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 {isClientView && (
                   <button
                     onClick={() => togglePhotoSelection(albumPhotos[lightboxPhotoIndex].id)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex-shrink-0 ${
                       selectedPhotos.has(albumPhotos[lightboxPhotoIndex].id)
                         ? 'bg-blue-500 text-white hover:bg-blue-600'
                         : 'bg-white text-gray-900 hover:bg-gray-100'
