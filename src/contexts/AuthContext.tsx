@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         
         // Retornar mensagens específicas baseadas no tipo de erro
-        if (error.message.includes('Invalid login credentials')) {
+        if (error.code === 'invalid_credentials') {
           return 'E-mail ou senha incorretos';
         }
         if (error.message.includes('Email not confirmed')) {
