@@ -1,17 +1,11 @@
-name = "triagem-photoselect"
+name = "triagem"
 compatibility_date = "2023-12-01"
 
-# Configuração para Cloudflare Pages
-pages_build_output_dir = "dist"
-
+# Configuração específica para Cloudflare Pages
 [build]
 command = "npm run build"
 cwd = "."
 
-[build.upload]
-format = "directory"
-dir = "./dist"
-
-# Variáveis de ambiente para produção
-[env.production.vars]
-ENVIRONMENT = "production"
+# Configuração de upload para Pages
+[env.production]
+name = "triagem"
