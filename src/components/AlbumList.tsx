@@ -580,21 +580,32 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           <p className="text-gray-600">As seleções aparecerão aqui quando forem criadas ou quando agendamentos forem confirmados</p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="max-w-4xl mx-auto space-y-4">
           {albums.map((album) => {
             const event = getEventForAlbum(album.event_id);
             const albumPhotos = getAlbumPhotos(album.id);
             const selectedCount = getSelectedPhotosCount(album.id);
             
             return (
-              <div key={album.id} className={`rounded-lg shadow-sm border p-4 ${getSessionBackgroundColor(album.id)}`}>
-                <div className="flex justify-between items-start mb-3">
+              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 relative">
+                {/* Status no canto superior direito */}
+                <div className="absolute top-4 right-4">
+                  <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
+                    selectedCount > 0 
+                      ? 'bg-green-100 text-green-800 border border-green-200' 
+                      : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                  }`}>
+                    {selectedCount > 0 ? 'Seleção Feita' : 'Aguardando Seleção'}
+                  </span>
+                </div>
+
+                <div className="pr-32 mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                       <Image className="w-5 h-5 text-purple-600" />
                     </div>
                     <div>
-                      <h3 className="text-base font-semibold text-gray-900">{album.name}</h3>
+                      <h3 className="text-lg font-semibold text-gray-900">{album.name}</h3>
                       {event && (
                         <p className="text-sm text-gray-600 flex items-center gap-1">
                           <User className="w-4 h-4" />
@@ -603,25 +614,20 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       )}
                     </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    album.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {album.is_active ? 'Ativo' : 'Inativo'}
-                  </span>
                 </div>
 
-                <div className="grid grid-cols-3 gap-3 mb-3 text-sm">
+                <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
                   {event && (
                     <div className="flex items-center gap-2 text-gray-600">
                       <Calendar className="w-4 h-4" />
-                      <span className="text-xs">{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
+                      <span>{format(new Date(event.event_date), "dd/MM", { locale: ptBR })}</span>
                     </div>
                   )}
                   <div className="text-gray-600">
-                    <span className="font-medium text-xs">{albumPhotos.length}</span> <span className="text-xs">fotos</span>
+                    <span className="font-medium">{albumPhotos.length}</span> fotos
                   </div>
                   <div className="text-gray-600">
-                    <span className="font-medium text-xs">{selectedCount}</span> <span className="text-xs">selecionadas</span>
+                    <span className="font-medium">{selectedCount}</span> selecionadas
                   </div>
                 </div>
 
