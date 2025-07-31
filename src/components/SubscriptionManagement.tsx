@@ -531,12 +531,14 @@ Digite "EXCLUIR" para confirmar:`;
       </div>
 
       {/* Subscriptions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Lista de Usuários</h3>
         </div>
         
         <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -640,17 +642,18 @@ Digite "EXCLUIR" para confirmar:`;
                         {sendingWhatsApp === subscription.id ? 'Enviando...' : 'WhatsApp'}
                       </button>
                       
-                      {/* Criar Assinatura - apenas para usuários sem assinatura ativa */}
-                      {/* Excluir usuário - apenas para master */}
-                      <button
-                        onClick={() => deleteSubscriptionUser(subscription)}
-                        disabled={deletingUser === subscription.id}
-                        className="flex items-center gap-1 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Excluir usuário e todos os dados"
-                      >
-                        <X className="w-4 h-4" />
-                        {deletingUser === subscription.id ? 'Excluindo...' : 'Excluir'}
-                      </button>
+                      {/* Excluir usuário - apenas para não-master */}
+                      {subscription.plan_type !== 'master' && (
+                        <button
+                          onClick={() => deleteSubscriptionUser(subscription)}
+                          disabled={deletingUser === subscription.id}
+                          className="flex items-center gap-1 px-3 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Excluir usuário e todos os dados"
+                        >
+                          <X className="w-4 h-4" />
+                          {deletingUser === subscription.id ? 'Excluindo...' : 'Excluir'}
+                        </button>
+                      )}
                       
                       {/* Ver detalhes */}
                       <button
@@ -666,6 +669,102 @@ Digite "EXCLUIR" para confirmar:`;
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="lg:hidden divide-y divide-gray-200">
+          {subscriptions.map((subscription) => (
+            <div key={subscription.id} className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    {subscription.plan_type === 'master' ? (
+                      <Crown className="w-5 h-5 text-yellow-600" />
+                    ) : (
+                      <Users className="w-5 h-5 text-blue-600" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">
+                      {subscription.user?.name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {subscription.user?.email}
+                    </p>
+                  </div>
+                </div>
+                {getStatusBadge(subscription)}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Plano:</span>
+                  <div className="font-medium">
+                    {subscription.plan_type === 'master' ? 'Master' : 
+                     subscription.plan_type === 'trial' ? 'Teste Gratuito' : 
+                     'Plano Pago'}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Dias Restantes:</span>
+                  <div className="font-medium">
+                    {getDaysRemaining(subscription)} dias
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Cadastro:</span>
+                  <div className="font-medium">
+                    {format(new Date(subscription.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  </div>
+                </div>
+                <div>
+                  <span className="text-gray-500">Último Pagamento:</span>
+                  <div className="font-medium">
+                    {subscription.payment_date ? (
+                      <>
+                        <div>{format(new Date(subscription.payment_date), "dd/MM/yyyy", { locale: ptBR })}</div>
+                        <div className="text-xs text-green-600">
+                          R$ {subscription.payment_amount?.toFixed(2)}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t border-gray-100">
+                {/* WhatsApp */}
+                <button
+                  onClick={() => sendWhatsAppMessage(subscription)}
+                  disabled={sendingWhatsApp === subscription.id}
+                  className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  {sendingWhatsApp === subscription.id ? 'Enviando...' : 'WhatsApp'}
+                </button>
+                
+                {/* Excluir usuário - apenas para não-master */}
+                {subscription.plan_type !== 'master' && (
+                  <button
+                    onClick={() => deleteSubscriptionUser(subscription)}
+                    disabled={deletingUser === subscription.id}
+                    className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 text-sm"
+                  >
+                    <X className="w-4 h-4" />
+                    {deletingUser === subscription.id ? 'Excluindo...' : 'Excluir'}
+                  </button>
+                )}
+                
+                {/* Ver detalhes */}
+                <button className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm">
+                  <Eye className="w-4 h-4" />
+                  Ver Detalhes
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
