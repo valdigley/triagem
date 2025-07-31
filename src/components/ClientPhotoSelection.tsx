@@ -240,6 +240,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       console.error('Error checking advance payment:', error);
       return false;
     }
+  };
 
   const totalPrice = Array.from(selectedPhotos).reduce((total, photoId) => {
     const photo = photos.find(p => p.id === photoId);
@@ -444,47 +445,25 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
                 </h3>
                 <div className="text-gray-600">
-                  {priceCalculation.isManualBooking ? (
-                    <div>
-                      <p className="text-sm text-blue-600">Agendamento manual - todas as fotos são cobradas</p>
-                      <p className="text-sm">
-                        {selectedPhotos.size} fotos × R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 ml-2">
-                            ({selectedPhotos.size >= 10 ? '10%' : '5%'} desconto aplicado)
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 text-sm ml-2">
-                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
-                      <p className="text-sm">
-                        {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 ml-2">
-                            (5% desconto aplicado)
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 text-sm ml-2">
-                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
+                  <div>
+                    <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
+                    <p className="text-sm">
+                      {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
+                      {priceCalculation.hasDiscount && (
+                        <span className="text-green-600 ml-2">
+                          (5% desconto aplicado)
+                        </span>
+                      )}
+                    </p>
+                    <p className="font-semibold text-lg">
+                      Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                      {priceCalculation.hasDiscount && (
+                        <span className="text-green-600 text-sm ml-2">
+                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
               </div>
               <button
@@ -532,27 +511,15 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                 Selecione suas fotos favoritas
               </h3>
               <div className="text-blue-700">
-                {checkAdvancePayment() ? (
-                  <>
-                    <p className="mb-2">
-                      <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
-                    </p>
-                    <p className="text-sm">
-                      Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
-                      <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mb-2">
-                      <strong>Agendamento manual</strong> - todas as fotos são cobradas
-                    </p>
-                    <p className="text-sm">
-                      Preço por foto: R$ {pricingConfig.photoPrice.toFixed(2)}
-                      <span className="text-green-600 ml-1">(Descontos: 5% para 5+ fotos, 10% para 10+ fotos)</span>
-                    </p>
-                  </>
-                )}
+                <p className="mb-2">
+                  <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
+                </p>
+                <p className="text-sm">
+                  Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
+                  {pricingConfig.packagePhotos > 5 && (
+                    <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
+                  )}
+                </p>
               </div>
             </div>
           </div>
