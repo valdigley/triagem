@@ -46,32 +46,40 @@ const Dashboard: React.FC = () => {
 
   const loadSubscriptionStats = async () => {
     try {
-      // Buscar transações de assinatura APROVADAS do mês atual
+      // Buscar apenas transações de assinatura REALMENTE APROVADAS do mês atual
       const { data: transactions } = await supabase
         .from('payment_transactions')
         .select('amount, created_at, status')
-        .eq('status', 'approved')
+        .eq('status', 'approved') // Apenas status aprovado
         .eq('payment_method', 'mercadopago')
         .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
         .lt('created_at', new Date(currentYear, currentMonth + 1, 1).toISOString());
 
+      console.log('Transactions found for current month:', transactions);
       const monthlyRevenue = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
+      console.log('Calculated monthly revenue from transactions:', monthlyRevenue);
 
-      // Buscar apenas assinaturas PAGAS (não trial nem master)
+      // Buscar apenas assinaturas REALMENTE PAGAS (com payment_date preenchido)
       const { data: subscriptions } = await supabase
         .from('subscriptions')
-        .select('status, plan_type, expires_at, trial_end_date, payment_date');
+        .select('status, plan_type, expires_at, trial_end_date, payment_date, payment_amount');
 
+      console.log('All subscriptions:', subscriptions);
+      
       const now = new Date();
       const paidSubscriptions = subscriptions?.filter(s => {
         const expiresAt = s.expires_at ? new Date(s.expires_at) : new Date(s.trial_end_date);
-        return s.status === 'active' && 
+        const isPaid = s.status === 'active' && 
                s.plan_type === 'paid' && 
-               s.plan_type !== 'master' &&
-               s.payment_date && 
+               s.payment_date && // Deve ter data de pagamento
+               s.payment_amount && // Deve ter valor pago
                expiresAt > now;
+        console.log(`Subscription ${s.plan_type} - isPaid: ${isPaid}, has payment_date: ${!!s.payment_date}, has payment_amount: ${!!s.payment_amount}`);
+        return isPaid;
       }).length || 0;
 
+      console.log('Paid subscriptions count:', paidSubscriptions);
+      
       setSubscriptionStats({
         totalSubscriptions: subscriptions?.length || 0,
         activeSubscriptions: paidSubscriptions,
@@ -153,7 +161,7 @@ const Dashboard: React.FC = () => {
       const selectedPhotos = albumPhotos.filter(p => p.isSelected);
       return albumPhotos.length > 0 && selectedPhotos.length === 0;
     }).length,
-    monthlyRevenue: subscriptionStats.monthlyRevenue + clientRevenue, // Apenas pagamentos reais
+    monthlyRevenue: subscriptionStats.monthlyRevenue + clientRevenue, // Receita real baseada em transações aprovadas
     completedEvents: events.filter(e => e.status === 'completed').length,
     totalPhotos: photos.length,
     totalRevenue: orders.filter(o => o.status === 'paid').reduce((sum, o) => sum + o.total_amount, 0),
