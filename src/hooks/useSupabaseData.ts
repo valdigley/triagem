@@ -38,6 +38,7 @@ export interface Album {
   is_active: boolean;
   expires_at?: string;
   created_at: string;
+  google_drive_link?: string;
 }
 
 export interface Photo {

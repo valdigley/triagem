@@ -24,6 +24,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
   const [reactivatingAlbumId, setReactivatingAlbumId] = useState<string | null>(null);
   const [showFilenames, setShowFilenames] = useState<Record<string, boolean>>({});
+  const [editingDriveLink, setEditingDriveLink] = useState<string | null>(null);
+  const [driveLink, setDriveLink] = useState('');
+  const [savingDriveLink, setSavingDriveLink] = useState(false);
+  const [sendingDriveMessage, setSendingDriveMessage] = useState(false);
 
   // Forçar re-render quando álbuns mudarem
   React.useEffect(() => {
@@ -212,6 +216,79 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     }));
   };
 
+  const saveDriveLink = async (albumId: string) => {
+    if (!driveLink.trim()) {
+      toast.error('Digite um link válido');
+      return;
+    }
+
+    setSavingDriveLink(true);
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { error } = await supabase
+        .from('albums')
+        .update({ google_drive_link: driveLink.trim() })
+        .eq('id', albumId);
+
+      if (error) {
+        console.error('Error saving drive link:', error);
+        toast.error('Erro ao salvar link');
+        return;
+      }
+
+      toast.success('Link do Google Drive salvo!');
+      setEditingDriveLink(null);
+      setDriveLink('');
+      
+      // Forçar recarregamento dos dados
+      window.location.reload();
+    } catch (error) {
+      console.error('Error saving drive link:', error);
+      toast.error('Erro ao salvar link');
+    } finally {
+      setSavingDriveLink(false);
+    }
+  };
+
+  const sendDriveLinkViaWhatsApp = async (album: any, event: any) => {
+    if (!album.google_drive_link) {
+      toast.error('Nenhum link do Google Drive configurado para esta sessão');
+      return;
+    }
+
+    setSendingDriveMessage(true);
+    try {
+      const sessionTypeLabel = event.session_type ? 
+        sessionTypeLabels[event.session_type] || event.session_type : 
+        'Sessão';
+
+      const message = `Olá ${event.client_name}! 📸\n\nSuas fotos editadas estão prontas! 🎉\n\nAcesse o link abaixo para fazer o download:\n${album.google_drive_link}\n\nQualquer dúvida, entre em contato conosco.\n\nObrigado!`;
+      
+      // Limpar o telefone removendo caracteres especiais
+      const cleanPhone = event.client_phone.replace(/\D/g, '');
+      const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      
+      const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success('Abrindo WhatsApp com link do Google Drive...');
+    } catch (error) {
+      console.error('Error sending drive link:', error);
+      toast.error('Erro ao enviar link');
+    } finally {
+      setSendingDriveMessage(false);
+    }
+  };
+
+  const startEditingDriveLink = (albumId: string, currentLink: string = '') => {
+    setEditingDriveLink(albumId);
+    setDriveLink(currentLink);
+  };
+
+  const cancelEditingDriveLink = () => {
+    setEditingDriveLink(null);
+    setDriveLink('');
+  };
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -366,6 +443,72 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 )}
 
+                {/* Google Drive Link */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <h4 className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                      <Link className="w-4 h-4" />
+                      Link Google Drive (Fotos Editadas)
+                    </h4>
+                    {!editingDriveLink && (
+                      <button
+                        onClick={() => startEditingDriveLink(album.id, album.google_drive_link || '')}
+                        className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        {album.google_drive_link ? 'Editar' : 'Adicionar'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  {editingDriveLink === album.id ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded p-2">
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          type="url"
+                          value={driveLink}
+                          onChange={(e) => setDriveLink(e.target.value)}
+                          className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                          placeholder="https://drive.google.com/drive/folders/..."
+                        />
+                        <button
+                          onClick={() => saveDriveLink(album.id)}
+                          disabled={savingDriveLink}
+                          className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {savingDriveLink ? 'Salvando...' : 'Salvar'}
+                        </button>
+                        <button
+                          onClick={cancelEditingDriveLink}
+                          className="px-2 py-1 bg-gray-600 text-white rounded text-xs hover:bg-gray-700 transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Cole o link da pasta do Google Drive com as fotos editadas
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 border border-gray-200 rounded p-2">
+                      {album.google_drive_link ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 text-xs text-gray-700 break-all">
+                            {album.google_drive_link}
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(album.google_drive_link)}
+                            className="flex-shrink-0 p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Copiar link"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-500">Nenhum link configurado</p>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {/* Upload de fotos */}
                 {/* Upload de fotos - apenas quando não há seleção */}
                 {selectedCount === 0 && (
@@ -409,6 +552,19 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         >
                           <Copy className="w-3 h-3" />
                           Copiar Nomes
+                        </button>
+                      )}
+                      {album.google_drive_link && (
+                        <button 
+                          onClick={() => sendDriveLinkViaWhatsApp(album, event)}
+                          disabled={sendingDriveMessage}
+                          className="flex items-center gap-1 px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs transition-colors disabled:opacity-50"
+                          title="Enviar link do Google Drive via WhatsApp"
+                        >
+                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                          </svg>
+                          {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
                         </button>
                       )}
                       <button 
