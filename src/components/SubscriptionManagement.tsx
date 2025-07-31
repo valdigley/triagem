@@ -100,10 +100,13 @@ const SubscriptionManagement: React.FC = () => {
       const stats = {
         totalUsers: processedSubscriptions.length,
         activeSubscriptions: processedSubscriptions.filter(s => {
-          const expiresAt = s.expires_at ? new Date(s.expires_at) : null;
+          // Apenas assinaturas PAGAS e ATIVAS (não trial, não master)
+          const expiresAt = s.expires_at ? new Date(s.expires_at) : new Date(s.trial_end_date);
           return s.status === 'active' && 
-                 s.plan_type !== 'master' && 
-                 (!expiresAt || expiresAt > now);
+                 s.plan_type === 'paid' && // Apenas planos pagos
+                 s.payment_date && // Deve ter data de pagamento
+                 s.payment_amount && // Deve ter valor pago
+                 expiresAt > now; // Não expirado
         }).length,
         trialUsers: processedSubscriptions.filter(s => s.plan_type === 'trial').length,
         expiredUsers: processedSubscriptions.filter(s => {
@@ -112,7 +115,15 @@ const SubscriptionManagement: React.FC = () => {
                  s.plan_type !== 'master' && 
                  expiresAt <= now;
         }).length,
-        monthlyRevenue: 0, // Será calculado dos pagamentos
+        monthlyRevenue: processedSubscriptions
+          .filter(s => {
+            // Apenas assinaturas pagas com pagamento no mês atual
+            if (s.plan_type !== 'paid' || !s.payment_date || !s.payment_amount) return false;
+            const paymentDate = new Date(s.payment_date);
+            return paymentDate.getMonth() === currentMonth && 
+                   paymentDate.getFullYear() === currentYear;
+          })
+          .reduce((sum, s) => sum + (s.payment_amount || 0), 0),
       };
 
       setStats(stats);
@@ -437,7 +448,7 @@ const SubscriptionManagement: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Receita Mensal</p>
               <p className="text-2xl font-bold text-green-600">
-                R$ {(stats.activeSubscriptions * 30).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                R$ {stats.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </p>
             </div>
             <div className="p-3 bg-green-50 rounded-lg">
