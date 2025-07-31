@@ -1,0 +1,21 @@
+name = "triagem-photoselect"
+main = "src/index.js"
+compatibility_date = "2023-12-01"
+
+[site]
+bucket = "./dist"
+
+[[routes]]
+pattern = "/*"
+custom_domain = true
+
+[env.production.vars]
+ENVIRONMENT = "production"
+
+[build]
+command = "npm run build"
+cwd = "."
+watch_dir = "src"
+
+[build.upload]
+format = "service-worker"
