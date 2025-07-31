@@ -55,19 +55,38 @@ const SubscriptionManagement: React.FC = () => {
         return;
       }
 
-      // Buscar dados dos usuários separadamente
-      const processedSubscriptions = await Promise.all(
-        subscriptionsData.map(async (sub) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(sub.user_id);
-          return {
-            ...sub,
-            user: {
-              email: userData.user?.email || 'Email não encontrado',
-              name: userData.user?.user_metadata?.name || userData.user?.user_metadata?.full_name || 'Nome não encontrado',
-            }
-          };
-        })
-      );
+      // Buscar dados dos usuários via Edge Function
+      const userIds = subscriptionsData.map(sub => sub.user_id);
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-users-by-ids`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ user_ids: userIds }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Error fetching users:', errorData);
+        toast.error('Erro ao carregar dados dos usuários');
+        return;
+      }
+
+      const { users } = await response.json();
+      
+      // Combinar dados de subscriptions com dados dos usuários
+      const processedSubscriptions = subscriptionsData.map(sub => {
+        const userData = users.find((u: any) => u.id === sub.user_id);
+        return {
+          ...sub,
+          user: {
+            email: userData?.email || 'Email não encontrado',
+            name: userData?.name || 'Nome não encontrado',
+          }
+        };
+      });
 
       setSubscriptions(processedSubscriptions);
 
