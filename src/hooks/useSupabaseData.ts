@@ -79,6 +79,11 @@ export const useSupabaseData = () => {
   const ensurePhotographerProfile = async () => {
     if (!user) return null;
 
+    // Se já temos o photographerId, não criar novamente
+    if (photographerId) {
+      return photographerId;
+    }
+
     try {
       // Verificar se já existe perfil do fotógrafo
       const { data: existingProfile, error: fetchError } = await supabase
@@ -906,24 +911,44 @@ export const useSupabaseData = () => {
     }
 
     try {
-      // Usar upsert para inserir ou atualizar automaticamente
-      const { error } = await supabase
+      // Primeiro verificar se o cliente já existe
+      const { data: existingClient } = await supabase
         .from('clients')
-        .upsert({
-          photographer_id: photographerId,
-          name: clientData.name,
-          email: clientData.email,
-          phone: clientData.phone,
-          notes: clientData.notes,
-        }, {
-          onConflict: 'email',
-          ignoreDuplicates: false
-        });
+        .select('id')
+        .eq('email', clientData.email)
+        .eq('photographer_id', photographerId)
+        .maybeSingle();
+
+      let error;
+      if (existingClient) {
+        // Atualizar cliente existente
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({
+            name: clientData.name,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          })
+          .eq('id', existingClient.id);
+        error = updateError;
+      } else {
+        // Criar novo cliente
+        const { error: insertError } = await supabase
+          .from('clients')
+          .insert({
+            photographer_id: photographerId,
+            name: clientData.name,
+            email: clientData.email,
+            phone: clientData.phone,
+            notes: clientData.notes,
+          });
+        error = insertError;
+      }
 
       if (error) {
-        console.error('Error upserting client:', error);
+        console.error('Error creating/updating client:', error);
       } else {
-        console.log('Client upserted successfully:', clientData.email);
+        console.log('Client processed successfully:', clientData.email);
         
         // Recarregar lista de clientes
         const { data: clientsData } = await supabase
@@ -937,7 +962,7 @@ export const useSupabaseData = () => {
         }
       }
     } catch (error) {
-      console.error('Error upserting client:', error);
+      console.error('Error processing client:', error);
     }
   };
 

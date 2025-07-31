@@ -123,12 +123,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Criar registro na tabela users
         const { error: userError } = await supabase
           .from('users')
-          .insert({
+          .upsert({
             id: user.id,
             email: user.email,
             name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
             role: 'photographer',
             avatar: user.user_metadata?.avatar_url,
+          }, {
+            onConflict: 'id',
+            ignoreDuplicates: false
           });
 
         if (userError) {
@@ -151,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Criar perfil de fotógrafo
         const { error: photographerError } = await supabase
           .from('photographers')
-          .insert({
+          .upsert({
             user_id: user.id,
             business_name: `Estúdio ${user.user_metadata?.name || user.email?.split('@')[0] || 'Fotográfico'}`,
             phone: '(11) 99999-9999', // Placeholder - usuário pode atualizar depois
@@ -181,6 +184,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               }
             }
+          }, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
           });
 
         if (photographerError) {
