@@ -302,39 +302,8 @@ const Login: React.FC = () => {
               }}
             />
             {/* Efeito de linhas geométricas */}
-            <div className="absolute inset-0">
-              {/* Gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70"></div>
-              
-              {/* Linhas diagonais animadas */}
-              <div className="absolute inset-0 overflow-hidden">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: `
-                    linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%),
-                    linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.02) 50%, transparent 60%),
-                    linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.01) 50%, transparent 52%)
-                  `,
-                  backgroundSize: '60px 60px, 80px 80px, 100px 100px',
-                  animation: 'slideLines 20s linear infinite'
-                }}></div>
-              </div>
-              
-              {/* Pontos decorativos */}
-              <div className="absolute inset-0">
-                <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/10 rounded-full animate-pulse"></div>
-                <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-white/15 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
-                <div className="absolute top-1/2 left-3/4 w-1.5 h-1.5 bg-white/8 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
-                <div className="absolute bottom-1/4 left-1/2 w-1 h-1 bg-white/12 rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
-              </div>
-              
-              {/* Linhas verticais sutis */}
-              <div className="absolute inset-0">
-                <div className="absolute left-1/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/5 to-transparent"></div>
-                <div className="absolute left-2/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/3 to-transparent"></div>
-                <div className="absolute right-1/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/4 to-transparent"></div>
-                <div className="absolute right-2/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/2 to-transparent"></div>
-              </div>
-            </div>
+            {/* Overlay simples para legibilidade */}
+            <div className="absolute inset-0 bg-black/40"></div>
           </div>
         ))}
       </div>
@@ -720,20 +689,6 @@ const Login: React.FC = () => {
           )}
         </div>
       </div>
-      
-      {/* CSS para animação das linhas */}
-      <style dangerouslySetInnerHTML={{
-        __html: `
-        @keyframes slideLines {
-          0% {
-            transform: translateX(-100px) translateY(-100px);
-          }
-          100% {
-            transform: translateX(100px) translateY(100px);
-          }
-        }
-        `
-      }} />
     </div>
   );
 };

@@ -2,16 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Animação para as linhas do login */
-@keyframes slideLines {
-  0% {
-    transform: translateX(-100px) translateY(-100px);
-  }
-  100% {
-    transform: translateX(100px) translateY(100px);
-  }
-}
-
 /* Garantir que o body e html ocupem toda a altura */
 html, body, #root {
   height: 100%;
