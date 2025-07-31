@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Camera, Mail, Lock, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Camera, Mail, Lock, Eye, EyeOff, UserPlus, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -27,6 +28,16 @@ const Login: React.FC = () => {
 
     // Validações adicionais para registro
     if (isRegisterMode) {
+      if (!whatsapp.trim()) {
+        setRegisterError('WhatsApp é obrigatório');
+        toast.error('WhatsApp é obrigatório');
+        return;
+      }
+      if (whatsapp.replace(/\D/g, '').length < 10) {
+        setRegisterError('WhatsApp deve ter pelo menos 10 dígitos');
+        toast.error('WhatsApp deve ter pelo menos 10 dígitos');
+        return;
+      }
       if (password.length < 6) {
         setRegisterError('A senha deve ter pelo menos 6 caracteres');
         toast.error('A senha deve ter pelo menos 6 caracteres');
@@ -44,7 +55,7 @@ const Login: React.FC = () => {
       isRegisterMode ? 'Criando sua conta...' : 'Fazendo login...'
     );
     const result = isRegisterMode 
-      ? await register(email, password, name)
+      ? await register(email, password, name, whatsapp)
       : await login(email, password);
       
     // Remover loading toast
@@ -57,6 +68,7 @@ const Login: React.FC = () => {
         setEmail('');
         setPassword('');
         setName('');
+        setWhatsapp('');
         setRegisterError('');
         setIsRegisterMode(false);
       } else {
@@ -240,6 +252,27 @@ const Login: React.FC = () => {
                 disabled={isLoading}
               />
             </div>
+          </div>
+
+          <div>
+            <label htmlFor="whatsapp" className="block text-sm font-medium text-gray-700 mb-2">
+              WhatsApp *
+            </label>
+            <div className="relative">
+              <MessageCircle className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+              <input
+                id="whatsapp"
+                type="tel"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder="(11) 99999-9999"
+                disabled={isLoading}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Necessário para suporte e comunicação sobre sua conta
+            </p>
           </div>
 
           <div>

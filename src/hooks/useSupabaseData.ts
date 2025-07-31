@@ -100,7 +100,7 @@ export const useSupabaseData = () => {
         .insert({
           user_id: user.id,
           business_name: user.name || 'Meu Estúdio',
-          phone: '(11) 99999-9999',
+          phone: user.user_metadata?.whatsapp || '(11) 99999-9999',
           watermark_config: {
             photoPrice: 25.00,
             packagePhotos: 10,

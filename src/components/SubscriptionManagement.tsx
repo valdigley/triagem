@@ -554,28 +554,14 @@ const SubscriptionManagement: React.FC = () => {
                       </button>
                       
                       {/* Criar Assinatura - apenas para usuários sem assinatura ativa */}
-                      {(() => {
-                        const now = new Date();
-                        const expiresAt = subscription.expires_at ? new Date(subscription.expires_at) : new Date(subscription.trial_end_date);
-                        const isExpired = expiresAt <= now;
-                        const needsSubscription = subscription.plan_type === 'trial' || isExpired;
-                        
-                        if (needsSubscription && subscription.plan_type !== 'master') {
-                          return (
-                            <button
-                              onClick={() => createSubscriptionForUser(subscription)}
-                              disabled={creatingSubscription === subscription.id}
-                              className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="Gerar pagamento de assinatura"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                              {creatingSubscription === subscription.id ? 'Gerando...' : 'Assinar'}
-                            </button>
-                          );
-                        }
-                        
-                        return null;
-                      })()}
+                      {/* Apenas visualização no master - sem botão de pagamento */}
+                      <button
+                        className="flex items-center gap-1 px-3 py-1 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                        title="Visualizar detalhes"
+                      >
+                        <Eye className="w-4 h-4" />
+                        Ver Detalhes
+                      </button>
                     </div>
                   </td>
                 </tr>

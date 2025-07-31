@@ -13,7 +13,7 @@ interface AuthContextType {
   user: User | null;
   supabaseUser: SupabaseUser | null;
   login: (email: string, password: string) => Promise<string | true>;
-  register: (email: string, password: string, name: string) => Promise<string | true>;
+  register: (email: string, password: string, name: string, whatsapp: string) => Promise<string | true>;
   logout: () => void;
   isLoading: boolean;
   resetPassword: (email: string) => Promise<string | true>;
@@ -127,11 +127,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<string | true> => {
+  const register = async (email: string, password: string, name: string, whatsapp: string): Promise<string | true> => {
     setIsLoading(true);
     
     try {
-      console.log('Attempting to register new studio:', { email, name });
+      console.log('Attempting to register new studio:', { email, name, whatsapp });
       
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -140,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             name,
             full_name: name,
+            whatsapp,
           },
         },
       });
