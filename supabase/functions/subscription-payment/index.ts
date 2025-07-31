@@ -12,6 +12,7 @@ interface SubscriptionPaymentRequest {
   subscription_id: string;
   amount: number;
   access_token: string;
+  client_name?: string;
 }
 
 serve(async (req) => {
@@ -22,13 +23,14 @@ serve(async (req) => {
   console.log('Subscription payment function called');
 
   try {
-    const { user_id, subscription_id, amount, access_token }: SubscriptionPaymentRequest = await req.json()
+    const { user_id, subscription_id, amount, access_token, client_name }: SubscriptionPaymentRequest = await req.json()
 
     console.log('Subscription payment request:', {
       user_id,
       subscription_id,
       amount,
-      has_access_token: !!access_token
+      has_access_token: !!access_token,
+      client_name
     });
 
     if (!user_id || !subscription_id || !amount || !access_token) {
@@ -60,14 +62,14 @@ serve(async (req) => {
     }
 
     const user = userData.user;
-    const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'Cliente';
+    const userName = client_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Cliente';
     const [firstName, ...lastNameParts] = userName.split(' ');
     const lastName = lastNameParts.join(' ') || 'Silva';
 
     // Criar pagamento no Mercado Pago
     const paymentData = {
       transaction_amount: amount,
-      description: `Assinatura Mensal - Sistema de Seleção de Fotos`,
+      description: `Assinatura Mensal - Sistema Triagem - ${userName}`,
       payment_method_id: 'pix',
       payer: {
         email: user.email,
@@ -83,7 +85,8 @@ serve(async (req) => {
       metadata: {
         user_id: user_id,
         subscription_id: subscription_id,
-        type: 'subscription_payment'
+        type: 'subscription_payment',
+        client_name: userName
       }
     }
 

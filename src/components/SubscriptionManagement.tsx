@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CreditCard, Calendar, DollarSign, Eye, RefreshCw, Crown, Clock, CheckCircle, X } from 'lucide-react';
+import { Users, CreditCard, Calendar, DollarSign, Eye, RefreshCw, Crown, Clock, CheckCircle, X, MessageCircle, Mail, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '../lib/supabase';
@@ -27,6 +27,8 @@ const SubscriptionManagement: React.FC = () => {
   const { isMasterUser } = useSubscription();
   const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null);
+  const [creatingSubscription, setCreatingSubscription] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSubscriptions: 0,
@@ -136,8 +138,8 @@ const SubscriptionManagement: React.FC = () => {
     if (isExpired) {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
-          <X className="w-3 h-3" />
-          Expirado
+          <AlertTriangle className="w-3 h-3" />
+          {subscription.plan_type === 'trial' ? 'Teste Expirado' : 'Assinatura Expirada'}
         </span>
       );
     }
@@ -146,7 +148,7 @@ const SubscriptionManagement: React.FC = () => {
       return (
         <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
           <Clock className="w-3 h-3" />
-          Teste
+          Teste Ativo
         </span>
       );
     }
@@ -154,7 +156,7 @@ const SubscriptionManagement: React.FC = () => {
     return (
       <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
         <CheckCircle className="w-3 h-3" />
-        Ativo
+        Assinatura Ativa
       </span>
     );
   };
@@ -167,6 +169,189 @@ const SubscriptionManagement: React.FC = () => {
     
     if (subscription.plan_type === 'master') return '∞';
     return Math.max(0, diffDays).toString();
+  };
+
+  const sendWhatsAppMessage = async (subscription: UserSubscription) => {
+    if (!subscription.user?.name) {
+      toast.error('Nome do usuário não encontrado');
+      return;
+    }
+
+    setSendingWhatsApp(subscription.id);
+    
+    try {
+      // Buscar dados do fotógrafo para obter telefone
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('phone')
+        .eq('user_id', subscription.user_id)
+        .single();
+
+      if (!photographer?.phone) {
+        toast.error('Telefone do cliente não encontrado');
+        return;
+      }
+
+      const now = new Date();
+      const expiresAt = subscription.expires_at ? new Date(subscription.expires_at) : new Date(subscription.trial_end_date);
+      const isExpired = expiresAt <= now;
+      const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+      let message = `Olá ${subscription.user.name}! 👋\n\n`;
+      
+      if (subscription.plan_type === 'master') {
+        message += `Você tem acesso Master ao sistema Triagem! 👑\n\nQualquer dúvida, estou à disposição.`;
+      } else if (isExpired) {
+        if (subscription.plan_type === 'trial') {
+          message += `Seu período de teste de 7 dias expirou. 😔\n\nPara continuar usando o sistema Triagem, assine nosso plano mensal por apenas R$ 30,00.\n\n✅ Agendamentos ilimitados\n✅ Álbuns e fotos ilimitados\n✅ Sistema de pagamento integrado\n✅ Suporte técnico\n\nGostaria de assinar?`;
+        } else {
+          message += `Sua assinatura do sistema Triagem expirou. 😔\n\nRenove agora por R$ 30,00/mês para continuar aproveitando todos os recursos.\n\nPrecisa de ajuda?`;
+        }
+      } else {
+        if (subscription.plan_type === 'trial') {
+          message += `Você tem ${Math.max(0, daysRemaining)} dias restantes no seu teste gratuito do sistema Triagem! ⏰\n\nEstá gostando da experiência? Assine nosso plano mensal por R$ 30,00 e continue aproveitando todos os recursos.\n\nPrecisa de ajuda ou tem alguma dúvida?`;
+        } else {
+          message += `Sua assinatura do sistema Triagem está ativa! ✅\n\nExpira em ${Math.max(0, daysRemaining)} dias.\n\nComo posso ajudá-lo hoje?`;
+        }
+      }
+
+      // Limpar telefone e adicionar código do país
+      const cleanPhone = photographer.phone.replace(/\D/g, '');
+      const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+      
+      const whatsappUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+      
+      toast.success('Abrindo WhatsApp...');
+    } catch (error) {
+      console.error('Error sending WhatsApp:', error);
+      toast.error('Erro ao abrir WhatsApp');
+    } finally {
+      setSendingWhatsApp(null);
+    }
+  };
+
+  const createSubscriptionForUser = async (subscription: UserSubscription) => {
+    if (!subscription.user?.name || !subscription.user?.email) {
+      toast.error('Dados do usuário incompletos');
+      return;
+    }
+
+    setCreatingSubscription(subscription.id);
+
+    try {
+      // Buscar configuração do Mercado Pago
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('watermark_config')
+        .limit(1)
+        .single();
+
+      const mercadoPagoToken = photographer?.watermark_config?.mercadoPagoAccessToken;
+
+      if (!mercadoPagoToken) {
+        toast.error('Mercado Pago não configurado. Configure em Configurações.');
+        return;
+      }
+
+      console.log('Creating subscription payment for user:', subscription.user.name);
+      
+      // Criar pagamento via edge function
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscription-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          user_id: subscription.user_id,
+          subscription_id: subscription.id,
+          amount: 30.00,
+          access_token: mercadoPagoToken,
+          client_name: subscription.user.name,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Subscription payment error:', errorData);
+        toast.error(errorData.error || 'Erro ao processar pagamento');
+        return;
+      }
+
+      const paymentData = await response.json();
+      console.log('Payment data received:', paymentData);
+      
+      if (paymentData.qr_code) {
+        // Abrir modal de pagamento
+        const paymentWindow = window.open('', '_blank', 'width=600,height=800');
+        if (paymentWindow) {
+          paymentWindow.document.write(`
+            <html>
+              <head>
+                <title>Assinatura - ${subscription.user.name}</title>
+                <style>
+                  body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f5f5f5; }
+                  .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                  .qr-code { margin: 20px 0; }
+                  .qr-code img { max-width: 300px; border: 2px solid #ddd; border-radius: 8px; }
+                  .pix-code { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                  .pix-code textarea { width: 100%; height: 80px; font-family: monospace; font-size: 12px; border: 1px solid #ddd; border-radius: 4px; padding: 10px; }
+                  .copy-btn { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+                  .copy-btn:hover { background: #0056b3; }
+                  .client-info { background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <h2>🎯 Assinatura do Sistema Triagem</h2>
+                  
+                  <div class="client-info">
+                    <h3>👤 Cliente: ${subscription.user.name}</h3>
+                    <p>📧 ${subscription.user.email}</p>
+                    <p><strong>💰 Valor: R$ 30,00/mês</strong></p>
+                  </div>
+                  
+                  <p>Escaneie o QR Code para ativar a assinatura:</p>
+                  
+                  ${paymentData.qr_code_base64 ? `
+                    <div class="qr-code">
+                      <img src="data:image/png;base64,${paymentData.qr_code_base64}" alt="QR Code PIX">
+                    </div>
+                  ` : ''}
+                  
+                  <p>Ou copie o código PIX:</p>
+                  <div class="pix-code">
+                    <textarea readonly id="pixCode">${paymentData.qr_code || ''}</textarea>
+                    <button class="copy-btn" onclick="copyPix()">📋 Copiar Código PIX</button>
+                  </div>
+                  
+                  <p><small>⏱️ Após o pagamento, a assinatura será ativada automaticamente.</small></p>
+                  
+                  <script>
+                    function copyPix() {
+                      const textarea = document.getElementById('pixCode');
+                      textarea.select();
+                      document.execCommand('copy');
+                      alert('Código PIX copiado!');
+                    }
+                  </script>
+                </div>
+              </body>
+            </html>
+          `);
+        }
+        
+        toast.success(`PIX gerado para ${subscription.user.name}! Janela de pagamento aberta.`);
+      } else {
+        toast.error('Erro ao gerar PIX para pagamento');
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      toast.error(`Erro ao processar assinatura: ${error.message}`);
+    } finally {
+      setCreatingSubscription(null);
+    }
   };
 
   if (!isMasterUser) {
@@ -286,6 +471,9 @@ const SubscriptionManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Último Pagamento
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Ações
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -312,7 +500,30 @@ const SubscriptionManagement: React.FC = () => {
                     {getStatusBadge(subscription)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {getDaysRemaining(subscription)} dias
+                    <div>
+                      <div className="font-medium">
+                        {getDaysRemaining(subscription)} dias
+                      </div>
+                      {(() => {
+                        const now = new Date();
+                        const expiresAt = subscription.expires_at ? new Date(subscription.expires_at) : new Date(subscription.trial_end_date);
+                        const isExpired = expiresAt <= now;
+                        
+                        if (isExpired) {
+                          return (
+                            <div className="text-xs text-red-600 font-medium">
+                              Expirou em {format(expiresAt, "dd/MM/yyyy", { locale: ptBR })}
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="text-xs text-gray-400">
+                              Expira em {format(expiresAt, "dd/MM/yyyy", { locale: ptBR })}
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {format(new Date(subscription.created_at), "dd/MM/yyyy", { locale: ptBR })}
@@ -328,6 +539,44 @@ const SubscriptionManagement: React.FC = () => {
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex gap-2">
+                      {/* WhatsApp */}
+                      <button
+                        onClick={() => sendWhatsAppMessage(subscription)}
+                        disabled={sendingWhatsApp === subscription.id}
+                        className="flex items-center gap-1 px-3 py-1 text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                        title="Enviar mensagem via WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        {sendingWhatsApp === subscription.id ? 'Enviando...' : 'WhatsApp'}
+                      </button>
+                      
+                      {/* Criar Assinatura - apenas para usuários sem assinatura ativa */}
+                      {(() => {
+                        const now = new Date();
+                        const expiresAt = subscription.expires_at ? new Date(subscription.expires_at) : new Date(subscription.trial_end_date);
+                        const isExpired = expiresAt <= now;
+                        const needsSubscription = subscription.plan_type === 'trial' || isExpired;
+                        
+                        if (needsSubscription && subscription.plan_type !== 'master') {
+                          return (
+                            <button
+                              onClick={() => createSubscriptionForUser(subscription)}
+                              disabled={creatingSubscription === subscription.id}
+                              className="flex items-center gap-1 px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Gerar pagamento de assinatura"
+                            >
+                              <CreditCard className="w-4 h-4" />
+                              {creatingSubscription === subscription.id ? 'Gerando...' : 'Assinar'}
+                            </button>
+                          );
+                        }
+                        
+                        return null;
+                      })()}
+                    </div>
                   </td>
                 </tr>
               ))}
