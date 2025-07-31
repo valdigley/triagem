@@ -71,6 +71,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
         console.warn('Network error loading subscription - Supabase may not be configured');
       }
+      // Se for erro de rede/fetch, não mostrar erro para o usuário
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.warn('Network error loading subscription - Supabase may not be configured');
+      }
     } finally {
       setLoading(false);
     }
