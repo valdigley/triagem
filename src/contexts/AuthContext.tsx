@@ -95,14 +95,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Primeiro verificar se o usuário existe
-      const { data: userExists } = await supabase.auth.admin.getUserByEmail(email);
-      
-      if (!userExists.user) {
-        setIsLoading(false);
-        return 'Este e-mail não está cadastrado. Clique em "Criar uma nova conta" para se registrar.';
-      }
-
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -113,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Retornar mensagens específicas baseadas no tipo de erro
         if (error.code === 'invalid_credentials') {
-          return 'Senha incorreta. Verifique sua senha ou use "Esqueceu sua senha?" para recuperá-la.';
+          return 'E-mail não cadastrado ou senha incorreta. Verifique seus dados ou crie uma nova conta.';
         }
         if (error.message.includes('Email not confirmed')) {
           return 'E-mail não confirmado. Verifique sua caixa de entrada';
@@ -131,10 +123,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
-      // Se for erro de permissão (não consegue verificar usuário), assumir que é credencial inválida
-      if (error.message?.includes('permission') || error.message?.includes('access')) {
-        return 'E-mail não cadastrado. Clique em "Criar uma nova conta" para se registrar.';
-      }
       return 'Erro de conexão. Verifique sua internet e tente novamente.';
     }
   };
