@@ -45,13 +45,6 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     try {
-      // Verificar se as variáveis de ambiente estão configuradas
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        console.error('Supabase environment variables not configured');
-        setLoading(false);
-        return;
-      }
-
       const { data, error } = await supabase
         .from('subscriptions')
         .select('*')
@@ -60,23 +53,59 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error) {
         console.error('Error loading subscription:', error);
+        
+        // Se não existe subscription, criar uma nova
+        if (error.code === 'PGRST116' || error.message.includes('No rows found')) {
+          console.log('Creating new subscription for user:', user.id);
+          await createNewSubscription();
+          return;
+        }
+        
         setLoading(false);
+        return;
+      }
+
+      // Se não existe subscription, criar uma nova
+      if (!data) {
+        console.log('No subscription found, creating new one for user:', user.id);
+        await createNewSubscription();
         return;
       }
 
       setSubscription(data);
     } catch (error) {
       console.error('Error loading subscription:', error);
-      // Se for erro de rede/fetch, não mostrar erro para o usuário
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.warn('Network error loading subscription - Supabase may not be configured');
-      }
-      // Se for erro de rede/fetch, não mostrar erro para o usuário
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.warn('Network error loading subscription - Supabase may not be configured');
-      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createNewSubscription = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: user.id,
+          plan_type: 'trial',
+          status: 'active',
+          trial_start_date: new Date().toISOString(),
+          trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating subscription:', error);
+        return;
+      }
+
+      console.log('New subscription created:', data.id);
+      setSubscription(data);
+    } catch (error) {
+      console.error('Error creating new subscription:', error);
     }
   };
 
@@ -85,9 +114,19 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const upgradeSubscription = async (): Promise<boolean> => {
-    if (!user || !subscription) return false;
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return false;
+    }
+
+    if (!subscription) {
+      toast.error('Subscription não encontrada');
+      return false;
+    }
 
     try {
+      console.log('Starting subscription upgrade process...');
+      
       // Criar pagamento para upgrade
       const { data: photographer } = await supabase
         .from('photographers')
@@ -98,10 +137,12 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const mercadoPagoToken = photographer?.watermark_config?.mercadoPagoAccessToken;
 
       if (!mercadoPagoToken) {
-        toast.error('Sistema de pagamento não configurado');
+        toast.error('Sistema de pagamento não configurado. Configure o Mercado Pago em Configurações.');
         return false;
       }
 
+      console.log('Creating subscription payment...');
+      
       // Criar pagamento via edge function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/subscription-payment`, {
         method: 'POST',
@@ -117,25 +158,46 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }),
       });
 
+      console.log('Subscription payment response status:', response.status);
+      
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Subscription payment error:', errorData);
         toast.error(errorData.error || 'Erro ao processar pagamento');
         return false;
       }
 
       const paymentData = await response.json();
+      console.log('Payment data received:', paymentData);
       
       if (paymentData.qr_code) {
-        // Mostrar QR code para pagamento
-        // Implementar modal de pagamento aqui
-        toast.success('PIX gerado! Complete o pagamento para ativar sua assinatura.');
+        // Abrir modal ou página de pagamento
+        const paymentWindow = window.open('', '_blank', 'width=600,height=800');
+        if (paymentWindow) {
+          paymentWindow.document.write(`
+            <html>
+              <head><title>Pagamento da Assinatura</title></head>
+              <body style="font-family: Arial, sans-serif; text-align: center; padding: 20px;">
+                <h2>Finalize sua Assinatura</h2>
+                <p>Escaneie o QR Code para pagar R$ 30,00</p>
+                ${paymentData.qr_code_base64 ? `<img src="data:image/png;base64,${paymentData.qr_code_base64}" style="max-width: 300px;">` : ''}
+                <p>Ou copie o código PIX:</p>
+                <textarea readonly style="width: 100%; height: 100px; font-family: monospace;">${paymentData.qr_code || ''}</textarea>
+                <p><small>Após o pagamento, sua assinatura será ativada automaticamente.</small></p>
+              </body>
+            </html>
+          `);
+        }
+        
+        toast.success('PIX gerado! Complete o pagamento na nova janela para ativar sua assinatura.');
         return true;
+      } else {
+        toast.error('Erro ao gerar PIX para pagamento');
+        return false;
       }
-
-      return false;
     } catch (error) {
       console.error('Error upgrading subscription:', error);
-      toast.error('Erro ao processar upgrade');
+      toast.error(`Erro ao processar upgrade: ${error.message}`);
       return false;
     }
   };

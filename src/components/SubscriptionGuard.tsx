@@ -9,12 +9,27 @@ interface SubscriptionGuardProps {
 const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   const { 
     hasActiveAccess, 
-    isMasterUser, 
+    const expiresAt = subscription.plan_type === 'trial' 
+      ? new Date(subscription.trial_end_date)
+      : subscription.expires_at 
+      ? new Date(subscription.expires_at) 
+      : new Date(subscription.trial_end_date);
+      
     isTrialExpired, 
     daysRemaining, 
     loading,
     upgradeSubscription 
   } = useSubscription();
+
+  const handleUpgradeClick = async () => {
+    console.log('Upgrade button clicked');
+    const success = await upgradeSubscription();
+    if (success) {
+      console.log('Upgrade process started successfully');
+    } else {
+      console.log('Upgrade process failed');
+    }
+  };
 
   if (loading) {
     return (
@@ -108,7 +123,7 @@ const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
 
           {!isMasterUser && (
             <button
-              onClick={upgradeSubscription}
+              onClick={handleUpgradeClick}
               className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-medium flex items-center justify-center gap-2"
             >
               <CreditCard className="w-5 h-5" />
