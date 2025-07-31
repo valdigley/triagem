@@ -587,7 +587,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const selectedCount = getSelectedPhotosCount(album.id);
             
             return (
-              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative max-w-2xl mx-auto">
+              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 relative max-w-lg mx-auto">
                 {/* Status no canto superior direito */}
                 <div className="absolute top-6 right-6">
                   <span className={`px-3 py-1 text-sm font-semibold rounded-full ${
@@ -599,7 +599,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </span>
                 </div>
 
-                <div className="pr-40 mb-6">
+                <div className="pr-32 mb-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
                       <Image className="w-6 h-6 text-purple-600" />
@@ -616,7 +616,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-6 mb-6">
+                <div className="grid grid-cols-3 gap-4 mb-4">
                   {event && (
                     <div className="flex items-center gap-2 text-gray-700">
                       <Calendar className="w-4 h-4" />
@@ -635,7 +635,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
                 {/* Preview das fotos */}
                 {albumPhotos.length > 0 ? (
-                  <div className="mb-6">
+                  <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Preview das Fotos</h4>
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {albumPhotos.slice(0, 6).map((photo) => (
@@ -659,7 +659,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="mb-6 text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                  <div className="mb-4 text-center py-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
                     <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-600 text-sm">Nenhuma foto carregada</p>
                     <p className="text-gray-500 text-xs">Adicione fotos para que o cliente possa fazer a seleção</p>
@@ -667,7 +667,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 )}
 
                 {selectedCount > 0 && albumPhotos.length > 0 && (
-                  <div className="mb-3">
+                  <div className="mb-4">
                     <div className="w-full bg-gray-200 rounded-full h-1.5">
                       <div 
                         className="bg-green-500 h-1.5 rounded-full transition-all duration-300"
@@ -682,7 +682,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
                 {/* Nomes de arquivos pesquisáveis */}
                 {selectedCount > 0 && event && (
-                  <div className="mb-3">
+                  <div className="mb-4">
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="text-xs font-medium text-gray-700 flex items-center gap-1">
                         <FileText className="w-4 h-4" />
@@ -793,7 +793,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 {/* Upload de fotos */}
                 {/* Upload de fotos - apenas quando não há seleção */}
                 {selectedCount === 0 && (
-                  <div className="mb-3">
+                  <div className="mb-4">
                     <label className="flex items-center justify-center w-full h-20 border-2 border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                       <div className="flex flex-col items-center justify-center">
                         {uploadingAlbumId === album.id ? (
@@ -822,93 +822,87 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-1 flex-wrap">
-                  {event && (
+                {/* Botões de ação - só aparecem quando há fotos */}
+                {albumPhotos.length > 0 ? (
+                  <div className="flex justify-end gap-2 flex-wrap">
+                    {event && (
+                      <>
+                        {selectedCount > 0 && (
+                          <button 
+                            onClick={() => copyFilenames(generateSearchableFilenames(album.id, event))}
+                            className="flex items-center gap-1 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg text-sm transition-colors"
+                            title="Copiar nomes para busca no PC"
+                          >
+                            <Copy className="w-4 h-4" />
+                            Copiar Nomes
+                          </button>
+                        )}
+                        {album.google_drive_link && selectedCount > 0 && (
+                          <button 
+                            onClick={() => sendDriveLinkViaWhatsApp(album, event)}
+                            disabled={sendingDriveMessage}
+                            className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm transition-colors disabled:opacity-50"
+                            title="Enviar link do Google Drive via WhatsApp"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                            </svg>
+                            {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => shareViaWhatsApp(album.share_token, event.client_name, event.client_phone)}
+                          className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg text-sm transition-colors"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          WhatsApp
+                        </button>
+                        <button 
+                          onClick={() => shareViaEmail(album.share_token, event.client_name, event.client_email)}
+                          className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm transition-colors"
+                        >
+                          <Mail className="w-4 h-4" />
+                          E-mail
+                        </button>
+                      </>
+                    )}
+                    {selectedCount > 0 && (
                     <>
-                      {selectedCount > 0 && (
                         <button 
-                          onClick={() => copyFilenames(generateSearchableFilenames(album.id, event))}
-                          className="flex items-center gap-1 px-2 py-1 text-purple-600 hover:bg-purple-50 rounded text-xs transition-colors"
-                          title="Copiar nomes para busca no PC"
+                          onClick={() => reactivateSelection(album.id)}
+                          disabled={reactivatingAlbumId === album.id}
+                          className="flex items-center gap-1 px-3 py-2 text-orange-600 hover:bg-orange-50 rounded-lg text-sm transition-colors disabled:opacity-50"
                         >
-                          <Copy className="w-3 h-3" />
-                          Copiar Nomes
-                        </button>
-                      )}
-                      {album.google_drive_link && (
-                        <button 
-                          onClick={() => sendDriveLinkViaWhatsApp(album, event)}
-                          disabled={sendingDriveMessage}
-                          className="flex items-center gap-1 px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs transition-colors disabled:opacity-50"
-                          title="Enviar link do Google Drive via WhatsApp"
-                        >
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                           </svg>
-                          {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
+                          {reactivatingAlbumId === album.id ? 'Reativando...' : 'Reativar'}
                         </button>
-                      )}
-                      <button 
-                        onClick={() => shareViaWhatsApp(album.share_token, event.client_name, event.client_phone)}
-                        className="flex items-center gap-1 px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs transition-colors"
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                        WhatsApp
-                      </button>
-                      <button 
-                        onClick={() => shareViaEmail(album.share_token, event.client_name, event.client_email)}
-                        className="flex items-center gap-1 px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
-                      >
-                        <Mail className="w-3 h-3" />
-                        E-mail
-                      </button>
                     </>
-                  )}
-                  {selectedCount > 0 && (
-                    <>
-                      {album.google_drive_link && (
-                        <button 
-                          onClick={() => sendDriveLinkViaWhatsApp(album, event)}
-                          disabled={sendingDriveMessage}
-                          className="flex items-center gap-1 px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs transition-colors disabled:opacity-50"
-                          title="Enviar link do Google Drive via WhatsApp"
-                        >
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-                          </svg>
-                          {sendingDriveMessage ? 'Enviando...' : 'Enviar Drive'}
-                        </button>
-                      )}
+                    )}
                     <button 
-                      onClick={() => reactivateSelection(album.id)}
-                      disabled={reactivatingAlbumId === album.id}
-                      className="flex items-center gap-1 px-2 py-1 text-orange-600 hover:bg-orange-50 rounded text-xs transition-colors disabled:opacity-50"
+                      onClick={() => {
+                        console.log('Clicking Ver Fotos for album:', album.id);
+                        onViewAlbum?.(album.id);
+                      }}
+                      className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm transition-colors"
                     >
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                      </svg>
-                      {reactivatingAlbumId === album.id ? 'Reativando...' : 'Reativar Seleção'}
+                      <Eye className="w-4 h-4" />
+                      Ver Fotos
                     </button>
-                    </>
-                  )}
-                  <button 
-                    onClick={() => {
-                      console.log('Clicking Ver Fotos for album:', album.id);
-                      onViewAlbum?.(album.id);
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs transition-colors"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Ver Fotos
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteAlbum(album.id)}
-                    className="flex items-center gap-1 px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs transition-colors"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Excluir
-                  </button>
-                </div>
+                    <button 
+                      onClick={() => handleDeleteAlbum(album.id)}
+                      className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Excluir
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <p className="text-sm text-gray-500">Adicione fotos para que o cliente possa fazer a seleção</p>
+                  </div>
+                )}
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
                   <span className="text-xs text-gray-600">Status:</span>
                   <span className={`font-bold text-sm ${getSelectionStatusColor(album.id)}`}>
