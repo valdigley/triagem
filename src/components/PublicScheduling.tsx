@@ -83,7 +83,7 @@ const PublicScheduling: React.FC = () => {
         .from('photographers')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       console.log('PublicScheduling: Photographer data:', photographer);
 

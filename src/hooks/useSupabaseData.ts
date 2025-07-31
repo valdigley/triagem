@@ -83,22 +83,12 @@ export const useSupabaseData = () => {
       const { data: existingProfile, error: fetchError } = await supabase
         .from('photographers')
         .select('id, user_id')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-      if (existingProfile && existingProfile.length > 0) {
-        if (existingProfile.length > 1) {
-          // Limpar perfis duplicados, manter apenas o primeiro
-          const profilesToDelete = existingProfile.slice(1);
-          for (const profile of profilesToDelete) {
-            await supabase
-              .from('photographers')
-              .delete()
-              .eq('id', profile.id);
-          }
-          console.log(`Cleaned up ${profilesToDelete.length} duplicate photographer profiles for user ${user.id}`);
-        }
-        setPhotographerId(existingProfile[0].id);
-        return existingProfile[0].id;
+      if (existingPhotographer) {
+        setPhotographerId(existingPhotographer.id);
+        return existingPhotographer.id;
       }
 
       // Se não existe, criar um novo perfil
