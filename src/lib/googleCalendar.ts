@@ -60,7 +60,7 @@ export class GoogleCalendarService {
       return result.googleEventId;
     } catch (error) {
       console.error('💥 Erro na criação do evento:', error);
-      throw error;
+      return null; // Retornar null em vez de lançar erro
     }
   }
 
