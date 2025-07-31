@@ -80,7 +80,7 @@ export const useSupabaseData = () => {
     if (!user) return null;
 
     try {
-      // Primeiro, verificar se há múltiplos perfis e limpar duplicatas
+      // Verificar se já existe perfil do fotógrafo
       const { data: existingProfile, error: fetchError } = await supabase
         .from('photographers')
         .select('id, user_id')
@@ -93,21 +93,51 @@ export const useSupabaseData = () => {
       }
 
       // Se não existe, criar um novo perfil
+      console.log('Creating photographer profile for new user:', user.email);
+      
       const { data: newProfile, error: insertError } = await supabase
         .from('photographers')
         .insert({
           user_id: user.id,
           business_name: user.name || 'Meu Estúdio',
           phone: '(11) 99999-9999',
+          watermark_config: {
+            photoPrice: 25.00,
+            packagePhotos: 10,
+            minimumPackagePrice: 300.00,
+            advancePaymentPercentage: 50,
+            sessionTypes: [
+              { value: 'gestante', label: 'Sessão Gestante' },
+              { value: 'aniversario', label: 'Aniversário' },
+              { value: 'comerciais', label: 'Comerciais' },
+              { value: 'pre-wedding', label: 'Pré Wedding' },
+              { value: 'formatura', label: 'Formatura' },
+              { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+            ],
+            emailTemplates: {
+              bookingConfirmation: {
+                enabled: true,
+                subject: '📸 Agendamento Confirmado - {{studioName}}',
+                message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}} às {{eventTime}}\n• Local: {{studioAddress}}\n\nEm breve você receberá suas fotos para seleção.\n\nObrigado!\n{{studioName}}'
+              },
+              dayOfReminder: {
+                enabled: true,
+                subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+                message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
+              }
+            }
+          }
         })
         .select()
         .single();
 
       if (insertError) {
         console.error('Error creating photographer profile:', insertError);
+        toast.error('Erro ao criar perfil do fotógrafo');
         return null;
       }
 
+      console.log('Photographer profile created successfully:', newProfile.id);
       setPhotographerId(newProfile.id);
       return newProfile.id;
     } catch (error) {

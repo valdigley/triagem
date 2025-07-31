@@ -151,6 +151,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       console.log('Registration successful:', data);
       
+      // Criar assinatura trial automaticamente para novos usuários
+      if (data.user) {
+        try {
+          console.log('Creating trial subscription for new user...');
+          
+          const { error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id: data.user.id,
+              plan_type: 'trial',
+              status: 'active',
+              trial_start_date: new Date().toISOString(),
+              trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 dias
+            });
+
+          if (subscriptionError) {
+            console.error('Error creating trial subscription:', subscriptionError);
+            // Não falhar o registro se a assinatura der erro
+          } else {
+            console.log('Trial subscription created successfully');
+          }
+        } catch (subscriptionError) {
+          console.error('Exception creating trial subscription:', subscriptionError);
+          // Não falhar o registro se a assinatura der erro
+        }
+      }
+      
       // Se o usuário foi criado mas não confirmado, ainda assim considerar sucesso
       if (data.user && !data.user.email_confirmed_at) {
         console.log('User created but email not confirmed - this is expected in development');

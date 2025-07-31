@@ -598,134 +598,134 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   }`}>
                     {selectedCount > 0 ? 'Seleção Feita' : 'Aguardando Seleção'}
                   </span>
-                </div>
+                  
+                  {/* Histórico Detalhado - abaixo do status */}
+                  <div className="mt-2 w-80">
+                    <div className="bg-gray-50 rounded-lg p-3 text-xs">
+                      <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Histórico da Seleção
+                      </h4>
+                      <div className="space-y-1">
+                        {/* Data de criação */}
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="text-gray-600">Criado para seleção:</span>
+                          <span className="font-medium text-gray-800">
+                            {format(new Date(album.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
 
-                {/* Histórico Detalhado - logo abaixo do status */}
-                <div className="absolute top-16 right-6 w-80">
-                  <div className="bg-gray-50 rounded-lg p-3 text-xs">
-                    <h4 className="font-medium text-gray-700 mb-2 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      Histórico da Seleção
-                    </h4>
-                    <div className="space-y-1">
-                      {/* Data de criação */}
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-gray-600">Criado para seleção:</span>
-                        <span className="font-medium text-gray-800">
-                          {format(new Date(album.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </span>
-                      </div>
+                        {/* Primeira visualização do cliente */}
+                        {(() => {
+                          const firstView = album.activity_log?.find(log => 
+                            log.type === 'album_viewed' || log.description?.includes('visualizou')
+                          );
+                          return firstView ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-gray-600">Cliente visualizou:</span>
+                              <span className="font-medium text-gray-800">
+                                {format(new Date(firstView.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                              <span className="text-gray-500">Cliente ainda não visualizou</span>
+                            </div>
+                          );
+                        })()}
 
-                      {/* Primeira visualização do cliente */}
-                      {(() => {
-                        const firstView = album.activity_log?.find(log => 
-                          log.type === 'album_viewed' || log.description?.includes('visualizou')
-                        );
-                        return firstView ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-gray-600">Cliente visualizou:</span>
-                            <span className="font-medium text-gray-800">
-                              {format(new Date(firstView.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                            </span>
-                          </div>
+                        {/* Seleção finalizada */}
+                        {selectedCount > 0 ? (
+                          (() => {
+                            const selectionComplete = album.activity_log?.find(log => 
+                              log.type === 'selection_completed' || log.description?.includes('finalizou')
+                            );
+                            return selectionComplete ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                <span className="text-gray-600">Seleção finalizada:</span>
+                                <span className="font-medium text-gray-800">
+                                  {format(new Date(selectionComplete.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span className="text-gray-600">Seleção em andamento</span>
+                              </div>
+                            );
+                          })()
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                            <span className="text-gray-500">Cliente ainda não visualizou</span>
+                            <span className="text-gray-500">Aguardando seleção do cliente</span>
                           </div>
-                        );
-                      })()}
+                        )}
 
-                      {/* Seleção finalizada */}
-                      {selectedCount > 0 ? (
-                        (() => {
-                          const selectionComplete = album.activity_log?.find(log => 
-                            log.type === 'selection_completed' || log.description?.includes('finalizou')
-                          );
-                          return selectionComplete ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                              <span className="text-gray-600">Seleção finalizada:</span>
-                              <span className="font-medium text-gray-800">
-                                {format(new Date(selectionComplete.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                              <span className="text-gray-600">Seleção em andamento</span>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                          <span className="text-gray-500">Aguardando seleção do cliente</span>
-                        </div>
-                      )}
-
-                      {/* Link das fotos editadas disponibilizado */}
-                      {album.google_drive_link ? (
-                        (() => {
-                          const driveShared = album.activity_log?.find(log => 
-                            log.type === 'drive_link_added' || log.description?.includes('Google Drive')
-                          );
-                          return driveShared ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              <span className="text-gray-600">Fotos editadas disponibilizadas:</span>
-                              <span className="font-medium text-gray-800">
-                                {format(new Date(driveShared.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                              <span className="text-gray-600">Link do Drive configurado</span>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-                          <span className="text-gray-500">Fotos editadas não disponibilizadas</span>
-                        </div>
-                      )}
-
-                      {/* Comentários do cliente */}
-                      {(() => {
-                        const photosWithComments = albumPhotos.filter(photo => 
-                          photo.metadata?.client_comment && photo.metadata.client_comment.trim()
-                        );
-                        
-                        if (photosWithComments.length > 0) {
-                          return (
-                            <div className="mt-2 pt-2 border-t border-gray-200">
-                              <div className="flex items-center gap-2 mb-1">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                <span className="text-gray-600 font-medium">Comentários do cliente:</span>
-                                <span className="text-blue-600 font-medium">{photosWithComments.length} foto{photosWithComments.length > 1 ? 's' : ''}</span>
+                        {/* Link das fotos editadas disponibilizado */}
+                        {album.google_drive_link ? (
+                          (() => {
+                            const driveShared = album.activity_log?.find(log => 
+                              log.type === 'drive_link_added' || log.description?.includes('Google Drive')
+                            );
+                            return driveShared ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-gray-600">Fotos editadas disponibilizadas:</span>
+                                <span className="font-medium text-gray-800">
+                                  {format(new Date(driveShared.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
                               </div>
-                              <div className="ml-4 space-y-1">
-                                {photosWithComments.slice(0, 3).map(photo => (
-                                  <div key={photo.id} className="text-xs">
-                                    <span className="text-gray-500">{photo.filename}:</span>
-                                    <span className="text-gray-700 ml-1">"{photo.metadata.client_comment}"</span>
-                                  </div>
-                                ))}
-                                {photosWithComments.length > 3 && (
-                                  <div className="text-xs text-blue-600">
-                                    +{photosWithComments.length - 3} comentários adicionais
-                                  </div>
-                                )}
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-gray-600">Link do Drive configurado</span>
                               </div>
-                            </div>
+                            );
+                          })()
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <span className="text-gray-500">Fotos editadas não disponibilizadas</span>
+                          </div>
+                        )}
+
+                        {/* Comentários do cliente */}
+                        {(() => {
+                          const photosWithComments = albumPhotos.filter(photo => 
+                            photo.metadata?.client_comment && photo.metadata.client_comment.trim()
                           );
-                        }
-                        return null;
-                      })()}
+                          
+                          if (photosWithComments.length > 0) {
+                            return (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <span className="text-gray-600 font-medium">Comentários do cliente:</span>
+                                  <span className="text-blue-600 font-medium">{photosWithComments.length} foto{photosWithComments.length > 1 ? 's' : ''}</span>
+                                </div>
+                                <div className="ml-4 space-y-1">
+                                  {photosWithComments.slice(0, 3).map(photo => (
+                                    <div key={photo.id} className="text-xs">
+                                      <span className="text-gray-500">{photo.filename}:</span>
+                                      <span className="text-gray-700 ml-1">"{photo.metadata.client_comment}"</span>
+                                    </div>
+                                  ))}
+                                  {photosWithComments.length > 3 && (
+                                    <div className="text-xs text-blue-600">
+                                      +{photosWithComments.length - 3} comentários adicionais
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
                     </div>
                   </div>
                 </div>
