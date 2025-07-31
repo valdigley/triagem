@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings, MessageSquare, Save } from 'lucide-react';
+import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Settings, MessageSquare, Save, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import Checkout from './Checkout';
@@ -417,6 +417,16 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Comment indicator */}
+              {photoComments[photo.id] && (
+                <div className="absolute bottom-2 left-2">
+                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                    <MessageCircle className="w-3 h-3" />
+                    <span>💬</span>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -487,6 +497,11 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                   {!isClientView && photoComments[albumPhotos[lightboxPhotoIndex].id] && (
                     <p className="text-sm text-yellow-300 mt-1">
                       💬 {photoComments[albumPhotos[lightboxPhotoIndex].id]}
+                    </p>
+                  )}
+                  {photoComments[albumPhotos[lightboxPhotoIndex].id] && (
+                    <p className="text-sm text-blue-300 mt-1">
+                      💬 Cliente: {photoComments[albumPhotos[lightboxPhotoIndex].id]}
                     </p>
                   )}
                 </div>
