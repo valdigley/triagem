@@ -104,9 +104,13 @@ const Settings: React.FC = () => {
       return;
     }
 
+    console.log('Uploading background image:', file.name, 'Size:', file.size);
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       const newImage = e.target?.result as string;
+      console.log('Background image loaded, length:', newImage.length);
+      
       setGeneralSettings(prev => ({
         ...prev,
         loginBackgrounds: [...(prev.loginBackgrounds || []), newImage]
@@ -208,6 +212,8 @@ const Settings: React.FC = () => {
 
     setSaving(true);
     try {
+      console.log('Saving settings with backgrounds:', generalSettings.loginBackgrounds?.length || 0);
+      
       // Combinar todas as configurações
       const allSettings = {
         ...generalSettings,
@@ -216,6 +222,13 @@ const Settings: React.FC = () => {
         emailTemplates,
         sessionTypes,
       };
+
+      console.log('All settings to save:', {
+        hasLoginBackgrounds: !!allSettings.loginBackgrounds,
+        backgroundsCount: allSettings.loginBackgrounds?.length || 0,
+        businessName: allSettings.businessName,
+        hasLogo: !!allSettings.logo
+      });
 
       // Primeiro, verificar se o fotógrafo existe
       const { data: existingPhotographer } = await supabase
@@ -226,6 +239,7 @@ const Settings: React.FC = () => {
 
       if (existingPhotographer && existingPhotographer.length > 0) {
         // Atualizar fotógrafo existente
+        console.log('Updating existing photographer with new settings');
         const { error } = await supabase
           .from('photographers')
           .update({
@@ -240,8 +254,11 @@ const Settings: React.FC = () => {
           toast.error('Erro ao salvar configurações');
           return;
         }
+        
+        console.log('Photographer updated successfully');
       } else {
         // Criar novo fotógrafo
+        console.log('Creating new photographer with settings');
         const { error } = await supabase
           .from('photographers')
           .insert({
@@ -256,9 +273,18 @@ const Settings: React.FC = () => {
           toast.error('Erro ao criar perfil');
           return;
         }
+        
+        console.log('New photographer created successfully');
       }
 
       toast.success('Configurações salvas com sucesso!');
+      console.log('Settings saved successfully, reloading page to apply changes...');
+      
+      // Recarregar a página após salvar para aplicar as mudanças
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Erro ao salvar configurações');

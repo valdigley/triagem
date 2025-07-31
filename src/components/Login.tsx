@@ -42,36 +42,53 @@ const Login: React.FC = () => {
   const loadStudioSettings = async () => {
     try {
       console.log('Loading studio settings...');
-      // Carregar configurações do primeiro fotógrafo (assumindo um estúdio)
+      // Carregar configurações de TODOS os fotógrafos para encontrar imagens personalizadas
       const { data: photographer } = await supabase
         .from('photographers')
         .select('business_name, watermark_config, user_id')
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: false });
 
-      console.log('Photographer data:', photographer);
+      console.log('All photographers data:', photographer);
 
-      if (photographer) {
+      // Buscar o primeiro fotógrafo que tenha configurações personalizadas
+      let selectedPhotographer = null;
+      
+      if (photographer && photographer.length > 0) {
+        // Primeiro, tentar encontrar um fotógrafo com imagens de fundo personalizadas
+        selectedPhotographer = photographer.find(p => 
+          p.watermark_config?.loginBackgrounds && 
+          Array.isArray(p.watermark_config.loginBackgrounds) && 
+          p.watermark_config.loginBackgrounds.length > 0
+        );
+        
+        // Se não encontrou com imagens personalizadas, usar o primeiro
+        if (!selectedPhotographer) {
+          selectedPhotographer = photographer[0];
+        }
+        
+        console.log('Selected photographer for settings:', selectedPhotographer);
+        
         // Logo personalizada
-        if (photographer.watermark_config?.logo) {
-          console.log('Setting studio logo');
-          setStudioLogo(photographer.watermark_config.logo);
+        if (selectedPhotographer.watermark_config?.logo) {
+          console.log('Setting studio logo from:', selectedPhotographer.watermark_config.logo.substring(0, 50) + '...');
+          setStudioLogo(selectedPhotographer.watermark_config.logo);
         }
 
         // Nome do estúdio
-        if (photographer.business_name) {
-          console.log('Setting studio name:', photographer.business_name);
-          setStudioName(photographer.business_name);
+        if (selectedPhotographer.business_name) {
+          console.log('Setting studio name:', selectedPhotographer.business_name);
+          setStudioName(selectedPhotographer.business_name);
         }
 
         // Imagens de fundo personalizadas
-        const customBackgrounds = photographer.watermark_config?.loginBackgrounds;
+        const customBackgrounds = selectedPhotographer.watermark_config?.loginBackgrounds;
         console.log('Custom backgrounds found:', customBackgrounds);
         
         if (customBackgrounds && 
             Array.isArray(customBackgrounds) && 
             customBackgrounds.length > 0) {
-          console.log('Loading custom background images:', photographer.watermark_config.loginBackgrounds.length);
+          console.log('Loading custom background images:', customBackgrounds.length);
+          console.log('First background preview:', customBackgrounds[0].substring(0, 100) + '...');
           setBackgroundImages(customBackgrounds);
         } else {
           console.log('No custom backgrounds found, using default images');
