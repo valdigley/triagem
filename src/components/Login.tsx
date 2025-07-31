@@ -44,7 +44,7 @@ const Login: React.FC = () => {
       console.log('🔍 Loading studio settings for login background...');
       
       // Buscar configurações do primeiro fotógrafo com imagens personalizadas
-      const { data: photographer, error } = await supabase
+      const { data: photographers, error } = await supabase
         .from('photographers')
         .select('business_name, watermark_config')
         .not('watermark_config', 'is', null)
@@ -58,16 +58,16 @@ const Login: React.FC = () => {
         return;
       }
 
-      console.log('📊 Photographers found:', photographer?.length || 0);
+      console.log('📊 Photographers found:', photographers?.length || 0);
 
       // Buscar o primeiro fotógrafo que tenha configurações personalizadas
       let selectedPhotographer = null;
       
-      if (photographer && photographer.length > 0) {
+      if (photographers && photographers.length > 0) {
         console.log('🔍 Checking each photographer for custom backgrounds...');
         
         // Verificar cada fotógrafo
-        for (const p of photographer) {
+        for (const p of photographers) {
           console.log('📋 Checking photographer:', {
             business_name: p.business_name,
             has_watermark_config: !!p.watermark_config,
@@ -89,7 +89,7 @@ const Login: React.FC = () => {
         // Se não encontrou com imagens personalizadas, usar o primeiro
         if (!selectedPhotographer) {
           console.log('📋 Using first photographer as fallback');
-          selectedPhotographer = photographer[0];
+          selectedPhotographer = photographers[0];
         }
         
         console.log('🎯 Final selected photographer:', {

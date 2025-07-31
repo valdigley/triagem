@@ -258,9 +258,9 @@ const Settings: React.FC = () => {
         .from('photographers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (existingPhotographer && existingPhotographer.length > 0) {
+      if (existingPhotographer) {
         // Atualizar fotógrafo existente
         console.log('🔄 Updating existing photographer...');
         const { error } = await supabase
@@ -306,7 +306,7 @@ const Settings: React.FC = () => {
         .from('photographers')
         .select('watermark_config')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (verifyData?.watermark_config?.loginBackgrounds) {
         console.log('✅ VERIFICATION: Backgrounds saved successfully:', verifyData.watermark_config.loginBackgrounds.length);
@@ -315,12 +315,10 @@ const Settings: React.FC = () => {
       }
 
       toast.success('Configurações salvas com sucesso!');
-      console.log('🔄 Forcing page reload to apply changes...');
       
-      // Apenas recarregar os dados sem fazer logout
-      setTimeout(() => {
-        loadSettings();
-      }, 500);
+      // Recarregar configurações sem reload da página
+      await loadSettings();
+      console.log('🔄 Settings reloaded successfully');
       
     } catch (error) {
       console.error('Error saving settings:', error);
