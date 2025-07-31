@@ -216,8 +216,8 @@ npm run dev
 # Build para produção
 npm run build
 
-# Deploy
-npm run deploy
+# Deploy via Cloudflare Pages (automático via Git)
+# Configure no dashboard: https://dash.cloudflare.com/pages
 ```
 
 ## 🔧 Próximos Passos
