@@ -6,11 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:watch": "vite build --watch",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler pages deploy dist",
-    "deploy:dev": "npm run build && wrangler pages deploy dist --compatibility-date=2023-12-01"
+    "deploy": "npm run build && wrangler pages deploy dist"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
