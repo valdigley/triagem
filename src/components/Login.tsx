@@ -197,6 +197,27 @@ const Login: React.FC = () => {
                         </ol>
                       </div>
                     )}
+                    {registerError.includes('Verifique seu e-mail') && (
+                      <div className="mt-3 p-3 bg-blue-100 rounded">
+                        <p className="font-medium">📧 Próximos passos:</p>
+                        <ol className="list-decimal list-inside mt-1 space-y-1">
+                          <li>Abra seu e-mail ({email})</li>
+                          <li>Procure por e-mail de confirmação do Supabase</li>
+                          <li>Clique no link de confirmação</li>
+                          <li>Volte aqui e faça login normalmente</li>
+                        </ol>
+                      </div>
+                    )}
+                    {registerError.includes('Senha muito fraca') && (
+                      <div className="mt-3 p-3 bg-yellow-100 rounded">
+                        <p className="font-medium">🔒 Requisitos da senha:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>Pelo menos 6 caracteres</li>
+                          <li>Combine letras e números</li>
+                          <li>Evite senhas muito simples (123456, password, etc.)</li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

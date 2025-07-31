@@ -141,7 +141,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name,
             full_name: name,
           },
-          emailRedirectTo: undefined,
         },
       });
 
@@ -171,6 +170,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.message.includes('Network error') || error.message.includes('fetch')) {
           return 'Erro de conexão. Verifique sua internet e tente novamente';
         }
+        if (error.message.includes('Email not confirmed')) {
+          return 'Verifique seu e-mail para confirmar a conta antes de fazer login';
+        }
+        if (error.message.includes('Unable to validate email address')) {
+          return 'E-mail inválido. Verifique se digitou corretamente';
+        }
+        if (error.message.includes('Password is too weak')) {
+          return 'Senha muito fraca. Use pelo menos 6 caracteres com letras e números';
+        }
         
         return `Erro no cadastro: ${error.message}`;
       }
@@ -186,8 +194,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         console.log('✅ Usuário criado com sucesso!');
         
-        // Se email confirmation está desabilitado, o usuário já pode fazer login
-        if (data.user.email_confirmed_at || !data.user.email_confirmed_at) {
+        // Verificar se precisa confirmar email
+        if (!data.user.email_confirmed_at && data.session === null) {
+          console.log('⚠️ Usuário precisa confirmar e-mail');
+          setIsLoading(false);
+          return 'Conta criada! Verifique seu e-mail para confirmar antes de fazer login.';
+        } else {
           console.log('✅ Usuário pode fazer login imediatamente');
         }
       } else {
