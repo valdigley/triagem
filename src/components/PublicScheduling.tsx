@@ -115,23 +115,6 @@ const PublicScheduling: React.FC = () => {
         setSessionTypes(configuredSessionTypes);
       }
     } catch (error) {
-      console.error('PublicScheduling: Error loading studio settings:', error);
-      // Usar configurações padrão se falhar
-      setStudioSettings(prev => ({
-        ...prev,
-        businessName: 'Estúdio Fotográfico',
-        minimumPackagePrice: 300.00,
-        advancePaymentPercentage: 50,
-      }));
-      setSessionTypes([
-        { value: 'gestante', label: 'Sessão Gestante' },
-        { value: 'aniversario', label: 'Aniversário' },
-        { value: 'comerciais', label: 'Comerciais' },
-        { value: 'pre-wedding', label: 'Pré Wedding' },
-        { value: 'formatura', label: 'Formatura' },
-        { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
-      ]);
-    } catch (error) {
       console.error('Error loading studio settings:', error);
     }
   };
