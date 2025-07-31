@@ -246,7 +246,7 @@ export const useSupabaseData = () => {
       // Verificar se Google Calendar está configurado antes de tentar
       const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
       
-      if (user && googleCalendarConfig?.accessToken) {
+      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim()) {
         try {
           console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
           console.log('📋 Dados do evento:', {
@@ -275,16 +275,19 @@ export const useSupabaseData = () => {
           // Verificar se é erro de autenticação
           if (error.message?.includes('invalid authentication') || 
               error.message?.includes('Invalid Credentials') ||
-              error.message?.includes('authError')) {
+              error.message?.includes('authError') ||
+              error.message?.includes('token expirado')) {
             console.warn('🔑 Token do Google Calendar expirado ou inválido');
             console.warn('💡 Vá em Configurações → Google Calendar para renovar o token');
             // Não mostrar toast de erro para não confundir o usuário
+            // Não relançar o erro - apenas continuar sem Google Calendar
           } else {
             console.error('📝 Detalhes do erro:', error.message);
           }
           
           // Não falhar o processo se o Google Calendar der erro
           console.log('⚠️ Continuando sem Google Calendar devido ao erro');
+          googleEventId = null; // Garantir que não há ID inválido
         }
       } else {
         console.log('❌ Google Calendar não configurado - pulando sincronização');
@@ -304,7 +307,7 @@ export const useSupabaseData = () => {
       if (error) {
         console.error('Error adding event:', error);
         toast.error('Erro ao criar agendamento');
-        return null;
+        throw error;
       }
 
       setEvents(prev => [data, ...prev]);
@@ -318,7 +321,12 @@ export const useSupabaseData = () => {
       return data;
     } catch (error) {
       console.error('Error adding event:', error);
-      toast.error('Erro ao criar agendamento');
+      
+      // Não mostrar erro se for relacionado ao Google Calendar
+      if (!error.message?.includes('Google Calendar') && 
+          !error.message?.includes('token expirado')) {
+        toast.error('Erro ao criar agendamento');
+      }
       return null;
     }
   };
