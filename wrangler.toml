@@ -1,11 +1,10 @@
 name = "triagem"
 compatibility_date = "2023-12-01"
 
-# Configuração específica para Cloudflare Pages
-[build]
-command = "npm run build"
-cwd = "."
+# Remover configuração de Workers - vamos usar apenas Pages
+# O arquivo wrangler.toml não é necessário para Pages
 
-# Configuração de upload para Pages
-[env.production]
-name = "triagem"
+# Para Cloudflare Pages, a configuração é feita no dashboard:
+# 1. Build command: npm run build
+# 2. Build output directory: dist
+# 3. Root directory: / (raiz do projeto)

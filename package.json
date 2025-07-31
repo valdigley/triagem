@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "wrangler pages deploy dist --project-name=triagem"
+    "deploy": "echo 'Use Cloudflare Pages dashboard para deploy automático via Git'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
