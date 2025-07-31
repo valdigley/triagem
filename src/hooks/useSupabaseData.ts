@@ -312,10 +312,46 @@ export const useSupabaseData = () => {
 
       setEvents(prev => [data, ...prev]);
       
+      // Criar álbum automaticamente para o evento
+      try {
+        const sessionTypeLabel = eventData.session_type ? 
+          sessionTypeLabels[eventData.session_type] || eventData.session_type : 
+          'Sessão';
+        const albumName = `${sessionTypeLabel} - ${eventData.client_name}`;
+
+        console.log('Creating album for manual event:', albumName);
+        
+        const { data: newAlbum, error: albumError } = await supabase
+          .from('albums')
+          .insert({
+            event_id: data.id,
+            name: albumName,
+          })
+          .select()
+          .single();
+
+        if (albumError) {
+          console.error('Error creating album for manual event:', albumError);
+          toast.error('Evento criado, mas falha ao criar álbum');
+        } else {
+          console.log('Album created successfully:', newAlbum.id);
+          setAlbums(prev => [newAlbum, ...prev]);
+          
+          // Atualizar o evento com o album_id
+          await supabase
+            .from('events')
+            .update({ album_id: newAlbum.id })
+            .eq('id', data.id);
+        }
+      } catch (error) {
+        console.error('Error creating album for manual event:', error);
+        // Não falhar o processo se o álbum não for criado
+      }
+      
       if (googleEventId) {
         toast.success('Agendamento criado e sincronizado com Google Calendar!');
       } else {
-        toast.success('Agendamento criado com sucesso!');
+        toast.success('Agendamento e sessão criados com sucesso!');
       }
       
       return data;
