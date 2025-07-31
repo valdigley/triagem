@@ -178,7 +178,6 @@ export const useSupabaseData = () => {
           setPhotos(photosData || []);
         }
       } else {
-        console.log('No albums found, setting empty photos array');
         setPhotos([]);
       }
 

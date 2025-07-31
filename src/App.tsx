@@ -107,9 +107,23 @@ function App() {
           <BrowserRouter>
             <Routes>
               {/* Rota pública para agendamento */}
-              <Route path="/agendar" element={<PublicScheduling />} />
+              <Route 
+                path="/agendar" 
+                element={
+                  <div style={{ isolation: 'isolate' }}>
+                    <PublicScheduling />
+                  </div>
+                } 
+              />
               {/* Rota pública para seleção de fotos */}
-              <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
+              <Route 
+                path="/album/:shareToken" 
+                element={
+                  <div style={{ isolation: 'isolate' }}>
+                    <ClientPhotoSelection />
+                  </div>
+                } 
+              />
               {/* Rotas do sistema interno */}
               <Route path="/*" element={<AppContent />} />
             </Routes>

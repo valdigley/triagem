@@ -6,8 +6,6 @@ import { Calendar, Clock, User, Mail, Phone, Camera, Check, X, Copy, RefreshCw, 
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 
-// Debug: Log quando o componente carrega
-console.log('PublicScheduling component loaded');
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
   clientEmail: z.string().email('E-mail inválido'),
@@ -71,21 +69,17 @@ const PublicScheduling: React.FC = () => {
   });
 
   useEffect(() => {
-    console.log('PublicScheduling: Loading studio settings...');
     loadStudioSettings();
   }, []);
 
   const loadStudioSettings = async () => {
     try {
-      console.log('PublicScheduling: Fetching photographer data...');
       // Carregar configurações do primeiro fotógrafo (assumindo um estúdio)
       const { data: photographer, error } = await supabase
         .from('photographers')
         .select('*')
         .limit(1)
         .maybeSingle();
-
-      console.log('PublicScheduling: Photographer data:', photographer);
 
       if (photographer) {
         setPhotographerId(photographer.id);
@@ -709,13 +703,6 @@ const PublicScheduling: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Debug info - remover em produção */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-100 p-2 text-xs">
-          Debug: PublicScheduling loaded - Studio: {studioSettings.businessName}
-        </div>
-      )}
-      
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
