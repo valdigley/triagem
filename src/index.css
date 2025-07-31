@@ -5,8 +5,28 @@
 /* Garantir que o body e html ocupem toda a altura */
 html, body, #root {
   height: 100%;
+  width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+}
+
+/* Garantir que a tela de login ocupe toda a viewport */
+.login-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+
+/* Garantir que imagens de fundo preencham completamente */
+.background-image {
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  object-position: center;
 }
 
 /* Scrollbar personalizada */

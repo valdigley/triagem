@@ -284,20 +284,20 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="fixed inset-0 overflow-hidden">
       {/* Background Images with Slideshow */}
       <div className="absolute inset-0">
         {backgroundImages.map((image, index) => (
           <div
             key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
+            className={`fixed inset-0 transition-opacity duration-1000 ${
               index === currentImageIndex ? 'opacity-100' : 'opacity-0'
             }`}
           >
             <img
               src={image}
               alt={`Background ${index + 1}`}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-center"
               loading={index === 0 ? 'eager' : 'lazy'}
               onError={(e) => {
                 console.error('❌ Failed to load background image:', image.substring(0, 100) + '...');
@@ -308,20 +308,19 @@ const Login: React.FC = () => {
                 console.log('✅ Background image loaded successfully:', index);
               }}
             />
-            {/* Efeito de linhas geométricas */}
-            {/* Overlay simples para legibilidade */}
-            <div className="absolute inset-0 bg-black/40"></div>
+            {/* Overlay para legibilidade do texto */}
+            <div className="absolute inset-0 bg-black/50"></div>
           </div>
         ))}
       </div>
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
+      <div className="fixed inset-0 z-10 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
           {/* Logo and Branding */}
           <div className="text-center mb-8">
             {studioLogo ? (
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-6 p-4">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-md rounded-full mb-6 p-4 shadow-lg">
                 <img 
                   src={studioLogo} 
                   alt="Logo" 
@@ -329,7 +328,7 @@ const Login: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full mb-6">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-md rounded-full mb-6 shadow-lg">
                 <Camera className="w-10 h-10 text-white" />
               </div>
             )}
@@ -346,7 +345,7 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-white/20">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/30 max-h-[80vh] overflow-y-auto">
             {/* Tela de Sucesso do Cadastro */}
             {registrationSuccess ? (
               <div className="text-center space-y-6">
@@ -680,15 +679,15 @@ const Login: React.FC = () => {
 
           {/* Image indicators */}
           {backgroundImages.length > 1 && (
-            <div className="flex justify-center mt-6 space-x-2">
+            <div className="flex justify-center mt-8 space-x-2">
               {backgroundImages.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentImageIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  className={`w-3 h-3 rounded-full transition-all duration-300 shadow-lg ${
                     index === currentImageIndex 
-                      ? 'bg-white scale-125' 
-                      : 'bg-white/50 hover:bg-white/75'
+                      ? 'bg-white scale-125 shadow-white/50' 
+                      : 'bg-white/60 hover:bg-white/80'
                   }`}
                 />
               ))}
