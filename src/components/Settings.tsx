@@ -8,6 +8,7 @@ import {
   EyeOff, 
   Plus, 
   Trash2, 
+  X,
   Settings as SettingsIcon,
   DollarSign,
   Camera,
