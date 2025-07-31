@@ -784,7 +784,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       Excluir
                     </button>
                   </div>
-                )}
+                }
 
                 {selectedCount > 0 && albumPhotos.length > 0 && (
                   <div className="mb-4">
