@@ -208,8 +208,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             plan_type: 'trial',
             status: 'active',
             trial_start_date: new Date().toISOString(),
-            trial_end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            trial_end_date: new Date().toISOString(),
+            expires_at: new Date().toISOString(),
           });
 
         if (subscriptionError) {
