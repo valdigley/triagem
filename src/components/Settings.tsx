@@ -193,11 +193,11 @@ const Settings: React.FC = () => {
     // Validar arquivos
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} não é uma imagem válida`);
+        toast.error('${file.name} não é uma imagem válida'.replace('${file.name}', file.name));
         return false;
       }
       if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} é muito grande. Máximo 10MB.`);
+        toast.error('${file.name} é muito grande. Máximo 10MB.'.replace('${file.name}', file.name));
         return false;
       }
       return true;
@@ -217,7 +217,7 @@ const Settings: React.FC = () => {
       reader.readAsDataURL(file);
     });
 
-    toast.success(`${validFiles.length} imagem(ns) adicionada(s)`);
+    toast.success('${validFiles.length} imagem(ns) adicionada(s)'.replace('${validFiles.length}', validFiles.length.toString()));
   };
 
   const removeBackground = (index: number) => {
@@ -503,7 +503,7 @@ const Settings: React.FC = () => {
                   <div key={index} className="relative group">
                     <img
                       src={bg}
-                      alt={`Background ${index + 1}`}
+                      alt={'Background ' + (index + 1)}
                       className="w-full h-24 object-cover rounded-lg border border-gray-200"
                     />
                     <button
@@ -849,12 +849,12 @@ const Settings: React.FC = () => {
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
           <h4 className="font-medium text-gray-700 mb-2">Variáveis Disponíveis</h4>
           <div className="text-sm text-gray-600 grid md:grid-cols-2 gap-2">
-            <div>• {{clientName}} - Nome do cliente</div>
-            <div>• {{sessionType}} - Tipo de sessão</div>
-            <div>• {{eventDate}} - Data do evento</div>
-            <div>• {{eventTime}} - Horário do evento</div>
-            <div>• {{studioName}} - Nome do estúdio</div>
-            <div>• {{studioAddress}} - Endereço do estúdio</div>
+            <div>• clientName - Nome do cliente</div>
+            <div>• sessionType - Tipo de sessão</div>
+            <div>• eventDate - Data do evento</div>
+            <div>• eventTime - Horário do evento</div>
+            <div>• studioName - Nome do estúdio</div>
+            <div>• studioAddress - Endereço do estúdio</div>
           </div>
         </div>
       </div>
