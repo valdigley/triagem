@@ -115,9 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('users')
         .select('id')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (!existingUser) {
+      if (!existingUser || existingUser.length === 0) {
         console.log('Creating user record for Google OAuth user');
         
         // Criar registro na tabela users
@@ -139,6 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           console.log('User record created successfully');
         }
+      } else {
+        console.log('User record already exists');
       }
 
       // Verificar se já existe perfil de fotógrafo
@@ -146,9 +148,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('photographers')
         .select('id')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (!existingPhotographer) {
+      if (!existingPhotographer || existingPhotographer.length === 0) {
         console.log('Creating photographer profile for Google OAuth user');
         
         // Criar perfil de fotógrafo
@@ -194,6 +196,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           console.log('Photographer profile created successfully');
         }
+      } else {
+        console.log('Photographer profile already exists');
       }
 
       // Verificar se já existe subscription
@@ -201,21 +205,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('subscriptions')
         .select('id')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (!existingSubscription) {
+      if (!existingSubscription || existingSubscription.length === 0) {
         console.log('Creating subscription for Google OAuth user');
         
         // Criar subscription de teste
         const { data, error: subscriptionError } = await supabase
           .from('subscriptions')
-          .insert({
+          .upsert({
             user_id: user.id,
             plan_type: 'trial',
             status: 'active',
             trial_start_date: new Date().toISOString(),
             trial_end_date: new Date().toISOString(), // Expira imediatamente
             expires_at: new Date().toISOString(), // Expira imediatamente
+          }, {
+            onConflict: 'user_id',
+            ignoreDuplicates: false
           })
           .select()
           .single();
@@ -240,6 +247,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('Forced zero trial days successfully');
           }
         }
+      } else {
+        console.log('Subscription already exists');
       }
 
     } catch (error) {

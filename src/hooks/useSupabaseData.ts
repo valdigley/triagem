@@ -74,15 +74,18 @@ export const useSupabaseData = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
+  const [photographerChecked, setPhotographerChecked] = useState(false);
 
   // Buscar ou criar perfil do fotógrafo
   const ensurePhotographerProfile = async () => {
     if (!user) return null;
 
-    // Se já temos o photographerId, não criar novamente
-    if (photographerId) {
+    // Se já temos o photographerId ou já verificamos, não criar novamente
+    if (photographerId || photographerChecked) {
       return photographerId;
     }
+
+    setPhotographerChecked(true);
 
     try {
       // Verificar se já existe perfil do fotógrafo
@@ -90,9 +93,10 @@ export const useSupabaseData = () => {
         .from('photographers')
         .select('id, user_id')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .single();
 
-      if (existingProfile) {
+      if (!fetchError && existingProfile) {
+        console.log('Found existing photographer profile:', existingProfile.id);
         setPhotographerId(existingProfile.id);
         return existingProfile.id;
       }
@@ -102,7 +106,7 @@ export const useSupabaseData = () => {
       
       const { data: newProfile, error: insertError } = await supabase
         .from('photographers')
-        .insert({
+        .upsert({
           user_id: user.id,
           business_name: user.name || 'Meu Estúdio',
           phone: user.user_metadata?.whatsapp || '(11) 99999-9999',
@@ -132,13 +136,29 @@ export const useSupabaseData = () => {
               }
             }
           }
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
         })
         .select()
         .single();
 
       if (insertError) {
         console.error('Error creating photographer profile:', insertError);
-        toast.error('Erro ao criar perfil do fotógrafo');
+        // Se for erro de duplicata, tentar buscar o existente
+        if (insertError.code === '23505') {
+          const { data: existingAfterError } = await supabase
+            .from('photographers')
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+          
+          if (existingAfterError) {
+            console.log('Found existing profile after duplicate error:', existingAfterError.id);
+            setPhotographerId(existingAfterError.id);
+            return existingAfterError.id;
+          }
+        }
         return null;
       }
 
@@ -911,39 +931,19 @@ export const useSupabaseData = () => {
     }
 
     try {
-      // Primeiro verificar se o cliente já existe
-      const { data: existingClient } = await supabase
+      // Usar upsert para evitar duplicatas
+      const { error } = await supabase
         .from('clients')
-        .select('id')
-        .eq('email', clientData.email)
-        .eq('photographer_id', photographerId)
-        .maybeSingle();
-
-      let error;
-      if (existingClient) {
-        // Atualizar cliente existente
-        const { error: updateError } = await supabase
-          .from('clients')
-          .update({
-            name: clientData.name,
-            phone: clientData.phone,
-            notes: clientData.notes,
-          })
-          .eq('id', existingClient.id);
-        error = updateError;
-      } else {
-        // Criar novo cliente
-        const { error: insertError } = await supabase
-          .from('clients')
-          .insert({
-            photographer_id: photographerId,
-            name: clientData.name,
-            email: clientData.email,
-            phone: clientData.phone,
-            notes: clientData.notes,
-          });
-        error = insertError;
-      }
+        .upsert({
+          photographer_id: photographerId,
+          name: clientData.name,
+          email: clientData.email,
+          phone: clientData.phone,
+          notes: clientData.notes,
+        }, {
+          onConflict: 'email,photographer_id',
+          ignoreDuplicates: false
+        });
 
       if (error) {
         console.error('Error creating/updating client:', error);
@@ -1086,6 +1086,7 @@ export const useSupabaseData = () => {
       setOrders([]);
       setClients([]);
       setPhotographerId(null);
+      setPhotographerChecked(false);
       setLoading(false);
     }
   }, [user]);
