@@ -170,19 +170,6 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
       return;
     }
     
-    // Verificar se excedeu o limite do pacote e não há pagamento confirmado
-    const currentSelectedCount = selectedPhotos.size;
-    const isSelecting = !selectedPhotos.has(photoId);
-    
-    if (isSelecting && currentSelectedCount >= pricingConfig.packagePhotos) {
-      // Verificar se há pagamento confirmado para fotos extras
-      const hasExtraPayment = await checkExtraPhotosPayment();
-      if (!hasExtraPayment) {
-        toast.error(`Você pode selecionar até ${pricingConfig.packagePhotos} fotos gratuitamente. Para mais fotos, é necessário pagamento.`);
-        return;
-      }
-    }
-    
     const newSelected = new Set(selectedPhotos);
     const isSelected = selectedPhotos.has(photoId);
     
@@ -458,25 +445,47 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                   {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
                 </h3>
                 <div className="text-gray-600">
-                  <div>
-                    <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
-                    <p className="text-sm">
-                      {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                      {priceCalculation.hasDiscount && (
-                        <span className="text-green-600 ml-2">
-                          (5% desconto aplicado)
-                        </span>
-                      )}
-                    </p>
-                    <p className="font-semibold text-lg">
-                      Total a pagar: R$ {priceCalculation.total.toFixed(2)}
-                      {priceCalculation.hasDiscount && (
-                        <span className="text-green-600 text-sm ml-2">
-                          (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                        </span>
-                      )}
-                    </p>
-                  </div>
+                  {priceCalculation.isManualBooking ? (
+                    <div>
+                      <p className="text-sm text-blue-600">Agendamento manual - todas as fotos são cobradas</p>
+                      <p className="text-sm">
+                        {selectedPhotos.size} fotos × R$ {priceCalculation.photoPrice.toFixed(2)} cada
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 ml-2">
+                            ({selectedPhotos.size >= 10 ? '10%' : '5%'} desconto aplicado)
+                          </span>
+                        )}
+                      </p>
+                      <p className="font-semibold text-lg">
+                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 text-sm ml-2">
+                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
+                      <p className="text-sm">
+                        {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 ml-2">
+                            (5% desconto aplicado)
+                          </span>
+                        )}
+                      </p>
+                      <p className="font-semibold text-lg">
+                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
+                        {priceCalculation.hasDiscount && (
+                          <span className="text-green-600 text-sm ml-2">
+                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               <button
