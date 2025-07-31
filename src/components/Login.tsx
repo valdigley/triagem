@@ -31,18 +31,34 @@ const Login: React.FC = () => {
       }
     }
 
+    // Mostrar loading toast
+    const loadingToast = toast.loading(
+      isRegisterMode ? 'Criando sua conta...' : 'Fazendo login...'
+    );
     const result = isRegisterMode 
       ? await register(email, password, name)
       : await login(email, password);
       
+    // Remover loading toast
+    toast.dismiss(loadingToast);
+
     if (result === true) {
       if (isRegisterMode) {
-        toast.success('Conta criada com sucesso!');
+        toast.success('🎉 Conta criada com sucesso! Você pode fazer login agora.');
+        // Limpar formulário e voltar para login
+        setEmail('');
+        setPassword('');
+        setName('');
+        setIsRegisterMode(false);
       } else {
         toast.success('Login realizado com sucesso!');
       }
     } else {
-      toast.error(result);
+      if (isRegisterMode) {
+        toast.error(`❌ Erro no cadastro: ${result}`);
+      } else {
+        toast.error(`❌ Erro no login: ${result}`);
+      }
     }
   };
 

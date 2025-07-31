@@ -36,15 +36,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Verificar sessão atual
     const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setSupabaseUser(session.user);
-        setUser({
-          id: session.user.id,
-          name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
-          email: session.user.email || '',
-          role: 'photographer',
-        });
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          // Clear invalid tokens and reset auth state
+          await supabase.auth.signOut();
+          setSupabaseUser(null);
+          setUser(null);
+        } else if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser({
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+            email: session.user.email || '',
+            role: 'photographer',
+          });
+        }
+      } catch (error) {
+        console.error('Unexpected session error:', error);
+        // Clear invalid tokens and reset auth state
+        await supabase.auth.signOut();
+        setSupabaseUser(null);
+        setUser(null);
       }
       setIsLoading(false);
     };
@@ -124,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             name,
             full_name: name,
           },
-          emailRedirectTo: undefined, // Disable email confirmation for development
+          emailRedirectTo: undefined,
         },
       });
 
@@ -145,15 +160,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.message.includes('Signup is disabled')) {
           return 'Cadastro desabilitado. Entre em contato com o administrador';
         }
+        if (error.message.includes('Email rate limit exceeded')) {
+          return 'Muitas tentativas de cadastro. Aguarde alguns minutos';
+        }
         
         return error.message || 'Erro ao criar conta';
       }
 
-      console.log('Registration successful:', data);
+      console.log('Registration successful:', {
+        userId: data.user?.id,
+        email: data.user?.email,
+        emailConfirmed: data.user?.email_confirmed_at,
+        needsConfirmation: !data.user?.email_confirmed_at
+      });
       
-      // Se o usuário foi criado mas não confirmado, ainda assim considerar sucesso
-      if (data.user && !data.user.email_confirmed_at) {
-        console.log('User created but email not confirmed - this is expected in development');
+      // Verificar se o usuário foi criado com sucesso
+      if (data.user) {
+        console.log('✅ Usuário criado com sucesso!');
+        
+        // Se email confirmation está desabilitado, o usuário já pode fazer login
+        if (data.user.email_confirmed_at || !data.user.email_confirmed_at) {
+          console.log('✅ Usuário pode fazer login imediatamente');
+        }
+      } else {
+        console.error('❌ Usuário não foi criado');
+        setIsLoading(false);
+        return 'Erro: usuário não foi criado no sistema';
       }
       
       setIsLoading(false);
