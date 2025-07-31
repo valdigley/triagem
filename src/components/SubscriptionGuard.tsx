@@ -9,17 +9,20 @@ interface SubscriptionGuardProps {
 const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   const { 
     hasActiveAccess, 
-    const expiresAt = subscription.plan_type === 'trial' 
-      ? new Date(subscription.trial_end_date)
-      : subscription.expires_at 
-      ? new Date(subscription.expires_at) 
-      : new Date(subscription.trial_end_date);
-      
+    subscription,
     isTrialExpired, 
     daysRemaining, 
     loading,
     upgradeSubscription 
   } = useSubscription();
+
+  const expiresAt = subscription?.plan_type === 'trial' 
+    ? new Date(subscription.trial_end_date)
+    : subscription?.expires_at 
+    ? new Date(subscription.expires_at) 
+    : subscription?.trial_end_date 
+    ? new Date(subscription.trial_end_date)
+    : null;
 
   const handleUpgradeClick = async () => {
     console.log('Upgrade button clicked');
