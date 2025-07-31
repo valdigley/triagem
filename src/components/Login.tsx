@@ -44,7 +44,7 @@ const Login: React.FC = () => {
       // Carregar configurações do primeiro fotógrafo (assumindo um estúdio)
       const { data: photographer } = await supabase
         .from('photographers')
-        .select('business_name, watermark_config')
+        .select('business_name, watermark_config, user_id')
         .limit(1)
         .maybeSingle();
 
@@ -60,32 +60,37 @@ const Login: React.FC = () => {
         }
 
         // Imagens de fundo personalizadas
-        if (photographer.watermark_config?.loginBackgrounds && photographer.watermark_config.loginBackgrounds.length > 0) {
+        if (photographer.watermark_config?.loginBackgrounds && 
+            Array.isArray(photographer.watermark_config.loginBackgrounds) && 
+            photographer.watermark_config.loginBackgrounds.length > 0) {
+          console.log('Loading custom background images:', photographer.watermark_config.loginBackgrounds.length);
           setBackgroundImages(photographer.watermark_config.loginBackgrounds);
         } else {
+          console.log('No custom backgrounds found, using default images');
           // Imagens padrão de alta qualidade para estúdios fotográficos
           setBackgroundImages([
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
+            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Estúdio fotográfico
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Equipamentos
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Sessão de fotos
+            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Retrato profissional
           ]);
         }
       } else {
+        console.log('No photographer found, using default settings');
         // Configurações padrão se não houver fotógrafo
         setBackgroundImages([
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
+          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Estúdio fotográfico
+          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Equipamentos
         ]);
       }
     } catch (error) {
       console.error('Error loading studio settings:', error);
       // Usar imagens padrão em caso de erro
       setBackgroundImages([
-        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
+        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop', // Câmera vintage
+        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'  // Estúdio fotográfico
       ]);
     }
   };
@@ -241,9 +246,46 @@ const Login: React.FC = () => {
               alt={`Background ${index + 1}`}
               className="w-full h-full object-cover"
               loading={index === 0 ? 'eager' : 'lazy'}
+              onError={(e) => {
+                console.error('Failed to load background image:', image);
+                // Fallback para imagem padrão se falhar
+                e.currentTarget.src = 'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
+              }}
             />
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/60"></div>
+            {/* Efeito de linhas geométricas */}
+            <div className="absolute inset-0">
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70"></div>
+              
+              {/* Linhas diagonais animadas */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0" style={{
+                  backgroundImage: `
+                    linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%),
+                    linear-gradient(-45deg, transparent 40%, rgba(255,255,255,0.02) 50%, transparent 60%),
+                    linear-gradient(90deg, transparent 48%, rgba(255,255,255,0.01) 50%, transparent 52%)
+                  `,
+                  backgroundSize: '60px 60px, 80px 80px, 100px 100px',
+                  animation: 'slideLines 20s linear infinite'
+                }}></div>
+              </div>
+              
+              {/* Pontos decorativos */}
+              <div className="absolute inset-0">
+                <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-white/10 rounded-full animate-pulse"></div>
+                <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-white/15 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-1/2 left-3/4 w-1.5 h-1.5 bg-white/8 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+                <div className="absolute bottom-1/4 left-1/2 w-1 h-1 bg-white/12 rounded-full animate-pulse" style={{ animationDelay: '3s' }}></div>
+              </div>
+              
+              {/* Linhas verticais sutis */}
+              <div className="absolute inset-0">
+                <div className="absolute left-1/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/5 to-transparent"></div>
+                <div className="absolute left-2/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/3 to-transparent"></div>
+                <div className="absolute right-1/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/4 to-transparent"></div>
+                <div className="absolute right-2/6 top-0 bottom-0 w-px bg-gradient-to-b from-transparent via-white/2 to-transparent"></div>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -629,6 +671,18 @@ const Login: React.FC = () => {
           )}
         </div>
       </div>
+      
+      {/* CSS para animação das linhas */}
+      <style jsx>{`
+        @keyframes slideLines {
+          0% {
+            transform: translateX(-100px) translateY(-100px);
+          }
+          100% {
+            transform: translateX(100px) translateY(100px);
+          }
+        }
+      `}</style>
     </div>
   );
 };
