@@ -41,6 +41,7 @@ const Settings: React.FC = () => {
     website: '',
     instagram: '',
     logo: '',
+    loginBackgrounds: [] as string[],
   });
 
   // Estados para configurações de preços
@@ -92,6 +93,37 @@ const Settings: React.FC = () => {
 
   const [newSessionType, setNewSessionType] = useState({ value: '', label: '' });
 
+  // Função para upload de imagem de fundo
+  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Arquivo muito grande. Máximo 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const newImage = e.target?.result as string;
+      setGeneralSettings(prev => ({
+        ...prev,
+        loginBackgrounds: [...(prev.loginBackgrounds || []), newImage]
+      }));
+      toast.success('Imagem de fundo adicionada!');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Função para remover imagem de fundo
+  const removeBackgroundImage = (index: number) => {
+    setGeneralSettings(prev => ({
+      ...prev,
+      loginBackgrounds: prev.loginBackgrounds?.filter((_, i) => i !== index) || []
+    }));
+    toast.success('Imagem removida!');
+  };
+
   useEffect(() => {
     if (user) {
       loadSettings();
@@ -125,6 +157,7 @@ const Settings: React.FC = () => {
           website: photographerData.watermark_config?.website || '',
           instagram: photographerData.watermark_config?.instagram || '',
           logo: photographerData.watermark_config?.logo || '',
+          loginBackgrounds: photographerData.watermark_config?.loginBackgrounds || [],
         });
 
         // Carregar configurações de preços
@@ -284,6 +317,7 @@ const Settings: React.FC = () => {
 
   const tabs = [
     { id: 'general', label: 'Geral', icon: Building },
+    { id: 'branding', label: 'Marca', icon: Palette },
     { id: 'pricing', label: 'Preços', icon: DollarSign },
     { id: 'calendar', label: 'Google Calendar', icon: Calendar },
     { id: 'watermark', label: 'Marca D\'água', icon: ImageIcon },
@@ -766,6 +800,102 @@ const Settings: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === 'branding' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Personalização da Marca</h3>
+            
+            {/* Logo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Logo do Estúdio
+              </label>
+              <div className="flex items-center gap-4">
+                {generalSettings.logo && (
+                  <img 
+                    src={generalSettings.logo} 
+                    alt="Logo" 
+                    className="w-16 h-16 object-contain border border-gray-200 rounded-lg"
+                  />
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Escolher Logo
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">PNG, JPG até 5MB</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Imagens de Fundo do Login */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Imagens de Fundo do Login
+              </label>
+              <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                <p className="text-sm text-blue-800">
+                  Adicione até 5 imagens que serão exibidas em rotação na tela de login.
+                  Use fotos do seu portfólio para impressionar novos clientes.
+                </p>
+              </div>
+              
+              {/* Preview das imagens atuais */}
+              {generalSettings.loginBackgrounds && generalSettings.loginBackgrounds.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                  {generalSettings.loginBackgrounds.map((image, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={image}
+                        alt={`Background ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        onClick={() => removeBackgroundImage(index)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {/* Upload de nova imagem */}
+              {(!generalSettings.loginBackgrounds || generalSettings.loginBackgrounds.length < 5) && (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBackgroundUpload}
+                    className="hidden"
+                    id="background-upload"
+                  />
+                  <label
+                    htmlFor="background-upload"
+                    className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-dashed border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full justify-center"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Adicionar Imagem de Fundo
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    JPG, PNG até 10MB. Recomendado: 1920x1080px
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
