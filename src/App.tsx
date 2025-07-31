@@ -3,8 +3,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import Login from './components/Login';
 import { DataProvider } from './contexts/DataContext';
+import SubscriptionGuard from './components/SubscriptionGuard';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import PublicScheduling from './components/PublicScheduling';
@@ -15,6 +17,8 @@ import AlbumList from './components/AlbumList';
 import Settings from './components/Settings';
 import PaymentsList from './components/PaymentsList';
 import ClientsList from './components/ClientsList';
+import SubscriptionManagement from './components/SubscriptionManagement';
+import ApiDocumentation from './components/ApiDocumentation';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -61,6 +65,10 @@ const AppContent: React.FC = () => {
         return <ClientsList />;
       case 'payments':
         return <PaymentsList />;
+      case 'subscriptions':
+        return <SubscriptionManagement />;
+      case 'api':
+        return <ApiDocumentation />;
       case 'settings':
         return <Settings />;
       case 'gallery':
@@ -90,12 +98,14 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Layout currentView={currentView} onViewChange={setCurrentView}>
-        {renderCurrentView()}
-      </Layout>
-      <Toaster position="top-right" />
-    </div>
+    <SubscriptionGuard>
+      <div className="min-h-screen bg-gray-50">
+        <Layout currentView={currentView} onViewChange={setCurrentView}>
+          {renderCurrentView()}
+        </Layout>
+        <Toaster position="top-right" />
+      </div>
+    </SubscriptionGuard>
   );
 };
 
@@ -103,32 +113,34 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <DataProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Rota pública para agendamento */}
-              <Route 
-                path="/agendar" 
-                element={
-                  <div style={{ isolation: 'isolate' }}>
-                    <PublicScheduling />
-                  </div>
-                } 
-              />
-              {/* Rota pública para seleção de fotos */}
-              <Route 
-                path="/album/:shareToken" 
-                element={
-                  <div style={{ isolation: 'isolate' }}>
-                    <ClientPhotoSelection />
-                  </div>
-                } 
-              />
-              {/* Rotas do sistema interno */}
-              <Route path="/*" element={<AppContent />} />
-            </Routes>
-          </BrowserRouter>
-        </DataProvider>
+        <SubscriptionProvider>
+          <DataProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* Rota pública para agendamento */}
+                <Route 
+                  path="/agendar" 
+                  element={
+                    <div style={{ isolation: 'isolate' }}>
+                      <PublicScheduling />
+                    </div>
+                  } 
+                />
+                {/* Rota pública para seleção de fotos */}
+                <Route 
+                  path="/album/:shareToken" 
+                  element={
+                    <div style={{ isolation: 'isolate' }}>
+                      <ClientPhotoSelection />
+                    </div>
+                  } 
+                />
+                {/* Rotas do sistema interno */}
+                <Route path="/*" element={<AppContent />} />
+              </Routes>
+            </BrowserRouter>
+          </DataProvider>
+        </SubscriptionProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -10,10 +10,13 @@ import {
   Bell,
   Menu,
   X,
-  CreditCard
+  CreditCard,
+  Crown,
+  Code
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscription } from '../contexts/SubscriptionContext';
 import { supabase } from '../lib/supabase';
 
 interface LayoutProps {
@@ -26,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuth();
+  const { isMasterUser, daysRemaining, isTrialExpired } = useSubscription();
   const [studioLogo, setStudioLogo] = useState<string>('');
 
   // Carregar logo do estúdio
@@ -56,6 +60,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     { name: 'Clientes', key: 'clients', icon: Users },
     { name: 'Sessões', key: 'albums', icon: Image },
     { name: 'Pagamentos', key: 'payments', icon: CreditCard },
+    ...(isMasterUser ? [
+      { name: 'Assinaturas', key: 'subscriptions', icon: Crown },
+      { name: 'API & FTP', key: 'api', icon: Code },
+    ] : []),
     { name: 'Configurações', key: 'settings', icon: Settings },
   ];
 
@@ -144,6 +152,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
             </button>
 
             <div className="flex items-center space-x-4 ml-auto">
+              {/* Trial indicator */}
+              {!isMasterUser && !isTrialExpired && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                  <Clock className="w-4 h-4" />
+                  <span>{daysRemaining} dias restantes</span>
+                </div>
+              )}
+              
+              {/* Master badge */}
+              {isMasterUser && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">
+                  <Crown className="w-4 h-4" />
+                  <span>Master</span>
+                </div>
+              )}
+              
               <button className="relative p-2 text-gray-500 hover:text-gray-700 transition-colors">
                 <Bell className="w-5 h-5" />
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
