@@ -51,9 +51,11 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [pendingEventData, setPendingEventData] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showGoogleDriveModal, setShowGoogleDriveModal] = useState(false);
+  const [selectedEventForDrive, setSelectedEventForDrive] = useState<any>(null);
+  const [googleDriveLink, setGoogleDriveLink] = useState('');
+  const [sendingDriveLink, setSendingDriveLink] = useState(false);
   const [editForm, setEditForm] = useState({
     client_name: '',
     client_email: '',
@@ -218,49 +220,80 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
   };
 
   const onSubmit = async (data: EventFormData) => {
-    // Combine date and time
-    const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
-    
-    // Preparar dados do evento para pagamento
-    const eventData = {
-      client_name: data.clientName,
-      client_email: data.clientEmail,
-      client_phone: data.clientPhone,
-      session_type: data.sessionType,
-      event_date: eventDateTime.toISOString(),
-      location: 'Estúdio Fotográfico',
-      notes: data.notes,
-      status: 'scheduled',
-    };
-    
-    setPendingEventData(eventData);
-    setShowPayment(true);
-  };
-
-  const handlePaymentComplete = async () => {
-    if (!pendingEventData) return;
-    
     setIsSubmitting(true);
     try {
-      const success = await addEvent(pendingEventData);
+      // Combine date and time
+      const eventDateTime = new Date(`${data.eventDate}T${data.eventTime}`);
+      
+      const eventData = {
+        client_name: data.clientName,
+        client_email: data.clientEmail,
+        client_phone: data.clientPhone,
+        session_type: data.sessionType,
+        event_date: eventDateTime.toISOString(),
+        location: 'Estúdio Fotográfico',
+        notes: data.notes,
+        status: 'scheduled',
+      };
+      
+      const success = await addEvent(eventData);
       if (success) {
         reset();
         setShowCreateForm(false);
-        setShowPayment(false);
-        setPendingEventData(null);
-        // toast.success('Sua sessão foi agendada com sucesso!');
+        toast.success('Sessão criada com sucesso!');
       }
     } catch (error) {
       console.error('Error creating event:', error);
-      // toast.error('Erro ao confirmar agendamento.');
+      toast.error('Erro ao criar sessão.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handlePaymentCancel = () => {
-    setShowPayment(false);
-    setPendingEventData(null);
+  const handleGoogleDriveShare = (event: any) => {
+    setSelectedEventForDrive(event);
+    setGoogleDriveLink('');
+    setShowGoogleDriveModal(true);
+  };
+
+  const sendGoogleDriveLink = async () => {
+    if (!selectedEventForDrive || !googleDriveLink.trim()) {
+      toast.error('Digite o link do Google Drive');
+      return;
+    }
+
+    setSendingDriveLink(true);
+    try {
+      // Enviar via Evolution API
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          phone: selectedEventForDrive.client_phone,
+          message: `Olá ${selectedEventForDrive.client_name}! 📸\n\nSuas fotos editadas estão prontas! 🎉\n\nAcesse o link abaixo para fazer o download:\n${googleDriveLink}\n\nQualquer dúvida, entre em contato conosco.\n\nObrigado!`,
+          event_id: selectedEventForDrive.id,
+          type: 'google_drive_share'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao enviar mensagem');
+      }
+
+      toast.success('Link do Google Drive enviado via WhatsApp!');
+      setShowGoogleDriveModal(false);
+      setSelectedEventForDrive(null);
+      setGoogleDriveLink('');
+    } catch (error) {
+      console.error('Error sending Google Drive link:', error);
+      toast.error(error.message || 'Erro ao enviar link');
+    } finally {
+      setSendingDriveLink(false);
+    }
   };
 
   if (loading) {
@@ -279,7 +312,156 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
           <h1 className="text-2xl font-bold text-gray-900">Agendamentos</h1>
           <p className="text-gray-600">Visualize e gerencie seus agendamentos ({events.length} agendamentos)</p>
         </div>
+        <button
+          onClick={() => setShowCreateForm(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Nova Sessão Manual
+        </button>
       </div>
+
+      {/* Formulário de Criação Manual */}
+      {showCreateForm && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Criar Sessão Manual</h3>
+            <button
+              onClick={() => setShowCreateForm(false)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome do Cliente *
+                </label>
+                <input
+                  {...register('clientName')}
+                  type="text"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Nome completo do cliente"
+                />
+                {errors.clientName && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientName.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo de Sessão *
+                </label>
+                <select
+                  {...register('sessionType')}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione...</option>
+                  {sessionTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+                {errors.sessionType && (
+                  <p className="text-red-600 text-sm mt-1">{errors.sessionType.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  E-mail *
+                </label>
+                <input
+                  {...register('clientEmail')}
+                  type="email"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="cliente@email.com"
+                />
+                {errors.clientEmail && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientEmail.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Telefone *
+                </label>
+                <input
+                  {...register('clientPhone')}
+                  type="tel"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="(11) 99999-9999"
+                />
+                {errors.clientPhone && (
+                  <p className="text-red-600 text-sm mt-1">{errors.clientPhone.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Data *
+                </label>
+                <input
+                  {...register('eventDate')}
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {errors.eventDate && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventDate.message}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Horário *
+                </label>
+                <input
+                  {...register('eventTime')}
+                  type="time"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                {errors.eventTime && (
+                  <p className="text-red-600 text-sm mt-1">{errors.eventTime.message}</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Observações
+              </label>
+              <textarea
+                {...register('notes')}
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Observações sobre a sessão..."
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {isSubmitting ? 'Criando...' : 'Criar Sessão'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {events.length === 0 ? (
         <div className="text-center py-12">
@@ -459,6 +641,17 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                   </div>
 
                   <div className="flex justify-end gap-2">
+                    {event.status === 'completed' && (
+                      <button 
+                        onClick={() => handleGoogleDriveShare(event)}
+                        className="flex items-center gap-2 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12.01 2C6.5 2 2.01 6.49 2.01 12s4.49 10 9.99 10c5.51 0 10-4.49 10-10S17.52 2 12.01 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/>
+                        </svg>
+                        Compartilhar Drive
+                      </button>
+                    )}
                     {(() => {
                       // Buscar álbum relacionado ao evento
                       const relatedAlbum = albums.find(album => album.event_id === event.id);
@@ -495,6 +688,75 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Modal do Google Drive */}
+      {showGoogleDriveModal && selectedEventForDrive && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h2 className="text-xl font-bold text-gray-900">Compartilhar Google Drive</h2>
+              <button
+                onClick={() => setShowGoogleDriveModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <p className="text-sm text-gray-600 mb-2">
+                  <strong>Cliente:</strong> {selectedEventForDrive.client_name}
+                </p>
+                <p className="text-sm text-gray-600 mb-4">
+                  <strong>WhatsApp:</strong> {selectedEventForDrive.client_phone}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Link do Google Drive *
+                </label>
+                <input
+                  type="url"
+                  value={googleDriveLink}
+                  onChange={(e) => setGoogleDriveLink(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://drive.google.com/drive/folders/..."
+                />
+              </div>
+
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">📱 Mensagem que será enviada:</h4>
+                <div className="text-sm text-blue-800 bg-white p-3 rounded border">
+                  <p>Olá {selectedEventForDrive.client_name}! 📸</p>
+                  <p className="mt-2">Suas fotos editadas estão prontas! 🎉</p>
+                  <p className="mt-2">Acesse o link abaixo para fazer o download:</p>
+                  <p className="mt-1 text-blue-600">{googleDriveLink || '[LINK DO GOOGLE DRIVE]'}</p>
+                  <p className="mt-2">Qualquer dúvida, entre em contato conosco.</p>
+                  <p className="mt-2">Obrigado!</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 p-6 border-t">
+              <button
+                onClick={() => setShowGoogleDriveModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={sendGoogleDriveLink}
+                disabled={sendingDriveLink || !googleDriveLink.trim()}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+              >
+                {sendingDriveLink ? 'Enviando...' : 'Enviar via WhatsApp'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
