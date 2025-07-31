@@ -41,19 +41,22 @@ const Login: React.FC = () => {
 
   const loadStudioSettings = async () => {
     try {
-      console.log('Loading studio settings...');
+      console.log('🔍 Loading studio settings...');
       // Carregar configurações de TODOS os fotógrafos para encontrar imagens personalizadas
       const { data: photographer } = await supabase
         .from('photographers')
-        .select('business_name, watermark_config, user_id')
+        .select('business_name, watermark_config, user_id, id')
         .order('created_at', { ascending: false });
 
-      console.log('All photographers data:', photographer);
+      console.log('📊 All photographers data:', photographer);
+      console.log('📊 Number of photographers found:', photographer?.length || 0);
 
       // Buscar o primeiro fotógrafo que tenha configurações personalizadas
       let selectedPhotographer = null;
       
       if (photographer && photographer.length > 0) {
+        console.log('🔍 Searching for photographer with custom backgrounds...');
+        
         // Primeiro, tentar encontrar um fotógrafo com imagens de fundo personalizadas
         selectedPhotographer = photographer.find(p => 
           p.watermark_config?.loginBackgrounds && 
@@ -61,37 +64,52 @@ const Login: React.FC = () => {
           p.watermark_config.loginBackgrounds.length > 0
         );
         
+        console.log('🎯 Photographer with custom backgrounds:', selectedPhotographer ? 'Found' : 'Not found');
+        
         // Se não encontrou com imagens personalizadas, usar o primeiro
         if (!selectedPhotographer) {
+          console.log('📋 Using first photographer as fallback');
           selectedPhotographer = photographer[0];
         }
         
-        console.log('Selected photographer for settings:', selectedPhotographer);
+        console.log('✅ Selected photographer:', {
+          id: selectedPhotographer.id,
+          business_name: selectedPhotographer.business_name,
+          has_watermark_config: !!selectedPhotographer.watermark_config,
+          has_login_backgrounds: !!selectedPhotographer.watermark_config?.loginBackgrounds
+        });
         
         // Logo personalizada
         if (selectedPhotographer.watermark_config?.logo) {
-          console.log('Setting studio logo from:', selectedPhotographer.watermark_config.logo.substring(0, 50) + '...');
+          console.log('🖼️ Setting studio logo (length:', selectedPhotographer.watermark_config.logo.length, ')');
           setStudioLogo(selectedPhotographer.watermark_config.logo);
         }
 
         // Nome do estúdio
         if (selectedPhotographer.business_name) {
-          console.log('Setting studio name:', selectedPhotographer.business_name);
+          console.log('🏢 Setting studio name:', selectedPhotographer.business_name);
           setStudioName(selectedPhotographer.business_name);
         }
 
         // Imagens de fundo personalizadas
         const customBackgrounds = selectedPhotographer.watermark_config?.loginBackgrounds;
-        console.log('Custom backgrounds found:', customBackgrounds);
+        console.log('🎨 Custom backgrounds analysis:', {
+          exists: !!customBackgrounds,
+          is_array: Array.isArray(customBackgrounds),
+          length: customBackgrounds?.length || 0,
+          first_item_type: customBackgrounds?.[0] ? typeof customBackgrounds[0] : 'none',
+          first_item_length: customBackgrounds?.[0]?.length || 0
+        });
         
         if (customBackgrounds && 
             Array.isArray(customBackgrounds) && 
             customBackgrounds.length > 0) {
-          console.log('Loading custom background images:', customBackgrounds.length);
-          console.log('First background preview:', customBackgrounds[0].substring(0, 100) + '...');
+          console.log('✅ Loading custom background images:', customBackgrounds.length);
+          console.log('🖼️ First background starts with:', customBackgrounds[0].substring(0, 50) + '...');
           setBackgroundImages(customBackgrounds);
+          console.log('🎯 Background images state updated');
         } else {
-          console.log('No custom backgrounds found, using default images');
+          console.log('⚠️ No custom backgrounds found, using default images');
           // Imagens padrão de alta qualidade para estúdios fotográficos
           setBackgroundImages([
             'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
@@ -100,13 +118,19 @@ const Login: React.FC = () => {
           ]);
         }
       } else {
-        console.log('No photographer found, using default settings');
+        console.log('❌ No photographer found, using default settings');
         // Configurações padrão se não houver fotógrafo
         setBackgroundImages([
           'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
           'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
         ]);
       }
+      
+      console.log('🎯 Final background images state:', {
+        count: backgroundImages.length,
+        current_index: currentImageIndex
+      });
+      
     } catch (error) {
       console.error('Error loading studio settings:', error);
       // Usar imagens padrão em caso de erro
@@ -269,9 +293,12 @@ const Login: React.FC = () => {
               className="w-full h-full object-cover"
               loading={index === 0 ? 'eager' : 'lazy'}
               onError={(e) => {
-                console.error('Failed to load background image:', image);
+                console.error('❌ Failed to load background image:', image.substring(0, 100) + '...');
                 // Fallback para imagem padrão se falhar
                 e.currentTarget.src = 'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
+              }}
+              onLoad={() => {
+                console.log('✅ Background image loaded successfully:', index);
               }}
             />
             {/* Efeito de linhas geométricas */}

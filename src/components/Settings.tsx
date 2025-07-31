@@ -104,18 +104,21 @@ const Settings: React.FC = () => {
       return;
     }
 
-    console.log('Uploading background image:', file.name, 'Size:', file.size);
+    console.log('📤 Uploading background image:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2) + 'MB');
     
     const reader = new FileReader();
     reader.onload = (e) => {
       const newImage = e.target?.result as string;
-      console.log('Background image loaded, length:', newImage.length);
+      console.log('✅ Background image converted to base64, length:', newImage.length);
+      console.log('🖼️ Image preview:', newImage.substring(0, 100) + '...');
       
       setGeneralSettings(prev => ({
         ...prev,
         loginBackgrounds: [...(prev.loginBackgrounds || []), newImage]
       }));
-      toast.success('Imagem de fundo adicionada!');
+      
+      console.log('📊 Updated loginBackgrounds count:', (generalSettings.loginBackgrounds?.length || 0) + 1);
+      toast.success('Imagem de fundo adicionada! Salve as configurações para aplicar.');
     };
     reader.readAsDataURL(file);
   };
@@ -212,7 +215,11 @@ const Settings: React.FC = () => {
 
     setSaving(true);
     try {
-      console.log('Saving settings with backgrounds:', generalSettings.loginBackgrounds?.length || 0);
+      console.log('💾 Saving settings with backgrounds:', generalSettings.loginBackgrounds?.length || 0);
+      console.log('💾 Background images to save:', {
+        count: generalSettings.loginBackgrounds?.length || 0,
+        first_preview: generalSettings.loginBackgrounds?.[0]?.substring(0, 50) + '...' || 'none'
+      });
       
       // Combinar todas as configurações
       const allSettings = {
@@ -223,11 +230,12 @@ const Settings: React.FC = () => {
         sessionTypes,
       };
 
-      console.log('All settings to save:', {
+      console.log('💾 All settings to save:', {
         hasLoginBackgrounds: !!allSettings.loginBackgrounds,
         backgroundsCount: allSettings.loginBackgrounds?.length || 0,
         businessName: allSettings.businessName,
-        hasLogo: !!allSettings.logo
+        hasLogo: !!allSettings.logo,
+        watermark_config_keys: Object.keys(allSettings).filter(key => key !== 'loginBackgrounds')
       });
 
       // Primeiro, verificar se o fotógrafo existe
@@ -239,7 +247,7 @@ const Settings: React.FC = () => {
 
       if (existingPhotographer && existingPhotographer.length > 0) {
         // Atualizar fotógrafo existente
-        console.log('Updating existing photographer with new settings');
+        console.log('🔄 Updating existing photographer with new settings');
         const { error } = await supabase
           .from('photographers')
           .update({
@@ -255,10 +263,10 @@ const Settings: React.FC = () => {
           return;
         }
         
-        console.log('Photographer updated successfully');
+        console.log('✅ Photographer updated successfully');
       } else {
         // Criar novo fotógrafo
-        console.log('Creating new photographer with settings');
+        console.log('➕ Creating new photographer with settings');
         const { error } = await supabase
           .from('photographers')
           .insert({
@@ -274,16 +282,17 @@ const Settings: React.FC = () => {
           return;
         }
         
-        console.log('New photographer created successfully');
+        console.log('✅ New photographer created successfully');
       }
 
       toast.success('Configurações salvas com sucesso!');
-      console.log('Settings saved successfully, reloading page to apply changes...');
+      console.log('🔄 Settings saved successfully, forcing page reload...');
       
-      // Recarregar a página após salvar para aplicar as mudanças
+      // Limpar localStorage e recarregar
+      localStorage.clear();
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
+      }, 1500);
       
     } catch (error) {
       console.error('Error saving settings:', error);
