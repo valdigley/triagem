@@ -29,6 +29,7 @@ const SubscriptionManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sendingWhatsApp, setSendingWhatsApp] = useState<string | null>(null);
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+  const [creatingSubscription, setCreatingSubscription] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeSubscriptions: 0,
@@ -765,6 +766,7 @@ Digite "EXCLUIR" para confirmar:`;
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>
