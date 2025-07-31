@@ -429,18 +429,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
               )}
             </div>
 
-            {/* Comment below photo */}
-            {photoComments[photo.id] && (
-              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-start gap-2">
-                  <MessageCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-xs font-medium text-blue-900 mb-1">Comentário do cliente:</p>
-                    <p className="text-sm text-blue-800 leading-relaxed">{photoComments[photo.id]}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           );
         })}
       </div>
