@@ -281,6 +281,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (error.code === 'invalid_credentials') {
           return 'E-mail não cadastrado ou senha incorreta. Verifique seus dados ou crie uma nova conta.';
         }
+        if (error.code === 'email_not_confirmed' || error.message.includes('Email not confirmed')) {
+          return 'E-mail não confirmado. Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.';
+        }
         if (error.message.includes('Email not confirmed')) {
           return 'E-mail não confirmado. Verifique sua caixa de entrada';
         }
