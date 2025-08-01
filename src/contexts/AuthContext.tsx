@@ -422,9 +422,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSupabaseUser(null);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      // Ignore session_not_found errors - session is already invalid
+      console.warn('Logout warning (ignored):', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      // Always clear local state regardless of server response
+      setUser(null);
+      setSupabaseUser(null);
+    }
   };
 
   return (
