@@ -422,13 +422,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
+    // Check if there's an active session before attempting to sign out
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (error) {
-      // Ignore session_not_found errors - session is already invalid
-      if (error.message.includes('session_not_found') || error.code === 'session_not_found') {
-        console.warn('Logout warning (ignored): Session already expired');
-      } else {
+    if (session) {
+      // Only call signOut if there's an active session
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
         console.warn('Logout warning (ignored):', error.message);
       }
     }
