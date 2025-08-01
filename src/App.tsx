@@ -112,27 +112,29 @@ const AppContent: React.FC = () => {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <DataProvider>
-            <BrowserRouter>
-              <Routes>
-                {/* Rota pública para agendamento */}
-                <Route path="/agendar" element={
-                  <div>
-                    {console.log('Agendar route matched!')}
-                    <PublicScheduling />
-                  </div>
-                } />
-                {/* Rota pública para seleção de fotos */}
-                <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
-                {/* Rotas do sistema interno */}
-                <Route path="/*" element={<AppContent />} />
-              </Routes>
-            </BrowserRouter>
-          </DataProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Rota pública para agendamento */}
+          <Route path="/agendar" element={
+            <div>
+              {console.log('Agendar route matched!')}
+              <PublicScheduling />
+            </div>
+          } />
+          {/* Rota pública para seleção de fotos */}
+          <Route path="/album/:shareToken" element={<ClientPhotoSelection />} />
+          {/* Rotas do sistema interno */}
+          <Route path="/*" element={
+            <AuthProvider>
+              <SubscriptionProvider>
+                <DataProvider>
+                  <AppContent />
+                </DataProvider>
+              </SubscriptionProvider>
+            </AuthProvider>
+          } />
+        </Routes>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }

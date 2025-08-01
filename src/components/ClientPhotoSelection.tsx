@@ -85,7 +85,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         .from('events')
         .select('client_name, client_email')
         .eq('id', albumData.event_id)
-        .single();
+        .maybeSingle();
 
       if (eventData) {
         setClientData(prev => ({
@@ -152,7 +152,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         .from('photographers')
         .select('watermark_config, user_id')
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (photographer?.watermark_config?.watermarkFile) {
         setWatermarkConfig(photographer.watermark_config);
