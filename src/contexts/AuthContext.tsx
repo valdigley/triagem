@@ -422,22 +422,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    // Check if there's an active session before attempting to sign out
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session) {
-      // Only call signOut if there's an active session
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        // Suppress all logout errors - they're not critical for user experience
-        console.warn('Logout warning (suppressed):', error instanceof Error ? error.message : 'Unknown error');
-      }
-    }
-    
-    // Always clear local state regardless of server response
+    // Always clear local state first
     setUser(null);
     setSupabaseUser(null);
+    
+    // Try to sign out from Supabase, but ignore all errors
+    try {
+      // Check if there's an active session before attempting to sign out
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      // Only attempt signOut if we have a valid session and no session errors
+      if (!sessionError && session?.access_token && session?.refresh_token) {
+        await supabase.auth.signOut();
+      }
+    } catch (error) {
+      // Completely suppress all logout errors - they don't affect user experience
+      // The user is already logged out from the UI perspective
+    }
   };
 
   return (
