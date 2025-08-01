@@ -326,8 +326,19 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       setEditingDriveLink(null);
       setDriveLink('');
       
-      // Forçar recarregamento dos dados
-      window.location.reload();
+      // Recarregar dados sem refresh da página
+      try {
+        // Atualizar o estado local do álbum
+        const updatedAlbums = albums.map(album => 
+          album.id === albumId 
+            ? { ...album, google_drive_link: driveLink.trim() }
+            : album
+        );
+        // Forçar re-render do componente
+        window.dispatchEvent(new CustomEvent('albumsUpdated'));
+      } catch (error) {
+        console.error('Error updating local state:', error);
+      }
     } catch (error) {
       console.error('Error saving drive link:', error);
       toast.error('Erro ao salvar link');
