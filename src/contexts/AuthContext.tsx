@@ -376,6 +376,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return 'Conta criada! Verifique seu e-mail para confirmar antes de fazer login.';
         } else {
           console.log('✅ Usuário pode fazer login imediatamente');
+          setIsLoading(false);
+          return true; // Retornar sucesso para mostrar tela de confirmação
         }
       } else {
         console.error('❌ Usuário não foi criado');
@@ -383,8 +385,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return 'Erro: usuário não foi criado no sistema';
       }
       
-      setIsLoading(false);
-      return true;
     } catch (error) {
       console.error('Registration exception:', error instanceof Error ? error.message : 'Unknown error');
       setIsLoading(false);

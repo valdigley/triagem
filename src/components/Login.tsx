@@ -121,6 +121,12 @@ const Login: React.FC = () => {
         setRegistrationSuccess(true);
         setRegisteredEmail(email);
         toast.success('🎉 Conta criada com sucesso!');
+        // Limpar campos do formulário
+        setEmail('');
+        setPassword('');
+        setName('');
+        setWhatsapp('');
+        setRegisterError('');
       } else {
         toast.success('Login realizado com sucesso!');
       }
