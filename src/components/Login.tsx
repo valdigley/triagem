@@ -18,8 +18,6 @@ const Login: React.FC = () => {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [backgroundImages, setBackgroundImages] = useState<string[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [studioLogo, setStudioLogo] = useState<string>('');
   const [studioName, setStudioName] = useState('Triagem');
   const { login, register, isLoading, resetPassword } = useAuth();
@@ -28,16 +26,6 @@ const Login: React.FC = () => {
   useEffect(() => {
     loadStudioSettings();
   }, []);
-
-  // Rotacionar imagens de fundo a cada 5 segundos
-  useEffect(() => {
-    if (backgroundImages.length > 1) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % backgroundImages.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [backgroundImages.length]);
 
   const loadStudioSettings = async () => {
     try {
@@ -52,12 +40,6 @@ const Login: React.FC = () => {
 
       if (photographersError) {
         console.error('❌ Error loading photographers:', photographersError);
-        // Usar imagem padrão se não conseguir carregar
-        setBackgroundImages([
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
-        ]);
         return;
       }
 
@@ -65,12 +47,6 @@ const Login: React.FC = () => {
 
       if (photographers && photographers.length > 0) {
         const photographer = photographers[0];
-        console.log('📋 Photographer config:', {
-          business_name: photographer.business_name,
-          has_watermark_config: !!photographer.watermark_config,
-          has_login_backgrounds: !!photographer.watermark_config?.loginBackgrounds,
-          backgrounds_count: photographer.watermark_config?.loginBackgrounds?.length || 0
-        });
         
         // Logo personalizada
         if (photographer.watermark_config?.logo) {
@@ -83,44 +59,10 @@ const Login: React.FC = () => {
           console.log('🏢 Setting studio name:', photographer.business_name);
           setStudioName(photographer.business_name);
         }
-
-        // Imagens de fundo personalizadas
-        const customBackgrounds = photographer.watermark_config?.loginBackgrounds;
-        console.log('🎨 Processing custom backgrounds...');
-        console.log('🎨 Raw backgrounds data type:', typeof customBackgrounds);
-        console.log('🎨 Is array:', Array.isArray(customBackgrounds));
-        console.log('🎨 Length:', customBackgrounds?.length);
-        
-        if (customBackgrounds && 
-            Array.isArray(customBackgrounds) && 
-            customBackgrounds.length > 0) {
-          console.log('✅ Setting custom background images:', customBackgrounds.length);
-          console.log('🖼️ First image preview:', customBackgrounds[0]?.substring(0, 100) + '...');
-          setBackgroundImages(customBackgrounds);
-        } else {
-          console.log('⚠️ No valid custom backgrounds, using defaults');
-          setBackgroundImages([
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-            'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
-          ]);
-        }
-      } else {
-        console.log('❌ No photographers found, using defaults');
-        setBackgroundImages([
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-          'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
-        ]);
       }
       
     } catch (error) {
       console.error('Error loading studio settings:', error);
-      setBackgroundImages([
-        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-        'https://images.pexels.com/photos/1983037/pexels-photo-1983037.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop',
-        'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop'
-      ]);
     }
   };
 
@@ -260,43 +202,15 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full relative overflow-hidden">
-      {/* Background Images with Slideshow */}
-      <div className="fixed inset-0 z-0">
-        {backgroundImages.map((image, index) => (
-          <div
-            key={index}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-            }`}
-          >
-            <img
-              src={image}
-              alt={`Background ${index + 1}`}
-              className="w-full h-full object-cover"
-              loading={index === 0 ? 'eager' : 'lazy'}
-              onError={(e) => {
-                console.error('❌ Failed to load background image:', image.substring(0, 100) + '...');
-                // Fallback para imagem padrão se falhar
-                e.currentTarget.src = 'https://images.pexels.com/photos/1264210/pexels-photo-1264210.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&fit=crop';
-              }}
-              onLoad={() => {
-                console.log('✅ Background image loaded successfully:', index);
-              }}
-            />
-          </div>
-        ))}
-        {/* Overlay para legibilidade do texto */}
-        <div className="absolute inset-0 bg-black/40"></div>
-      </div>
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800">
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm mx-auto">
           {/* Logo and Branding */}
           <div className="text-center mb-6">
             {studioLogo ? (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-md rounded-full mb-4 p-3 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 p-3 shadow-lg">
                 <img 
                   src={studioLogo} 
                   alt="Logo" 
@@ -304,7 +218,7 @@ const Login: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-md rounded-full mb-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 shadow-lg">
                 <Camera className="w-8 h-8 text-white" />
               </div>
             )}
@@ -321,7 +235,7 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl p-6 border border-white/30 w-full">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full">
             {/* Tela de Sucesso do Cadastro */}
             {registrationSuccess ? (
               <div className="text-center space-y-4">
@@ -653,22 +567,6 @@ const Login: React.FC = () => {
             ))}
           </div>
 
-          {/* Image indicators */}
-          {backgroundImages.length > 1 && (
-            <div className="flex justify-center mt-6 space-x-2">
-              {backgroundImages.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`w-3 h-3 rounded-full transition-all duration-300 shadow-lg ${
-                    index === currentImageIndex 
-                      ? 'bg-white scale-125 shadow-white/50' 
-                      : 'bg-white/60 hover:bg-white/80'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>
