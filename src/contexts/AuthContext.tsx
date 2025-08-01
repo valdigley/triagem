@@ -427,10 +427,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     if (session) {
       // Only call signOut if there's an active session
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.warn('Logout warning (ignored):', error.message);
+      try {
+        await supabase.auth.signOut();
+      } catch (error) {
+        // Suppress all logout errors - they're not critical for user experience
+        console.warn('Logout warning (suppressed):', error instanceof Error ? error.message : 'Unknown error');
       }
     }
     
