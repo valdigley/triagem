@@ -31,6 +31,12 @@ const Login: React.FC = () => {
     try {
       console.log('🔍 Loading studio settings for login background...');
       
+      // Check if Supabase is properly configured
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.warn('⚠️ Supabase environment variables not configured');
+        return;
+      }
+
       // Buscar configurações do primeiro fotógrafo (assumindo um estúdio)
       const { data: photographers, error: photographersError } = await supabase
         .from('photographers')
@@ -39,7 +45,7 @@ const Login: React.FC = () => {
         .limit(1);
 
       if (photographersError) {
-        console.error('❌ Error loading photographers:', photographersError);
+        console.warn('⚠️ Could not load photographer settings (this is normal for new installations):', photographersError.message);
         return;
       }
 
@@ -62,7 +68,8 @@ const Login: React.FC = () => {
       }
       
     } catch (error) {
-      console.error('Error loading studio settings:', error);
+      console.warn('⚠️ Could not connect to Supabase (this is normal if not configured yet):', error instanceof Error ? error.message : 'Unknown error');
+      // Don't show error to user - just use defaults
     }
   };
 
