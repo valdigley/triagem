@@ -116,7 +116,7 @@ const Login: React.FC = () => {
       
     toast.dismiss(loadingToast);
 
-    if (result === true) {
+    if (result === true || result === 'REGISTRATION_SUCCESS') {
       if (isRegisterMode) {
         setRegistrationSuccess(true);
         setRegisteredEmail(email);

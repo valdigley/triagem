@@ -377,7 +377,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           console.log('✅ Usuário pode fazer login imediatamente');
           setIsLoading(false);
-          return true; // Retornar sucesso para mostrar tela de confirmação
+          return 'REGISTRATION_SUCCESS'; // Retornar código específico para mostrar tela de confirmação
         }
       } else {
         console.error('❌ Usuário não foi criado');
