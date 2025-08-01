@@ -157,8 +157,6 @@ export const useSupabaseData = () => {
         .maybeSingle();
 
       if (insertError) {
-        console.error('Error creating photographer profile:', insertError);
-        
         // Se for erro de duplicata, buscar o existente
         if (insertError.code === '23505') {
           console.log('Duplicate detected, fetching existing profile...');
@@ -174,6 +172,8 @@ export const useSupabaseData = () => {
             setPhotographerId(profile.id);
             return profile.id;
           }
+        } else {
+          console.error('Error creating photographer profile:', insertError);
         }
         return null;
       }
