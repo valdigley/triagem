@@ -422,16 +422,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
+    const { error } = await supabase.auth.signOut();
+    
+    if (error) {
       // Ignore session_not_found errors - session is already invalid
-      console.warn('Logout warning (ignored):', error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      // Always clear local state regardless of server response
-      setUser(null);
-      setSupabaseUser(null);
+      if (error.message.includes('session_not_found') || error.code === 'session_not_found') {
+        console.warn('Logout warning (ignored): Session already expired');
+      } else {
+        console.warn('Logout warning (ignored):', error.message);
+      }
     }
+    
+    // Always clear local state regardless of server response
+    setUser(null);
+    setSupabaseUser(null);
   };
 
   return (
