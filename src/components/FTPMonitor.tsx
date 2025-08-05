@@ -42,7 +42,7 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
 
   const runFTPScan = async (force = false) => {
     if (!user || !ftpConfig) {
-      toast.error('Configuração FTP não encontrada');
+      toast.error('Configure o FTP em Configurações → API & FTP primeiro');
       return;
     }
 
@@ -56,11 +56,13 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
         .single();
 
       if (!photographer) {
-        toast.error('Perfil do fotógrafo não encontrado');
+        toast.error('Perfil do fotógrafo não encontrado. Faça login novamente.');
         return;
       }
 
-      console.log('Running FTP scan for photographer:', photographer.id);
+      console.log('🔍 Iniciando scan FTP real para fotógrafo:', photographer.id);
+      console.log('📁 Pasta monitorada:', ftpConfig.monitor_path);
+      console.log('🖥️ Servidor FTP:', ftpConfig.host);
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
         method: 'POST',
@@ -76,29 +78,42 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('FTP monitor error:', errorData);
-        toast.error(errorData.error || 'Erro no monitoramento FTP');
+        console.error('❌ FTP monitor error:', errorData);
+        
+        // Mostrar erro específico baseado no tipo
+        if (errorData.error?.includes('não encontrada')) {
+          toast.error('Configure o FTP em Configurações → API & FTP');
+        } else if (errorData.error?.includes('não configurado')) {
+          toast.error('FTP não está configurado. Vá em Configurações → API & FTP');
+        } else {
+          toast.error(errorData.error || 'Erro no monitoramento FTP');
+        }
         return;
       }
 
       const result = await response.json();
-      console.log('FTP scan result:', result);
+      console.log('✅ FTP scan result:', result);
 
       setScanResults(result);
       setLastScan(new Date());
 
       if (result.totalProcessed > 0) {
-        toast.success(`${result.totalProcessed} fotos adicionadas automaticamente!`);
+        toast.success(`🎉 ${result.photosProcessed} fotos REAIS adicionadas do FTP!`);
+        console.log('📸 Fotos processadas:', result.processedFiles);
         if (onPhotosAdded) {
           onPhotosAdded();
         }
       } else {
-        toast.success('Scan concluído - nenhuma foto nova encontrada');
+        if (result.message?.includes('Nenhum arquivo novo')) {
+          toast.success('✅ FTP verificado - nenhuma foto nova encontrada');
+        } else {
+          toast.success(result.message || 'Scan concluído');
+        }
       }
 
     } catch (error) {
-      console.error('Error running FTP scan:', error);
-      toast.error('Erro no monitoramento FTP');
+      console.error('❌ Error running FTP scan:', error);
+      toast.error(`Erro no monitoramento FTP: ${error.message}`);
     } finally {
       setIsMonitoring(false);
     }
@@ -254,11 +269,12 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="font-medium text-blue-900 mb-2">📋 Como Usar</h4>
         <div className="text-sm text-blue-800 space-y-1">
-          <p>1. Coloque as fotos na pasta FTP: <code>{ftpConfig.monitor_path}</code></p>
-          <p>2. Clique em "Verificar Agora" ou aguarde o scan automático</p>
-          <p>3. As fotos serão baixadas do FTP e adicionadas ao álbum mais recente</p>
-          <p>4. Formatos suportados: JPG, JPEG, PNG, GIF, BMP, TIFF</p>
-          <p>5. <strong>Importante:</strong> Certifique-se que as credenciais FTP estão corretas</p>
+          <p>1. 📁 Coloque fotos REAIS na pasta FTP: <code>{ftpConfig.monitor_path}</code></p>
+          <p>2. 🔍 Clique em "Verificar Agora" para buscar fotos no servidor</p>
+          <p>3. ⬇️ Fotos serão baixadas do FTP e enviadas para o Supabase Storage</p>
+          <p>4. 📸 Fotos aparecerão no álbum mais recente automaticamente</p>
+          <p>5. 🎯 <strong>Servidor:</strong> {ftpConfig.host}:{ftpConfig.port}</p>
+          <p>6. ⚠️ <strong>Importante:</strong> Verifique se as credenciais FTP estão corretas</p>
         </div>
       </div>
     </div>
