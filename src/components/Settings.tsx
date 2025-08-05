@@ -46,6 +46,17 @@ const Settings: React.FC = () => {
   const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
   const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
   
+  // FTP Configuration
+  const [ftpConfig, setFtpConfig] = useState({
+    host: '',
+    username: '',
+    password: '',
+    port: 21,
+    monitor_path: '/photos',
+    auto_upload: true,
+  });
+  const [showFtpPassword, setShowFtpPassword] = useState(false);
+  
   // Email templates
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
@@ -150,6 +161,17 @@ const Settings: React.FC = () => {
       setEvolutionInstance(config.evolutionInstance || '');
       
       setLoginBackgrounds(config.loginBackgrounds || []);
+      
+      // Carregar configuração FTP da tabela api_access
+      const { data: apiAccess } = await supabase
+        .from('api_access')
+        .select('ftp_config')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (apiAccess?.ftp_config) {
+        setFtpConfig(apiAccess.ftp_config);
+      }
       
       if (config.emailTemplates) {
         setEmailTemplates(config.emailTemplates);
@@ -282,6 +304,22 @@ const Settings: React.FC = () => {
         return;
       }
 
+      // Salvar configuração FTP separadamente na tabela api_access
+      const { error: ftpError } = await supabase
+        .from('api_access')
+        .upsert({
+          user_id: user.id,
+          ftp_config: ftpConfig,
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false
+        });
+
+      if (ftpError) {
+        console.error('Error saving FTP config:', ftpError);
+        toast.error('Erro ao salvar configuração FTP');
+        return;
+      }
       toast.success('Configurações salvas com sucesso!');
       
       // Verificar se as imagens foram salvas corretamente
@@ -881,6 +919,117 @@ const Settings: React.FC = () => {
               <div>Business Name: {businessName || 'Não definido'}</div>
               <div>Logo: {logo ? '✅ Carregada' : '❌ Não carregada'}</div>
               <div>Mercado Pago: {mercadoPagoAccessToken ? '✅ Configurado' : '❌ Não configurado'}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monitoramento FTP */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Upload className="w-5 h-5" />
+          Monitoramento FTP
+        </h3>
+        
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h4 className="font-medium text-blue-900 mb-2">📁 Upload Automático de Fotos</h4>
+          <p className="text-sm text-blue-800">
+            Configure seu servidor FTP para upload automático de fotos. O sistema monitorará a pasta especificada 
+            e adicionará automaticamente novas fotos aos álbuns correspondentes.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Servidor FTP
+              </label>
+              <input
+                type="text"
+                value={ftpConfig.host}
+                onChange={(e) => setFtpConfig(prev => ({ ...prev, host: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="ftp.seuservidor.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Usuário
+              </label>
+              <input
+                type="text"
+                value={ftpConfig.username}
+                onChange={(e) => setFtpConfig(prev => ({ ...prev, username: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="usuario_ftp"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Senha
+              </label>
+              <div className="relative">
+                <input
+                  type={showFtpPassword ? 'text' : 'password'}
+                  value={ftpConfig.password}
+                  onChange={(e) => setFtpConfig(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="senha_ftp"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowFtpPassword(!showFtpPassword)}
+                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                >
+                  {showFtpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Porta
+              </label>
+              <input
+                type="number"
+                value={ftpConfig.port}
+                onChange={(e) => setFtpConfig(prev => ({ ...prev, port: parseInt(e.target.value) || 21 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="21"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Pasta de Monitoramento
+              </label>
+              <input
+                type="text"
+                value={ftpConfig.monitor_path}
+                onChange={(e) => setFtpConfig(prev => ({ ...prev, monitor_path: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="/photos"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Pasta que será monitorada para novas fotos
+              </p>
+            </div>
+
+            <div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={ftpConfig.auto_upload}
+                  onChange={(e) => setFtpConfig(prev => ({ ...prev, auto_upload: e.target.checked }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700">Upload automático ativo</span>
+              </label>
             </div>
           </div>
         </div>

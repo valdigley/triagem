@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
+import FTPMonitor from './FTPMonitor';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -442,6 +443,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           Adicionar Seleção
         </button>
       </div>
+
+      {/* FTP Monitor */}
+      <FTPMonitor onPhotosAdded={() => window.location.reload()} />
 
       {/* Formulário de Criação de Sessão */}
       {showCreateForm && (
