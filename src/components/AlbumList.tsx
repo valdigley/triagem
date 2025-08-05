@@ -214,6 +214,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     try {
       if (!user) return;
 
+      // Verificar se as variáveis de ambiente estão configuradas
+      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        console.error('Supabase environment variables not configured');
+        toast.error('❌ Configuração do Supabase não encontrada');
+        return;
+      }
+
       // Buscar photographer_id
       const { data: photographer } = await supabase
         .from('photographers')
@@ -236,7 +243,25 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       console.log('🔍 Executando scan FTP REAL...');
       console.log('📁 Album ID:', albumId || 'Mais recente');
       console.log('👤 Photographer ID:', photographer.id);
+      console.log('🌐 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
 
+      let response;
+      try {
+        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({
+            photographer_id: photographer.id,
+            target_album_id: albumId,
+            force_scan: true,
+          }),
+        });
+      } catch (fetchError) {
+        console.error('❌ Network error calling FTP monitor:', fetchError);
+        
       let response;
       try {
         response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
@@ -277,6 +302,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           console.error('❌ Failed to parse error response:', parseError);
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
         }
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          console.error('❌ Failed to parse error response:', parseError);
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
+        }
         
         console.error('❌ FTP scan error:', errorData);
         toast.error(`❌ ${errorData.error || 'Erro no scan FTP'}`);
@@ -284,6 +316,14 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       }
 
       let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('❌ Failed to parse success response:', parseError);
+        toast.error('❌ Erro ao processar resposta do servidor');
+        return;
+      }
+      
       try {
         result = await response.json();
       } catch (parseError) {
@@ -303,8 +343,20 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
         setTimeout(() => {
           window.location.reload();
         }, 1000);
+        console.log('🔄 Reloading page to show new photos...');
+        // Recarregar dados
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
         const ftpHost = result.ftpConfig?.host || 'servidor';
+        const ftpPath = result.ftpPath || '';
+        toast.warning(`⚠️ FTP verificado em ${ftpHost}${ftpPath} - nenhuma foto nova encontrada`);
+        console.log('📭 No new photos found in FTP');
+        console.log('🔧 Check if:');
+        console.log('   1. Photos are in the correct folder:', ftpPath);
+        console.log('   2. FTP credentials are correct');
+        console.log('   3. Photos are image files (jpg, png, etc.)');
         const ftpPath = result.ftpPath || '';
         toast.warning(`⚠️ FTP verificado em ${ftpHost}${ftpPath} - nenhuma foto nova encontrada`);
         console.log('📭 No new photos found in FTP');
@@ -325,6 +377,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     } catch (error) {
       console.error('❌ Error in FTP scan:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`❌ Erro no scan FTP: ${errorMessage}`);
       toast.error(`❌ Erro no scan FTP: ${errorMessage}`);
     }
   };
