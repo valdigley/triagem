@@ -874,12 +874,12 @@ const Settings: React.FC = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-medium text-blue-900 mb-2">Variáveis Disponíveis</h4>
             <div className="text-sm text-blue-800 grid md:grid-cols-2 gap-2">
-              <div>• {{clientName}} - Nome do cliente</div>
-              <div>• {{studioName}} - Nome do estúdio</div>
-              <div>• {{sessionType}} - Tipo da sessão</div>
-              <div>• {{eventDate}} - Data do evento</div>
-              <div>• {{eventTime}} - Horário do evento</div>
-              <div>• {{studioAddress}} - Endereço do estúdio</div>
+              <div>• {'{{clientName}}'} - Nome do cliente</div>
+              <div>• {'{{studioName}}'} - Nome do estúdio</div>
+              <div>• {'{{sessionType}}'} - Tipo da sessão</div>
+              <div>• {'{{eventDate}}'} - Data do evento</div>
+              <div>• {'{{eventTime}}'} - Horário do evento</div>
+              <div>• {'{{studioAddress}}'} - Endereço do estúdio</div>
             </div>
           </div>
         </div>
