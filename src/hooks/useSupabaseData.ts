@@ -220,11 +220,7 @@ export const useSupabaseData = () => {
       // Carregar álbuns
       const { data: albumsData, error: albumsError } = await supabase
         .from('albums')
-        .select(`
-          *,
-          events!inner(photographer_id)
-        `)
-        .eq('events.photographer_id', currentPhotographerId)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (albumsError) {
