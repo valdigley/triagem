@@ -148,22 +148,32 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       const isCurrentlyReceiving = ftpReceivingAlbums.has(albumId);
       const newState = !isCurrentlyReceiving;
       
+      console.log('Toggling FTP for album:', albumId, 'from', isCurrentlyReceiving, 'to', newState);
+      
       // Atualizar log de atividade
       const { data: currentAlbum } = await supabase
         .from('albums')
         .select('activity_log')
         .eq('id', albumId)
-        .single();
+        .maybeSingle();
 
+      if (!currentAlbum) {
+        console.error('Album not found for FTP toggle:', albumId);
+        toast.error('Álbum não encontrado');
+        return;
+      }
+      
       const currentLog = currentAlbum?.activity_log || [];
       const newActivity = {
         timestamp: new Date().toISOString(),
-        type: newState ? 'ftp_monitoring_enabled' : 'ftp_monitoring_disabled',
+        type: newState ? 'ftp_enabled' : 'ftp_disabled',
         description: newState 
           ? 'Monitoramento FTP ativado para recebimento automático'
           : 'Monitoramento FTP desativado'
       };
 
+      console.log('Updating album activity log with:', newActivity);
+      
       const { error } = await supabase
         .from('albums')
         .update({ 
@@ -177,6 +187,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
         return;
       }
 
+      console.log('FTP state updated successfully in database');
+      
       // Atualizar estado local
       const newFtpStates = new Set(ftpReceivingAlbums);
       if (newState) {
@@ -188,10 +200,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
       toast.success(newState ? 'FTP ativado para este álbum!' : 'FTP desativado para este álbum!');
       
-      // Se ativou, executar scan imediatamente
-      if (newState) {
-        await runFtpScan(albumId);
-      }
+      console.log('Local state updated, FTP toggle completed');
       
     } catch (error) {
       console.error('Error toggling FTP:', error);
@@ -620,6 +629,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                             ? 'bg-red-100 text-red-700 hover:bg-red-200'
                             : 'bg-green-100 text-green-700 hover:bg-green-200'
                         }`}
+                        type="button"
                       >
                         {togglingFtp === album.id ? (
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
