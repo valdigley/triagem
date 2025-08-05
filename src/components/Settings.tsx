@@ -61,13 +61,13 @@ const Settings: React.FC = () => {
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
       enabled: true,
-      subject: '✅ Agendamento Confirmado - [[studioName]]',
-      message: 'Olá [[clientName]]!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: [[sessionType]]\n• Data: [[eventDate]]\n• Horário: [[eventTime]]\n• Local: [[studioAddress]]\n\nEstamos ansiosos para te ver!\n[[studioName]]'
+      subject: '✅ Agendamento Confirmado - {{studioName}}',
+      message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}}\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n\nEstamos ansiosos para te ver!\n{{studioName}}'
     },
     dayOfReminder: {
       enabled: true,
-      subject: '🎉 Hoje é o dia da sua sessão! - [[studioName]]',
-      message: 'Olá [[clientName]]!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: [[eventTime]]\n• Local: [[studioAddress]]\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n[[studioName]]'
+      subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+      message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
     }
   });
 
@@ -885,12 +885,12 @@ const Settings: React.FC = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <h4 className="font-medium text-blue-900 mb-2">Variáveis Disponíveis</h4>
             <div className="text-sm text-blue-800 grid md:grid-cols-2 gap-2">
-              <div>• [[clientName]] - Nome do cliente</div>
-              <div>• [[studioName]] - Nome do estúdio</div>
-              <div>• [[sessionType]] - Tipo da sessão</div>
-              <div>• [[eventDate]] - Data do evento</div>
-              <div>• [[eventTime]] - Horário do evento</div>
-              <div>• [[studioAddress]] - Endereço do estúdio</div>
+              <div>• {{clientName}} - Nome do cliente</div>
+              <div>• {{studioName}} - Nome do estúdio</div>
+              <div>• {{sessionType}} - Tipo da sessão</div>
+              <div>• {{eventDate}} - Data do evento</div>
+              <div>• {{eventTime}} - Horário do evento</div>
+              <div>• {{studioAddress}} - Endereço do estúdio</div>
             </div>
           </div>
         </div>
