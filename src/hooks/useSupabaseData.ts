@@ -611,6 +611,11 @@ export const useSupabaseData = () => {
         return false;
       }
 
+      if (!photographerId) {
+        toast.error('Perfil do fotógrafo não encontrado');
+        return false;
+      }
+
       // Se eventId foi fornecido, verificar se existe e pertence ao fotógrafo
       if (eventId) {
         const { data: eventExists, error: eventError } = await supabase
@@ -634,6 +639,7 @@ export const useSupabaseData = () => {
         .from('albums')
         .insert({
           event_id: eventId || null,
+          photographer_id: eventId ? null : photographerId, // Set photographer_id for independent albums
           name: name.trim(),
           share_token: shareToken,
           is_active: true,
