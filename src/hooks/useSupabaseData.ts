@@ -635,11 +635,19 @@ export const useSupabaseData = () => {
       // Generate unique share token
       const shareToken = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
       
+      console.log('Creating album with data:', {
+        event_id: eventId || null,
+        photographer_id: eventId ? null : photographerId,
+        name: name.trim(),
+        share_token: shareToken,
+        is_active: true,
+      });
+      
       const { data, error } = await supabase
         .from('albums')
         .insert({
           event_id: eventId || null,
-          photographer_id: eventId ? null : photographerId, // Set photographer_id for independent albums
+          photographer_id: photographerId, // Always set photographer_id for ownership
           name: name.trim(),
           share_token: shareToken,
           is_active: true,
@@ -653,6 +661,7 @@ export const useSupabaseData = () => {
         return false;
       }
 
+      console.log('Album created successfully:', data);
       setAlbums(prev => [data, ...prev]);
       toast.success(eventId ? 'Álbum criado e vinculado ao evento!' : 'Álbum independente criado com sucesso!');
       return true;
@@ -665,7 +674,47 @@ export const useSupabaseData = () => {
 
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
-    console.log(`📸 REAL UPLOAD: Starting upload of ${files.length} files to album ${albumId}`);
+    console.log(`📸 Starting upload of ${files.length} files to album ${albumId}`);
+    
+    // Verificar se o álbum existe e pertence ao fotógrafo
+    const { data: albumCheck, error: albumError } = await supabase
+      .from('albums')
+      .select('id, photographer_id, event_id')
+      .eq('id', albumId)
+      .single();
+
+    if (albumError || !albumCheck) {
+      console.error('Album not found:', albumError);
+      toast.error('Álbum não encontrado');
+      return false;
+    }
+
+    console.log('Album ownership check:', {
+      albumId,
+      album_photographer_id: albumCheck.photographer_id,
+      current_photographer_id: photographerId,
+      has_event: !!albumCheck.event_id
+    });
+
+    // Verificar se o fotógrafo tem permissão para este álbum
+    if (albumCheck.photographer_id !== photographerId) {
+      // Se não tem photographer_id direto, verificar via evento
+      if (albumCheck.event_id) {
+        const { data: eventCheck } = await supabase
+          .from('events')
+          .select('photographer_id')
+          .eq('id', albumCheck.event_id)
+          .single();
+
+        if (!eventCheck || eventCheck.photographer_id !== photographerId) {
+          toast.error('Você não tem permissão para este álbum');
+          return false;
+        }
+      } else {
+        toast.error('Você não tem permissão para este álbum');
+        return false;
+      }
+    }
     
     // Buscar preço atual das configurações
     let currentPrice = 25.00; // Preço padrão
@@ -687,9 +736,9 @@ export const useSupabaseData = () => {
     }
 
     try {
-      console.log(`🔄 Processing ${files.length} real files...`);
+      console.log(`🔄 Processing ${files.length} files...`);
       
-      console.log('📁 Starting real file uploads...');
+      console.log('📁 Starting file uploads...');
       
       const photoPromises = files.map(async (file, index) => {
         const fileExt = file.name.split('.').pop()?.toLowerCase();
@@ -698,7 +747,7 @@ export const useSupabaseData = () => {
         const fileName = `${albumId}/${timestamp}_${safeFileName}`;
         
         try {
-          console.log(`📤 Uploading real file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
           
           // Validar tipo de arquivo
           const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/bmp', 'image/tiff'];
@@ -722,7 +771,7 @@ export const useSupabaseData = () => {
             });
 
           if (uploadError) {
-            console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
+            console.error(`Storage upload failed for ${file.name}:`, uploadError);
             
             // Se falhar, tentar com nome diferente
             const retryFileName = `${albumId}/retry_${Date.now()}_${safeFileName}`;
@@ -741,11 +790,43 @@ export const useSupabaseData = () => {
             }
             
             console.log(`✅ Retry upload successful: ${retryData.path}`);
-            uploadData = retryData;
-            fileName = retryFileName;
+            const finalUploadData = retryData;
+            const finalFileName = retryFileName;
+            
+            // Gerar URLs públicas
+            const { data: { publicUrl: originalUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(finalFileName);
+
+            const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(finalFileName);
+
+            const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(finalFileName);
+
+            return {
+              album_id: albumId,
+              filename: file.name,
+              original_path: originalUrl,
+              thumbnail_path: thumbnailUrl,
+              watermarked_path: watermarkedUrl,
+              is_selected: false,
+              price: currentPrice,
+              metadata: {
+                size: file.size,
+                type: file.type,
+                uploaded_at: new Date().toISOString(),
+                storage_path: finalFileName,
+                upload_method: 'manual_upload',
+                original_filename: file.name,
+                file_size_mb: (file.size / 1024 / 1024).toFixed(2),
+              },
+            };
           }
 
-          console.log(`✅ Real file uploaded successfully: ${uploadData.path}`);
+          console.log(`✅ File uploaded successfully: ${uploadData.path}`);
           
           // Gerar URLs públicas
           const { data: { publicUrl: originalUrl } } = supabase.storage
@@ -762,7 +843,7 @@ export const useSupabaseData = () => {
             .from('photos')
             .getPublicUrl(fileName);
 
-          console.log(`📷 Real photo URLs generated:`);
+          console.log(`📷 Photo URLs generated:`);
           console.log(`   Original: ${originalUrl}`);
           console.log(`   Thumbnail: ${thumbnailUrl}`);
           console.log(`   Watermarked: ${watermarkedUrl}`);
@@ -780,13 +861,13 @@ export const useSupabaseData = () => {
               type: file.type,
               uploaded_at: new Date().toISOString(),
               storage_path: fileName,
-              upload_method: 'manual_upload_real',
+              upload_method: 'manual_upload',
               original_filename: file.name,
               file_size_mb: (file.size / 1024 / 1024).toFixed(2),
             },
           };
         } catch (error) {
-          console.error(`❌ Failed to process real file ${file.name}:`, error);
+          console.error(`Failed to process file ${file.name}:`, error);
           
           throw error;
         }
@@ -814,8 +895,8 @@ export const useSupabaseData = () => {
           throw new Error(`Database error: ${error.message}`);
         }
 
-        console.log(`✅ SUCCESS: ${data.length} REAL photos saved to database!`);
-        console.log('📸 Real photos are now available in the album!');
+        console.log(`✅ SUCCESS: ${data.length} photos saved to database!`);
+        console.log('📸 Photos are now available in the album!');
         
         setPhotos(prev => [...prev, ...data]);
         
@@ -827,7 +908,7 @@ export const useSupabaseData = () => {
       
     } catch (error) {
       console.error('Error in photo upload process:', error);
-      console.error('❌ REAL UPLOAD FAILED:', error.message);
+      toast.error(`Erro no upload: ${error.message}`);
       return false;
     }
   };

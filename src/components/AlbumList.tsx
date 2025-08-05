@@ -1,10 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Image, Eye, Share2, Calendar, User, Plus, Trash2, Upload, Folder, Camera, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Image, Eye, Share2, Calendar, User, Plus, Trash2, Upload, Folder, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSupabaseData } from '../hooks/useSupabaseData';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface AlbumListProps {
@@ -13,7 +11,6 @@ interface AlbumListProps {
 
 const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const { events, albums, photos, createAlbum, uploadPhotos, deleteAlbum, loading } = useSupabaseData();
-  const { user } = useAuth();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState('');
   const [selectedEventId, setSelectedEventId] = useState('');
@@ -60,35 +57,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       const success = await uploadPhotos(albumId, fileArray);
       
       if (success) {
-        toast.success(`${fileArray.length} fotos reais enviadas com sucesso!`);
-        
-        // Atualizar log de atividade
-        const album = albums.find(a => a.id === albumId);
-        if (album) {
-          try {
-            const { data: currentAlbum } = await supabase
-              .from('albums')
-              .select('activity_log')
-              .eq('id', albumId)
-              .single();
-
-            const currentLog = currentAlbum?.activity_log || [];
-            const newActivity = {
-              timestamp: new Date().toISOString(),
-              type: 'manual_upload',
-              description: `${fileArray.length} fotos adicionadas via upload manual`
-            };
-
-            await supabase
-              .from('albums')
-              .update({ 
-                activity_log: [...currentLog, newActivity]
-              })
-              .eq('id', albumId);
-          } catch (error) {
-            console.error('Error updating activity log:', error);
-          }
-        }
+        toast.success(`${fileArray.length} fotos enviadas com sucesso!`);
       }
     } catch (error) {
       console.error('Error uploading photos:', error);
@@ -160,7 +129,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            {createIndependent ? 'Criar Álbum Independente' : 'Criar Álbum para Evento'}
+            Criar Novo Álbum
           </h3>
           
           <div className="space-y-4">
@@ -195,37 +164,34 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 </span>
               </label>
               <p className="text-xs text-gray-500 mt-1">
-                Álbuns independentes podem ser usados para ensaios avulsos ou organizações especiais
+                Álbuns independentes podem ser usados para ensaios avulsos
               </p>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Evento Relacionado {!createIndependent && '*'}
-              </label>
-              <select
-                value={selectedEventId}
-                onChange={(e) => setSelectedEventId(e.target.value)}
-                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  createIndependent ? 'bg-gray-100 cursor-not-allowed' : ''
-                }`}
-                disabled={createIndependent}
-              >
-                <option value="">
-                  {createIndependent ? 'Álbum independente - sem evento' : 'Selecione um evento...'}
-                </option>
-                {events.filter(event => event.status !== 'cancelled').map((event) => (
-                  <option key={event.id} value={event.id}>
-                    {event.client_name} - {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })} ({event.status})
-                  </option>
-                ))}
-              </select>
-              {events.length === 0 && !createIndependent && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Nenhum evento disponível. Crie um agendamento primeiro.
-                </p>
-              )}
-            </div>
+            {!createIndependent && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Evento Relacionado *
+                </label>
+                <select
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Selecione um evento...</option>
+                  {events.filter(event => event.status !== 'cancelled').map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {event.client_name} - {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })}
+                    </option>
+                  ))}
+                </select>
+                {events.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Nenhum evento disponível. Crie um agendamento primeiro.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-3">
               <button
@@ -244,7 +210,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 disabled={!newAlbumName.trim() || (!createIndependent && !selectedEventId)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createIndependent ? 'Criar Álbum Independente' : 'Criar Álbum'}
+                Criar Álbum
               </button>
             </div>
           </div>
@@ -260,17 +226,17 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {albums.map((album) => {
-            const event = getEventForAlbum(album.event_id);
+            const event = album.event_id ? getEventForAlbum(album.event_id) : null;
             const albumPhotos = getAlbumPhotos(album.id);
             const selectedCount = getSelectedPhotosCount(album.id);
             const status = getAlbumStatus(album);
             
             return (
-              <div key={album.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${status.bgColor}`}>
+              <div key={album.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">{album.name}</h3>
-                    {event && (
+                    {event ? (
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <User className="w-4 h-4" />
@@ -281,20 +247,17 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                           <span>{format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })}</span>
                         </div>
                       </div>
-                    )}
-                    {!event && (
+                    ) : (
                       <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Camera className="w-4 h-4" />
+                        <Folder className="w-4 h-4" />
                         <span>Álbum independente</span>
                       </div>
                     )}
                   </div>
                   
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color} bg-white border`}>
-                      {status.label}
-                    </span>
-                  </div>
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full ${status.color} ${status.bgColor} border`}>
+                    {status.label}
+                  </span>
                 </div>
 
                 {/* Estatísticas */}
