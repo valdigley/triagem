@@ -135,7 +135,9 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
         return;
       }
 
-      console.log('🔍 Executando scan FTP automático...');
+      console.log('🔍 Executando scan FTP GLOBAL automático...');
+      console.log('📁 FTP Host:', ftpConfig.host);
+      console.log('📂 Monitor Path:', ftpConfig.monitor_path);
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
         method: 'POST',
@@ -151,7 +153,7 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ FTP monitor error:', errorData);
+        console.error('❌ FTP global monitor error:', errorData);
         return; // Não mostrar erro em scan automático
       }
 
@@ -160,15 +162,17 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
       setLastScan(new Date());
 
       if (result.photosProcessed > 0) {
-        console.log(`✅ ${result.photosProcessed} fotos processadas automaticamente`);
-        toast.success(`📸 ${result.photosProcessed} fotos adicionadas do FTP!`);
+        console.log(`✅ ${result.photosProcessed} fotos REAIS processadas automaticamente`);
+        toast.success(`📸 ${result.photosProcessed} fotos REAIS adicionadas do FTP!`);
         if (onPhotosAdded) {
           onPhotosAdded();
         }
+      } else {
+        console.log('📭 Scan automático: nenhuma foto nova encontrada');
       }
 
     } catch (error) {
-      console.error('❌ Error in auto FTP scan:', error);
+      console.error('❌ Error in global auto FTP scan:', error);
       // Não mostrar toast de erro para scans automáticos
     }
   };

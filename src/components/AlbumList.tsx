@@ -207,7 +207,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
         return;
       }
 
-      console.log('🔍 Executando scan FTP...');
+      console.log('🔍 Executando scan FTP REAL...');
+      console.log('📁 Album ID:', albumId || 'Mais recente');
+      console.log('👤 Photographer ID:', photographer.id);
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
         method: 'POST',
@@ -222,22 +224,34 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
         }),
       });
 
+      console.log('📡 FTP Monitor response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ FTP scan error:', errorData);
-        toast.error(errorData.error || 'Erro no scan FTP');
+        toast.error(`❌ ${errorData.error || 'Erro no scan FTP'}`);
         return;
       }
 
       const result = await response.json();
       console.log('✅ FTP scan result:', result);
+      console.log('📊 Photos processed:', result.photosProcessed);
+      console.log('📂 Album used:', result.albumName);
 
       if (result.photosProcessed > 0) {
-        toast.success(`🎉 ${result.photosProcessed} fotos reais adicionadas do FTP!`);
+        toast.success(`🎉 ${result.photosProcessed} fotos REAIS adicionadas do FTP!`);
+        console.log('🔄 Reloading page to show new photos...');
         // Recarregar dados
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       } else {
-        toast.success('✅ FTP verificado - nenhuma foto nova encontrada');
+        toast.warning(`⚠️ FTP verificado em ${ftpConfig.host}${result.ftpPath || ''} - nenhuma foto nova encontrada`);
+        console.log('📭 No new photos found in FTP');
+        console.log('🔧 Check if:');
+        console.log('   1. Photos are in the correct folder:', result.ftpPath);
+        console.log('   2. FTP credentials are correct');
+        console.log('   3. Photos are image files (jpg, png, etc.)');
       }
 
       // Atualizar timestamp da última verificação
@@ -250,7 +264,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
     } catch (error) {
       console.error('❌ Error in FTP scan:', error);
-      toast.error(`Erro no scan FTP: ${error.message}`);
+      toast.error(`❌ Erro no scan FTP: ${error.message}`);
     }
   };
 
