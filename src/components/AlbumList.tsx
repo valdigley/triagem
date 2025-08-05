@@ -48,20 +48,44 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const handlePhotoUpload = async (albumId: string, files: FileList) => {
     if (!files || files.length === 0) return;
 
+    console.log(`Starting upload of ${files.length} files to album ${albumId}`);
     setUploadingToAlbum(albumId);
     
     try {
       const fileArray = Array.from(files);
-      console.log(`Creating ${fileArray.length} demo photos for album ${albumId}`);
       
-      const success = await uploadPhotos(albumId, fileArray);
+      // Validar arquivos
+      const validFiles = fileArray.filter(file => {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`${file.name} não é uma imagem válida`);
+          return false;
+        }
+        if (file.size > 50 * 1024 * 1024) { // 50MB limit
+          toast.error(`${file.name} é muito grande. Máximo 50MB.`);
+          return false;
+        }
+        return true;
+      });
+
+      if (validFiles.length === 0) {
+        toast.error('Nenhum arquivo válido selecionado');
+        return;
+      }
+
+      if (validFiles.length !== fileArray.length) {
+        toast.warning(`${validFiles.length} de ${fileArray.length} arquivos são válidos`);
+      }
+
+      console.log(`Processing ${validFiles.length} valid files`);
+      
+      const success = await uploadPhotos(albumId, validFiles);
       
       if (success) {
-        toast.success(`${fileArray.length} fotos de demonstração criadas!`);
+        toast.success(`${validFiles.length} fotos carregadas com sucesso!`);
       }
     } catch (error) {
-      console.error('Error creating demo photos:', error);
-      toast.error('Erro ao criar fotos de demonstração');
+      console.error('Error uploading photos:', error);
+      toast.error('Erro ao fazer upload das fotos');
     } finally {
       setUploadingToAlbum(null);
     }

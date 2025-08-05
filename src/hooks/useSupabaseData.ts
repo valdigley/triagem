@@ -39,6 +39,7 @@ export interface Album {
   expires_at?: string;
   created_at: string;
   google_drive_link?: string;
+  photographer_id: string;
 }
 
 export interface Photo {
@@ -63,6 +64,7 @@ export interface Order {
   status: 'pending' | 'paid' | 'cancelled' | 'expired';
   payment_intent_id?: string;
   created_at: string;
+  metadata?: any;
 }
 
 export const useSupabaseData = () => {
@@ -221,6 +223,7 @@ export const useSupabaseData = () => {
       const { data: albumsData, error: albumsError } = await supabase
         .from('albums')
         .select('*')
+        .eq('photographer_id', currentPhotographerId)
         .order('created_at', { ascending: false });
 
       if (albumsError) {
@@ -231,7 +234,6 @@ export const useSupabaseData = () => {
       }
 
       // Carregar fotos
-      // Carregar todas as fotos dos álbuns do fotógrafo
       if (albumsData && albumsData.length > 0) {
         const albumIds = albumsData.map(album => album.id);
         console.log('Loading photos for albums:', albumIds);
@@ -281,6 +283,7 @@ export const useSupabaseData = () => {
       const { data: clientsData, error: clientsError } = await supabase
         .from('clients')
         .select('*')
+        .eq('photographer_id', currentPhotographerId)
         .order('created_at', { ascending: false });
 
       if (clientsError) {
@@ -297,10 +300,224 @@ export const useSupabaseData = () => {
     }
   };
 
+  // Upload de fotos REAL para Supabase Storage
+  const uploadPhotos = async (albumId: string, files: File[]) => {
+    console.log(`📸 Starting REAL upload of ${files.length} files to album ${albumId}`);
+    
+    // Verificar se o álbum existe e pertence ao fotógrafo
+    const { data: albumCheck, error: albumError } = await supabase
+      .from('albums')
+      .select('id, photographer_id, event_id')
+      .eq('id', albumId)
+      .single();
+
+    if (albumError || !albumCheck) {
+      console.error('Album not found:', albumError);
+      toast.error('Álbum não encontrado');
+      return false;
+    }
+
+    console.log('Album ownership check:', {
+      albumId,
+      album_photographer_id: albumCheck.photographer_id,
+      current_photographer_id: photographerId,
+      has_event: !!albumCheck.event_id
+    });
+
+    // Verificar se o fotógrafo tem permissão para este álbum
+    if (albumCheck.photographer_id !== photographerId) {
+      toast.error('Você não tem permissão para este álbum');
+      return false;
+    }
+    
+    // Buscar preço atual das configurações
+    let currentPrice = 25.00;
+    
+    try {
+      if (user) {
+        const { data: photographer } = await supabase
+          .from('photographers')
+          .select('watermark_config')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (photographer?.watermark_config?.photoPrice) {
+          currentPrice = photographer.watermark_config.photoPrice;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading photo price:', error);
+    }
+
+    try {
+      console.log(`🔄 Processing ${files.length} real files for upload...`);
+      
+      const photoPromises = files.map(async (file, index) => {
+        const timestamp = Date.now() + index; // Evitar conflitos de nome
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storageFileName = `${albumId}/${timestamp}_${safeFileName}`;
+        
+        try {
+          console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          
+          // Upload real file to Supabase Storage
+          console.log(`📁 Uploading to path: ${storageFileName}`);
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('photos')
+            .upload(storageFileName, file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: file.type
+            });
+
+          if (uploadError) {
+            console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
+            
+            // Try with retry name if duplicate
+            if (uploadError.message?.includes('duplicate') || uploadError.message?.includes('already exists')) {
+              const retryFileName = `${albumId}/retry_${timestamp}_${Math.random().toString(36).substr(2, 9)}_${safeFileName}`;
+              console.log(`🔄 Retrying upload with name: ${retryFileName}`);
+              
+              const { data: retryData, error: retryError } = await supabase.storage
+                .from('photos')
+                .upload(retryFileName, file, {
+                  cacheControl: '3600',
+                  upsert: true,
+                  contentType: file.type
+                });
+              
+              if (retryError) {
+                console.error(`❌ Retry upload also failed for ${file.name}:`, retryError);
+                throw new Error(`Upload failed after retry: ${retryError.message}`);
+              }
+              
+              console.log(`✅ Retry upload successful for ${file.name}`);
+              // Update storage file name for URL generation
+              const finalStorageFileName = retryFileName;
+              
+              // Generate public URLs with correct path
+              const { data: { publicUrl: originalUrl } } = supabase.storage
+                .from('photos')
+                .getPublicUrl(finalStorageFileName);
+              
+              const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+                .from('photos')
+                .getPublicUrl(finalStorageFileName);
+              
+              const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+                .from('photos')
+                .getPublicUrl(finalStorageFileName);
+              
+              console.log(`🔗 Generated URLs for ${file.name} (retry)`);
+
+              return {
+                album_id: albumId,
+                filename: file.name,
+                original_path: originalUrl,
+                thumbnail_path: thumbnailUrl,
+                watermarked_path: watermarkedUrl,
+                is_selected: false,
+                price: currentPrice,
+                metadata: {
+                  file_size: file.size,
+                  file_type: file.type,
+                  original_filename: file.name,
+                  uploaded_at: new Date().toISOString(),
+                  storage_path: finalStorageFileName,
+                  upload_method: 'real_upload_retry',
+                  file_size_mb: (file.size / 1024 / 1024).toFixed(2)
+                },
+              };
+            } else {
+              throw new Error(`Upload failed: ${uploadError.message}`);
+            }
+          } else {
+            console.log(`✅ Upload successful for ${file.name}`);
+            
+            // Generate public URLs
+            const { data: { publicUrl: originalUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(storageFileName);
+            
+            const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(storageFileName);
+            
+            const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+              .from('photos')
+              .getPublicUrl(storageFileName);
+            
+            console.log(`🔗 Generated URLs for ${file.name}`);
+
+            return {
+              album_id: albumId,
+              filename: file.name,
+              original_path: originalUrl,
+              thumbnail_path: thumbnailUrl,
+              watermarked_path: watermarkedUrl,
+              is_selected: false,
+              price: currentPrice,
+              metadata: {
+                file_size: file.size,
+                file_type: file.type,
+                original_filename: file.name,
+                uploaded_at: new Date().toISOString(),
+                storage_path: storageFileName,
+                upload_method: 'real_upload',
+                file_size_mb: (file.size / 1024 / 1024).toFixed(2)
+              },
+            };
+          }
+        } catch (error) {
+          console.error(`❌ Failed to process file ${file.name}:`, error);
+          throw error;
+        }
+      });
+
+      try {
+        console.log('🔄 Processing all uploads...');
+        const photosData = await Promise.all(photoPromises);
+        
+        console.log(`📊 Photos uploaded: ${photosData.length} photos processed`);
+        
+        if (photosData.length === 0) {
+          throw new Error('Nenhuma foto foi processada com sucesso');
+        }
+
+        console.log(`💾 Saving ${photosData.length} photos to database...`);
+        
+        const { data, error } = await supabase
+          .from('photos')
+          .insert(photosData)
+          .select();
+
+        if (error) {
+          console.error('Error saving photos to database:', error);
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        console.log(`✅ SUCCESS: ${data.length} real photos saved to database!`);
+        console.log('📸 Real photos are now available for selection!');
+        
+        setPhotos(prev => [...prev, ...data]);
+        toast.success(`${data.length} fotos carregadas com sucesso!`);
+        
+        return true;
+      } catch (error) {
+        console.error('Error processing photos:', error);
+        throw error;
+      }
+      
+    } catch (error) {
+      console.error('Error in photo upload process:', error);
+      toast.error(`Erro ao fazer upload das fotos: ${error.message}`);
+      return false;
+    }
+  };
+
   // Adicionar evento
   const addEvent = async (eventData: Omit<Event, 'id' | 'created_at' | 'photographer_id'>) => {
-    const isManualSelection = true; // Sempre manual quando criado via interface de seleções
-    
     if (!photographerId) {
       toast.error('Perfil do fotógrafo não encontrado');
       return null;
@@ -317,38 +534,33 @@ export const useSupabaseData = () => {
       // Tentar criar evento no Google Calendar primeiro
       let googleEventId: string | null = null;
       
-      // Não sincronizar com Google Calendar para seleções manuais
-      if (!isManualSelection) {
-        // Verificar se Google Calendar está configurado antes de tentar
-        const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
-        
-        if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
-          try {
-            console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
-            
-            // Tentar integração real com Google Calendar
-            const googleCalendarService = await createGoogleCalendarService(user.id);
-            
-            if (googleCalendarService) {
-              googleEventId = await googleCalendarService.createEvent(eventData);
-              if (googleEventId) {
-                console.log('✅ Google Calendar event criado com sucesso');
-              } else {
-                console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
-              }
+      // Verificar se Google Calendar está configurado antes de tentar
+      const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
+      
+      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
+        try {
+          console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
+          
+          // Tentar integração real com Google Calendar
+          const googleCalendarService = await createGoogleCalendarService(user.id);
+          
+          if (googleCalendarService) {
+            googleEventId = await googleCalendarService.createEvent(eventData);
+            if (googleEventId) {
+              console.log('✅ Google Calendar event criado com sucesso');
             } else {
-              console.warn('⚠️ Google Calendar não configurado');
+              console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
             }
-            
-          } catch (error) {
-            console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
-            googleEventId = null;
+          } else {
+            console.warn('⚠️ Google Calendar não configurado');
           }
-        } else {
-          console.log('ℹ️ Google Calendar não configurado');
+          
+        } catch (error) {
+          console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
+          googleEventId = null;
         }
       } else {
-        console.log('📝 Seleção manual - não sincronizando com Google Calendar');
+        console.log('ℹ️ Google Calendar não configurado');
       }
 
       const { data, error } = await supabase
@@ -376,19 +588,20 @@ export const useSupabaseData = () => {
           'Sessão';
         const albumName = `${sessionTypeLabel} - ${eventData.client_name}`;
 
-        console.log('Creating album for manual event:', albumName);
+        console.log('Creating album for event:', albumName);
         
         const { data: newAlbum, error: albumError } = await supabase
           .from('albums')
           .insert({
             event_id: data.id,
+            photographer_id: photographerId,
             name: albumName,
           })
           .select()
           .single();
 
         if (albumError) {
-          console.error('Error creating album for manual event:', albumError);
+          console.error('Error creating album for event:', albumError);
           toast.error('Evento criado, mas falha ao criar álbum');
         } else {
           console.log('Album created successfully:', newAlbum.id);
@@ -401,17 +614,16 @@ export const useSupabaseData = () => {
             .eq('id', data.id);
         }
       } catch (error) {
-        console.error('Error creating album for manual event:', error);
+        console.error('Error creating album for event:', error);
         // Não falhar o processo se o álbum não for criado
       }
       
-      toast.success('Seleção criada com sucesso!');
+      toast.success('Agendamento criado com sucesso!');
       
       return data;
     } catch (error) {
       console.error('Error adding event:', error);
-      
-      toast.error('Erro ao criar seleção');
+      toast.error('Erro ao criar agendamento');
       return null;
     }
   };
@@ -550,33 +762,24 @@ export const useSupabaseData = () => {
       // Buscar todas as fotos do álbum
       const { data: albumPhotos } = await supabase
         .from('photos')
-        .select('original_path, thumbnail_path, watermarked_path, filename')
+        .select('original_path, thumbnail_path, watermarked_path, filename, metadata')
         .eq('album_id', albumId);
 
       if (albumPhotos && albumPhotos.length > 0) {
         console.log(`Excluindo ${albumPhotos.length} fotos do Storage para álbum ${albumId}`);
         
-        // Extrair nomes dos arquivos das URLs
+        // Extrair nomes dos arquivos das URLs ou metadata
         const filesToDelete: string[] = [];
         
         albumPhotos.forEach(photo => {
-          // Extrair nome do arquivo da URL (assumindo formato: /storage/v1/object/public/photos/filename)
-          if (photo.original_path && photo.original_path.includes('/photos/')) {
-            const originalFile = photo.original_path.split('/photos/')[1];
-            if (originalFile) filesToDelete.push(originalFile);
-          }
-          
-          if (photo.thumbnail_path && photo.thumbnail_path.includes('/photos/')) {
-            const thumbnailFile = photo.thumbnail_path.split('/photos/')[1];
-            if (thumbnailFile && !filesToDelete.includes(thumbnailFile)) {
-              filesToDelete.push(thumbnailFile);
-            }
-          }
-          
-          if (photo.watermarked_path && photo.watermarked_path.includes('/photos/')) {
-            const watermarkedFile = photo.watermarked_path.split('/photos/')[1];
-            if (watermarkedFile && !filesToDelete.includes(watermarkedFile)) {
-              filesToDelete.push(watermarkedFile);
+          // Tentar extrair do metadata primeiro (mais confiável)
+          if (photo.metadata?.storage_path) {
+            filesToDelete.push(photo.metadata.storage_path);
+          } else {
+            // Fallback: extrair da URL
+            if (photo.original_path && photo.original_path.includes('/photos/')) {
+              const originalFile = photo.original_path.split('/photos/')[1];
+              if (originalFile) filesToDelete.push(originalFile);
             }
           }
         });
@@ -637,7 +840,7 @@ export const useSupabaseData = () => {
       
       console.log('Creating album with data:', {
         event_id: eventId || null,
-        photographer_id: eventId ? null : photographerId,
+        photographer_id: photographerId,
         name: name.trim(),
         share_token: shareToken,
         is_active: true,
@@ -647,7 +850,7 @@ export const useSupabaseData = () => {
         .from('albums')
         .insert({
           event_id: eventId || null,
-          photographer_id: photographerId, // Always set photographer_id for ownership
+          photographer_id: photographerId,
           name: name.trim(),
           share_token: shareToken,
           is_active: true,
@@ -671,198 +874,6 @@ export const useSupabaseData = () => {
       return false;
     }
   };
-
-  // Upload de fotos (simulado - em produção seria para storage)
-  const uploadPhotos = async (albumId: string, files: File[]) => {
-    console.log(`📸 Uploading ${files.length} real photos to album ${albumId}`);
-    
-    // Verificar se o álbum existe e pertence ao fotógrafo
-    const { data: albumCheck, error: albumError } = await supabase
-      .from('albums')
-      .select('id, photographer_id, event_id')
-      .eq('id', albumId)
-      .single();
-
-    if (albumError || !albumCheck) {
-      console.error('Album not found:', albumError);
-      toast.error('Álbum não encontrado');
-      return false;
-    }
-
-    console.log('Album ownership check:', {
-      albumId,
-      album_photographer_id: albumCheck.photographer_id,
-      current_photographer_id: photographerId,
-      has_event: !!albumCheck.event_id
-    });
-
-    // Verificar se o fotógrafo tem permissão para este álbum
-    if (albumCheck.photographer_id !== photographerId) {
-      // Se não tem photographer_id direto, verificar via evento
-      if (albumCheck.event_id) {
-        const { data: eventCheck } = await supabase
-          .from('events')
-          .select('photographer_id')
-          .eq('id', albumCheck.event_id)
-          .single();
-
-        if (!eventCheck || eventCheck.photographer_id !== photographerId) {
-          toast.error('Você não tem permissão para este álbum');
-          return false;
-        }
-      } else {
-        toast.error('Você não tem permissão para este álbum');
-        return false;
-      }
-    }
-    
-    // Buscar preço atual das configurações
-    let currentPrice = 25.00; // Preço padrão
-    
-    try {
-      if (user) {
-        const { data: photographer } = await supabase
-          .from('photographers')
-          .select('watermark_config')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (photographer?.watermark_config?.photoPrice) {
-          currentPrice = photographer.watermark_config.photoPrice;
-        }
-      }
-    } catch (error) {
-      console.error('Error loading photo price:', error);
-    }
-
-    try {
-      console.log(`🔄 Processing ${files.length} real files for upload...`);
-      
-      const photoPromises = files.map(async (file, index) => {
-        const timestamp = Date.now();
-        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-        const storageFileName = `${albumId}/${timestamp}_${safeFileName}`;
-        
-        try {
-          console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
-          
-          // Upload real file to Supabase Storage
-          console.log(`📁 Uploading to path: ${storageFileName}`);
-          
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('photos')
-            .upload(storageFileName, file, {
-              cacheControl: '3600',
-              upsert: false,
-              contentType: file.type
-            });
-
-          if (uploadError) {
-            console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
-            
-            // Try with retry name
-            const retryFileName = `${albumId}/retry_${timestamp}_${safeFileName}`;
-            console.log(`🔄 Retrying upload with name: ${retryFileName}`);
-            
-            const { data: retryData, error: retryError } = await supabase.storage
-              .from('photos')
-              .upload(retryFileName, file, {
-                cacheControl: '3600',
-                upsert: true,
-                contentType: file.type
-              });
-            
-            if (retryError) {
-              console.error(`❌ Retry upload also failed for ${file.name}:`, retryError);
-              throw new Error(`Upload failed after retry: ${retryError.message}`);
-            }
-            
-            console.log(`✅ Retry upload successful for ${file.name}`);
-            storageFileName = retryFileName;
-          } else {
-            console.log(`✅ Upload successful for ${file.name}`);
-          }
-          
-          // Generate public URLs
-          const { data: { publicUrl: originalUrl } } = supabase.storage
-            .from('photos')
-            .getPublicUrl(storageFileName);
-          
-          const { data: { publicUrl: thumbnailUrl } } = supabase.storage
-            .from('photos')
-            .getPublicUrl(storageFileName);
-          
-          const { data: { publicUrl: watermarkedUrl } } = supabase.storage
-            .from('photos')
-            .getPublicUrl(storageFileName);
-          
-          console.log(`🔗 Generated URLs for ${file.name}`);
-
-          return {
-            album_id: albumId,
-            filename: file.name,
-            original_path: originalUrl,
-            thumbnail_path: thumbnailUrl,
-            watermarked_path: watermarkedUrl,
-            is_selected: false,
-            price: currentPrice,
-            metadata: {
-              file_size: file.size,
-              file_type: file.type,
-              original_filename: file.name,
-              uploaded_at: new Date().toISOString(),
-              storage_path: storageFileName,
-              upload_method: 'real_upload',
-              file_size_mb: (file.size / 1024 / 1024).toFixed(2)
-            },
-          };
-        } catch (error) {
-          console.error(`❌ Failed to process real file ${file.name}:`, error);
-          
-          throw error;
-        }
-      });
-
-      try {
-        console.log('🔄 Processing all uploads...');
-        const photosData = await Promise.all(photoPromises);
-        
-        console.log(`📊 Real photos uploaded: ${photosData.length} photos processed`);
-        
-        if (photosData.length === 0) {
-          throw new Error('Nenhuma foto foi processada com sucesso');
-        }
-
-        console.log(`💾 Saving ${photosData.length} real photos to database...`);
-        
-        const { data, error } = await supabase
-          .from('photos')
-          .insert(photosData)
-          .select();
-
-        if (error) {
-          console.error('Error saving real photos to database:', error);
-          throw new Error(`Database error: ${error.message}`);
-        }
-
-        console.log(`✅ SUCCESS: ${data.length} real photos saved to database!`);
-        console.log('📸 Real photos are now available for selection!');
-        
-        setPhotos(prev => [...prev, ...data]);
-        
-        return true;
-      } catch (error) {
-        console.error('Error processing photos:', error);
-        throw error;
-      }
-      
-    } catch (error) {
-      console.error('Error in photo upload process:', error);
-      toast.error(`Erro ao fazer upload das fotos: ${error.message}`);
-      return false;
-    }
-  };
-
 
   // Excluir álbum
   const deleteAlbum = async (albumId: string) => {
@@ -911,36 +922,6 @@ export const useSupabaseData = () => {
       setPhotos(prev => prev.map(photo => 
         photo.id === photoId ? data : photo
       ));
-      
-      // Atualizar log de atividade do álbum quando foto for selecionada/desselecionada
-      if (updates.is_selected !== undefined) {
-        try {
-          const photo = photos.find(p => p.id === photoId);
-          if (photo) {
-            const album = albums.find(a => a.id === photo.album_id);
-            if (album) {
-              const currentLog = album.activity_log || [];
-              const newActivity = {
-                timestamp: new Date().toISOString(),
-                type: updates.is_selected ? 'photo_selected' : 'photo_deselected',
-                description: updates.is_selected 
-                  ? `Foto "${photo.filename}" selecionada pelo cliente`
-                  : `Foto "${photo.filename}" removida da seleção`
-              };
-              
-              await supabase
-                .from('albums')
-                .update({ 
-                  activity_log: [...currentLog, newActivity]
-                })
-                .eq('id', photo.album_id);
-            }
-          }
-        } catch (error) {
-          console.error('Error updating activity log:', error);
-          // Não falhar a operação principal se o log falhar
-        }
-      }
       
       return true;
     } catch (error) {

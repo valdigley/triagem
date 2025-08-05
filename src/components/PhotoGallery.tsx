@@ -3,16 +3,6 @@ import { Check, Download, Eye, ShoppingCart, X, ChevronLeft, ChevronRight, Setti
 import toast from 'react-hot-toast';
 import { useSupabaseData } from '../hooks/useSupabaseData';
 import Checkout from './Checkout';
-import WatermarkSettings from './WatermarkSettings';
-
-interface Photo {
-  id: string;
-  filename: string;
-  thumbnailPath: string;
-  watermarkedPath: string;
-  isSelected: boolean;
-  price: number;
-}
 
 interface PhotoGalleryProps {
   albumId: string;
@@ -34,7 +24,6 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
-  const [showComments, setShowComments] = useState(false);
   const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [tempComment, setTempComment] = useState('');
@@ -250,8 +239,8 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     
     const baseStyle = {
       position: 'absolute' as const,
-      opacity: watermarkConfig.opacity,
-      width: `${watermarkConfig.size}%`,
+      opacity: watermarkConfig.opacity || 0.7,
+      width: `${watermarkConfig.size || 20}%`,
       height: 'auto',
       pointerEvents: 'none' as const,
     };
@@ -271,6 +260,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         return baseStyle;
     }
   };
+
   if (loading || albumLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -339,100 +329,99 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
           <p className="text-gray-600">Este álbum ainda não possui fotos.</p>
         </div>
       ) : (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
-        {albumPhotos.map((photo, index) => {
-          const isSelected = selectedPhotos.has(photo.id);
-          
-          return (
-            <div
-              key={photo.id}
-              className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-smooth ${
-                isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
-              }`}
-            >
-              {/* Photo */}
-              <img
-                src={photo.thumbnail_path}
-                alt={photo.filename}
-                className="w-full h-full object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  // Fallback apenas se a imagem real falhar
-                  console.warn('Failed to load photo:', photo.thumbnail_path);
-                  e.currentTarget.src = `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=Erro+ao+Carregar`;
-                }}
-              />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 lg:gap-4">
+          {albumPhotos.map((photo, index) => {
+            const isSelected = selectedPhotos.has(photo.id);
+            
+            return (
+              <div
+                key={photo.id}
+                className={`relative group aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-smooth ${
+                  isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
+                }`}
+              >
+                {/* Photo */}
+                <img
+                  src={photo.thumbnail_path}
+                  alt={photo.filename}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  onError={(e) => {
+                    // Fallback apenas se a imagem real falhar
+                    console.warn('Failed to load photo:', photo.thumbnail_path);
+                    e.currentTarget.src = `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=Erro+ao+Carregar`;
+                  }}
+                />
 
-              {/* Watermark overlay for client view */}
-              {isClientView && watermarkConfig && watermarkConfig.watermarkFile && (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                {/* Watermark overlay for client view */}
+                {isClientView && watermarkConfig && watermarkConfig.watermarkFile && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <img
                       src={watermarkConfig.watermarkFile}
                       alt="Watermark"
                       style={getWatermarkStyle()}
                     />
-                </div>
-              )}
+                  </div>
+                )}
 
-              {/* Selection overlay */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200">
-                <div className="absolute top-2 right-2 space-y-2">
-                  {/* View button */}
-                  <button
-                    onClick={() => openLightbox(index)}
-                    className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                  >
-                    <Eye className="w-4 h-4 text-gray-700" />
-                  </button>
-
-                  {/* Selection button for client view */}
-                  {isClientView && (
+                {/* Selection overlay */}
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200">
+                  <div className="absolute top-2 right-2 space-y-2">
+                    {/* View button */}
                     <button
-                      onClick={() => togglePhotoSelection(photo.id)}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                        isSelected
-                          ? 'bg-blue-500 text-white opacity-100'
-                          : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
-                      }`}
+                      onClick={() => openLightbox(index)}
+                      className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 opacity-0 group-hover:opacity-100"
                     >
-                      <Check className="w-4 h-4" />
+                      <Eye className="w-4 h-4 text-gray-700" />
                     </button>
+
+                    {/* Selection button for client view */}
+                    {isClientView && (
+                      <button
+                        onClick={() => togglePhotoSelection(photo.id)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
+                          isSelected
+                            ? 'bg-blue-500 text-white opacity-100'
+                            : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
+                        }`}
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Price tag for client view */}
+                  {isClientView && (
+                    <div className="absolute bottom-2 left-2">
+                      <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                        R$ {photo.price.toFixed(2)}
+                      </span>
+                    </div>
                   )}
                 </div>
 
-                {/* Price tag for client view */}
-                {isClientView && (
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute top-2 left-2">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Comment indicator */}
+                {photoComments[photo.id] && (
                   <div className="absolute bottom-2 left-2">
-                    <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                      R$ {photo.price.toFixed(2)}
-                    </span>
+                    <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                      <MessageCircle className="w-3 h-3" />
+                      <span>💬</span>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Selection indicator */}
-              {isSelected && (
-                <div className="absolute top-2 left-2">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                    <Check className="w-4 h-4 text-white" />
-                  </div>
-                </div>
-              )}
-
-              {/* Comment indicator */}
-              {photoComments[photo.id] && (
-                <div className="absolute bottom-2 left-2">
-                  <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                    <MessageCircle className="w-3 h-3" />
-                    <span>💬</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Lightbox */}
@@ -461,6 +450,7 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             >
               <ChevronRight className="w-8 h-8 text-white" />
             </button>
+
             {/* Main image */}
             <div className="relative">
               <img
