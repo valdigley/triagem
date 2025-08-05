@@ -147,32 +147,32 @@ const PublicScheduling: React.FC = () => {
 
       // Substituir variáveis no assunto
       subject = subject
-        .replace(/\{\{clientName\}\}/g, eventData.client_name)
-        .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
-        .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
-        .replace(/\{\{eventDate\}\}/g, new Date(eventData.event_date).toLocaleDateString('pt-BR'))
-        .replace(/\{\{eventTime\}\}/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-        .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
-        .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
-        .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
-        .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+        .replace(/\[\[clientName\]\]/g, eventData.client_name)
+        .replace(/\[\[sessionType\]\]/g, sessionTypeLabel)
+        .replace(/\[\[studioName\]\]/g, studioSettings.businessName)
+        .replace(/\[\[eventDate\]\]/g, new Date(eventData.event_date).toLocaleDateString('pt-BR'))
+        .replace(/\[\[eventTime\]\]/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+        .replace(/\[\[studioAddress\]\]/g, studioSettings.address || '')
+        .replace(/\[\[studioPhone\]\]/g, studioSettings.phone || '')
+        .replace(/\[\[studioEmail\]\]/g, studioSettings.email || '')
+        .replace(/\[\[studioWebsite\]\]/g, studioSettings.website || '');
 
       // Substituir variáveis na mensagem
       message = message
-        .replace(/\{\{clientName\}\}/g, eventData.client_name)
-        .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
-        .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
-        .replace(/\{\{eventDate\}\}/g, new Date(eventData.event_date).toLocaleDateString('pt-BR', { 
+        .replace(/\[\[clientName\]\]/g, eventData.client_name)
+        .replace(/\[\[sessionType\]\]/g, sessionTypeLabel)
+        .replace(/\[\[studioName\]\]/g, studioSettings.businessName)
+        .replace(/\[\[eventDate\]\]/g, new Date(eventData.event_date).toLocaleDateString('pt-BR', { 
           weekday: 'long', 
           year: 'numeric', 
           month: 'long', 
           day: 'numeric' 
         }))
-        .replace(/\{\{eventTime\}\}/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-        .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
-        .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
-        .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
-        .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+        .replace(/\[\[eventTime\]\]/g, new Date(eventData.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+        .replace(/\[\[studioAddress\]\]/g, studioSettings.address || '')
+        .replace(/\[\[studioPhone\]\]/g, studioSettings.phone || '')
+        .replace(/\[\[studioEmail\]\]/g, studioSettings.email || '')
+        .replace(/\[\[studioWebsite\]\]/g, studioSettings.website || '');
 
       // Converter quebras de linha para HTML
       const emailHtml = `
