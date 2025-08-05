@@ -77,7 +77,10 @@ const AppContent: React.FC = () => {
             <div className="p-6 text-center">
               <p className="text-gray-600 mb-4">Nenhum álbum selecionado.</p>
               <button
-                onClick={() => setCurrentView('albums')}
+                onClick={() => {
+                  setCurrentView('albums');
+                  setSelectedAlbumId(null);
+                }}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >
                 Voltar para Álbuns
@@ -89,7 +92,10 @@ const AppContent: React.FC = () => {
           <PhotoGallery
             albumId={selectedAlbumId}
             isClientView={false}
-            onBackToAlbums={() => setCurrentView('albums')}
+            onBackToAlbums={() => {
+              setCurrentView('albums');
+              setSelectedAlbumId(null);
+            }}
           />
         );
       default:

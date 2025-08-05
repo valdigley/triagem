@@ -500,7 +500,11 @@ const EventList: React.FC<EventListProps> = ({ onViewAlbum }) => {
                       <button 
                         onClick={() => {
                           console.log('Clicking Ver Sessão for album:', relatedAlbum.id);
+                        if (onViewAlbum) {
                           onViewAlbum?.(relatedAlbum.id);
+                        } else {
+                          console.warn('onViewAlbum callback not provided');
+                        }
                         }}
                         className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >

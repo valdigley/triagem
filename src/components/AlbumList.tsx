@@ -933,7 +933,11 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     <button 
                       onClick={() => {
                         console.log('Clicking Ver Fotos for album:', album.id);
+                        if (onViewAlbum) {
                         onViewAlbum?.(album.id);
+                        } else {
+                          console.warn('onViewAlbum callback not provided');
+                        }
                       }}
                       className="flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg text-sm transition-colors"
                     >
