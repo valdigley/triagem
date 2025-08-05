@@ -377,12 +377,25 @@ export const useSupabaseData = () => {
   const uploadPhotos = async (albumId: string, files: File[]) => {
     console.log(`📸 Starting upload of ${files.length} files to album ${albumId}`);
     
+    if (!user) {
+      toast.error('Usuário não autenticado');
+      return false;
+    }
+    
     // Verificar se o álbum existe e pertence ao fotógrafo
-    const { data: albumCheck, error: albumError } = await supabase
-      .from('albums')
-      .select('id, photographer_id, event_id')
-      .eq('id', albumId)
-      .single();
+    const { data: albumCheck, error: albumError } = await withRetry(async () => {
+      return await supabase
+        .from('albums')
+        .select(`
+          id,
+          event_id,
+          events!inner(
+            photographer_id
+          )
+        `)
+        .eq('id', albumId)
+        .single();
+    });
 
     if (albumError || !albumCheck) {
       console.error('Album not found:', albumError);
@@ -392,13 +405,13 @@ export const useSupabaseData = () => {
 
     console.log('Album ownership check:', {
       albumId,
-      album_photographer_id: albumCheck.photographer_id,
+      album_photographer_id: albumCheck.events?.photographer_id,
       current_photographer_id: photographerId,
       has_event: !!albumCheck.event_id
     });
 
     // Verificar se o fotógrafo tem permissão para este álbum
-    if (albumCheck.photographer_id !== photographerId) {
+    if (albumCheck.events?.photographer_id !== photographerId) {
       toast.error('Você não tem permissão para este álbum');
       return false;
     }
@@ -425,13 +438,29 @@ export const useSupabaseData = () => {
     try {
       console.log(`🔄 Processing ${files.length} files for upload...`);
       
-      const photoPromises = files.map(async (file, index) => {
+      const uploadResults = [];
+      
+      // Upload files sequentially to avoid overwhelming the server
+      for (let index = 0; index < files.length; index++) {
+        const file = files[index];
         const timestamp = Date.now() + index; // Evitar conflitos de nome
         const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const storageFileName = `${albumId}/${timestamp}_${safeFileName}`;
         
         try {
           console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
+          
+          // Verificar se o arquivo já existe
+          const { data: existingFile } = await supabase.storage
+            .from('photos')
+            .list(albumId, {
+              search: safeFileName
+            });
+          
+          if (existingFile && existingFile.length > 0) {
+            console.log(`⏭️ File ${file.name} already exists, skipping`);
+            continue;
+          }
           
           // Upload file to Supabase Storage
           console.log(`📁 Uploading to path: ${storageFileName}`);
@@ -441,75 +470,103 @@ export const useSupabaseData = () => {
             .upload(storageFileName, file, {
               cacheControl: '3600',
               upsert: false,
-              contentType: file.type
+              contentType: file.type,
+              duplex: 'half'
             });
 
           if (uploadError) {
             console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
-            throw new Error(`Upload failed: ${uploadError.message}`);
+            
+            // Try with upsert if file already exists
+            if (uploadError.message?.includes('already exists') || uploadError.message?.includes('duplicate')) {
+              console.log(`🔄 File exists, trying upsert for ${file.name}`);
+              
+              const { data: upsertData, error: upsertError } = await supabase.storage
+                .from('photos')
+                .upload(storageFileName, file, {
+                  cacheControl: '3600',
+                  upsert: true,
+                  contentType: file.type
+                });
+              
+              if (upsertError) {
+                console.error(`❌ Upsert also failed for ${file.name}:`, upsertError);
+                throw new Error(`Upload failed: ${upsertError.message}`);
+              }
+              
+              console.log(`✅ Upsert successful for ${file.name}`);
+            } else {
+              throw new Error(`Upload failed: ${uploadError.message}`);
+            }
           } else {
             console.log(`✅ Upload successful for ${file.name}`);
-            
-            // Generate public URLs
-            const { data: { publicUrl: originalUrl } } = supabase.storage
-              .from('photos')
-              .getPublicUrl(storageFileName);
-            
-            const { data: { publicUrl: thumbnailUrl } } = supabase.storage
-              .from('photos')
-              .getPublicUrl(storageFileName);
-            
-            const { data: { publicUrl: watermarkedUrl } } = supabase.storage
-              .from('photos')
-              .getPublicUrl(storageFileName);
-            
-            console.log(`🔗 Generated URLs for ${file.name}`);
-
-            return {
-              album_id: albumId,
-              filename: file.name,
-              original_path: originalUrl,
-              thumbnail_path: thumbnailUrl,
-              watermarked_path: watermarkedUrl,
-              is_selected: false,
-              price: currentPrice,
-              metadata: {
-                file_size: file.size,
-                file_type: file.type,
-                original_filename: file.name,
-                uploaded_at: new Date().toISOString(),
-                storage_path: storageFileName,
-                upload_method: 'storage_upload',
-                file_size_mb: (file.size / 1024 / 1024).toFixed(2)
-              },
-            };
           }
+            
+          // Generate public URLs
+          const { data: { publicUrl: originalUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          console.log(`🔗 Generated URLs for ${file.name}`);
+
+          uploadResults.push({
+            album_id: albumId,
+            filename: file.name,
+            original_path: originalUrl,
+            thumbnail_path: thumbnailUrl,
+            watermarked_path: watermarkedUrl,
+            is_selected: false,
+            price: currentPrice,
+            metadata: {
+              file_size: file.size,
+              file_type: file.type,
+              original_filename: file.name,
+              uploaded_at: new Date().toISOString(),
+              storage_path: storageFileName,
+              upload_method: 'storage_upload',
+              file_size_mb: (file.size / 1024 / 1024).toFixed(2)
+            },
+          });
+          
         } catch (error) {
           console.error(`❌ Failed to process file ${file.name}:`, error);
-          throw error;
+          toast.error(`Erro ao processar ${file.name}: ${error.message}`);
+          // Continue with other files instead of stopping
         }
-      });
+      }
 
       try {
         console.log('🔄 Processing all uploads...');
-        const photosData = await Promise.all(photoPromises);
+        const photosData = uploadResults;
         
         console.log(`📊 Photos uploaded: ${photosData.length} photos processed`);
         
         if (photosData.length === 0) {
-          throw new Error('Nenhuma foto foi processada com sucesso');
+          toast.error('Nenhuma foto foi processada com sucesso');
+          return false;
         }
 
         console.log(`💾 Saving ${photosData.length} photos to database...`);
         
-        const { data, error } = await supabase
-          .from('photos')
-          .insert(photosData)
-          .select();
+        const { data, error } = await withRetry(async () => {
+          return await supabase
+            .from('photos')
+            .insert(photosData)
+            .select();
+        });
 
         if (error) {
           console.error('Error saving photos to database:', error);
-          throw new Error(`Database error: ${error.message}`);
+          toast.error(`Erro no banco de dados: ${error.message}`);
+          return false;
         }
 
         console.log(`✅ SUCCESS: ${data.length} photos saved to database!`);
@@ -521,12 +578,13 @@ export const useSupabaseData = () => {
         return true;
       } catch (error) {
         console.error('Error processing photos:', error);
-        throw error;
+        toast.error(`Erro ao processar fotos: ${error.message}`);
+        return false;
       }
       
     } catch (error) {
       console.error('Error in photo upload process:', error);
-      toast.error(`Erro ao fazer upload das fotos: ${error.message}`);
+      toast.error(`Erro geral no upload: ${error.message}`);
       return false;
     }
   };
