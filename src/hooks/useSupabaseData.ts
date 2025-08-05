@@ -262,8 +262,17 @@ export const useSupabaseData = () => {
       const { data: albumsData, error: albumsError } = await withRetry(async () => {
         return await supabase
           .from('albums')
-          .select('*')
-          .eq('photographer_id', currentPhotographerId)
+          .select(`
+            *,
+            events!inner(
+              id,
+              photographer_id,
+              client_name,
+              event_date,
+              location
+            )
+          `)
+          .eq('events.photographer_id', currentPhotographerId)
           .order('created_at', { ascending: false });
       });
 
@@ -271,7 +280,16 @@ export const useSupabaseData = () => {
         console.error('Error loading albums:', albumsError);
         toast.error('Erro ao carregar álbuns');
       } else {
-        setAlbums(albumsData || []);
+        // Transform the data to match expected Album interface
+        const transformedAlbums = (albumsData || []).map(album => ({
+          ...album,
+          photographerId: album.events?.photographer_id,
+          eventName: album.events?.client_name,
+          eventDate: album.events?.event_date,
+          eventLocation: album.events?.location
+        }));
+
+        setAlbums(transformedAlbums);
       }
 
       // Carregar fotos
