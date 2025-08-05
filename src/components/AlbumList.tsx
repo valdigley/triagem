@@ -68,16 +68,18 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       return;
     }
 
+    console.log('Creating album:', { name: newAlbumName.trim(), eventId: selectedEventId });
+    
     try {
       const success = await createAlbum(newAlbumName.trim(), selectedEventId);
       if (success) {
         setNewAlbumName('');
         setSelectedEventId('');
         setShowCreateForm(false);
-        toast.success('Álbum criado com sucesso!');
       }
     } catch (error) {
       console.error('Error creating album:', error);
+      toast.error('Erro ao criar álbum');
     }
   };
 
@@ -391,12 +393,17 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Selecione um evento...</option>
-                {events.map((event) => (
+                {events.filter(event => event.status !== 'cancelled').map((event) => (
                   <option key={event.id} value={event.id}>
-                    {event.client_name} - {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })}
+                    {event.client_name} - {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })} ({event.status})
                   </option>
                 ))}
               </select>
+              {events.length === 0 && (
+                <p className="text-sm text-gray-500 mt-1">
+                  Nenhum evento disponível. Crie um agendamento primeiro.
+                </p>
+              )}
             </div>
 
             <div className="flex justify-end gap-3">
@@ -408,7 +415,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
               </button>
               <button
                 onClick={handleCreateAlbum}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                disabled={!newAlbumName.trim() || !selectedEventId}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Criar Álbum
               </button>

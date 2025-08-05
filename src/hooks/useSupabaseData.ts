@@ -608,24 +608,44 @@ export const useSupabaseData = () => {
   };
 
   // Criar álbum
-  const createAlbum = async (albumData: { event_id: string; name: string }) => {
+  const createAlbum = async (name: string, eventId: string) => {
     try {
+      if (!eventId || !name.trim()) {
+        toast.error('Nome do álbum e evento são obrigatórios');
+        return false;
+      }
+
+      // Verificar se o evento existe e pertence ao fotógrafo
+      const { data: eventExists, error: eventError } = await supabase
+        .from('events')
+        .select('id, photographer_id')
+        .eq('id', eventId)
+        .eq('photographer_id', photographerId)
+        .single();
+
+      if (eventError || !eventExists) {
+        console.error('Event validation failed:', eventError);
+        toast.error('Evento não encontrado ou não pertence a você');
+        return false;
+      }
+
       // Generate unique share token
       const shareToken = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
       
       const { data, error } = await supabase
         .from('albums')
         .insert({
-          event_id: albumData.event_id,
-          name: albumData.name,
+          event_id: eventId,
+          name: name.trim(),
           share_token: shareToken,
+          is_active: true,
         })
         .select()
         .single();
 
       if (error) {
         console.error('Error creating album:', error);
-        toast.error('Erro ao criar álbum');
+        toast.error(`Erro ao criar álbum: ${error.message}`);
         return false;
       }
 
@@ -634,7 +654,7 @@ export const useSupabaseData = () => {
       return true;
     } catch (error) {
       console.error('Error creating album:', error);
-      toast.error('Erro ao criar álbum');
+      toast.error(`Erro inesperado: ${error.message}`);
       return false;
     }
   };
