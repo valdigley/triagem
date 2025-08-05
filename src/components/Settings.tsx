@@ -42,6 +42,21 @@ const Settings: React.FC = () => {
   const [evolutionInstance, setEvolutionInstance] = useState('');
   const [showEvolutionKey, setShowEvolutionKey] = useState(false);
   
+  // Login backgrounds
+  const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
+  const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
+  
+  // FTP Config
+  const [ftpConfig, setFtpConfig] = useState({
+    host: '',
+    username: '',
+    password: '',
+    port: 21,
+    monitor_path: '/photos',
+    auto_upload: false
+  });
+  const [showFtpPassword, setShowFtpPassword] = useState(false);
+  
   // Email templates
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
@@ -188,11 +203,11 @@ const Settings: React.FC = () => {
     // Validar arquivos
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
-        toast.error('${file.name} não é uma imagem válida'.replace('${file.name}', file.name));
+        toast.error(`${file.name} não é uma imagem válida`);
         return false;
       }
       if (file.size > 10 * 1024 * 1024) {
-        toast.error('${file.name} é muito grande. Máximo 10MB.'.replace('${file.name}', file.name));
+        toast.error(`${file.name} é muito grande. Máximo 10MB.`);
         return false;
       }
       return true;
@@ -212,7 +227,7 @@ const Settings: React.FC = () => {
       reader.readAsDataURL(file);
     });
 
-    toast.success('${validFiles.length} imagem(ns) adicionada(s)'.replace('${validFiles.length}', validFiles.length.toString()));
+    toast.success(`${validFiles.length} imagem(ns) adicionada(s)`);
   };
 
   const removeBackground = (index: number) => {
@@ -497,7 +512,7 @@ const Settings: React.FC = () => {
                   <div key={index} className="relative group">
                     <img
                       src={bg}
-                      alt={'Background ' + (index + 1)}
+                      alt={`Background ${index + 1}`}
                       className="w-full h-24 object-cover rounded-lg border border-gray-200"
                     />
                     <button
@@ -742,6 +757,145 @@ const Settings: React.FC = () => {
       {/* Templates de Email */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <Mail className="w-5 h-5" />
+          Templates de Email
+        </h3>
+        
+        <div className="space-y-6">
+          {/* Confirmação de Agendamento */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium text-gray-900">Confirmação de Agendamento</h4>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={emailTemplates.bookingConfirmation.enabled}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    bookingConfirmation: {
+                      ...prev.bookingConfirmation,
+                      enabled: e.target.checked
+                    }
+                  }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700">Ativo</span>
+              </label>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assunto
+                </label>
+                <input
+                  type="text"
+                  value={emailTemplates.bookingConfirmation.subject}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    bookingConfirmation: {
+                      ...prev.bookingConfirmation,
+                      subject: e.target.value
+                    }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mensagem
+                </label>
+                <textarea
+                  value={emailTemplates.bookingConfirmation.message}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    bookingConfirmation: {
+                      ...prev.bookingConfirmation,
+                      message: e.target.value
+                    }
+                  }))}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Lembrete do Dia */}
+          <div className="border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-medium text-gray-900">Lembrete do Dia</h4>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={emailTemplates.dayOfReminder.enabled}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    dayOfReminder: {
+                      ...prev.dayOfReminder,
+                      enabled: e.target.checked
+                    }
+                  }))}
+                  className="mr-2"
+                />
+                <span className="text-sm text-gray-700">Ativo</span>
+              </label>
+            </div>
+            
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Assunto
+                </label>
+                <input
+                  type="text"
+                  value={emailTemplates.dayOfReminder.subject}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    dayOfReminder: {
+                      ...prev.dayOfReminder,
+                      subject: e.target.value
+                    }
+                  }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Mensagem
+                </label>
+                <textarea
+                  value={emailTemplates.dayOfReminder.message}
+                  onChange={(e) => setEmailTemplates(prev => ({
+                    ...prev,
+                    dayOfReminder: {
+                      ...prev.dayOfReminder,
+                      message: e.target.value
+                    }
+                  }))}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h4 className="font-medium text-blue-900 mb-2">Variáveis Disponíveis</h4>
+            <div className="text-sm text-blue-800 grid md:grid-cols-2 gap-2">
+              <div>• {{clientName}} - Nome do cliente</div>
+              <div>• {{studioName}} - Nome do estúdio</div>
+              <div>• {{sessionType}} - Tipo da sessão</div>
+              <div>• {{eventDate}} - Data do evento</div>
+              <div>• {{eventTime}} - Horário do evento</div>
+              <div>• {{studioAddress}} - Endereço do estúdio</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Debug Info */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">🔧 Debug Info</h3>
