@@ -272,32 +272,32 @@ async function sendDayOfReminder(event: any) {
 
   // Substituir variáveis no assunto
   subject = subject
-    .replace(/\{\{clientName\}\}/g, event.client_name)
-    .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
-    .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
-    .replace(/\{\{eventDate\}\}/g, new Date(event.event_date).toLocaleDateString('pt-BR'))
-    .replace(/\{\{eventTime\}\}/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-    .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
-    .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
-    .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
-    .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+    .replace(/\[\[clientName\]\]/g, event.client_name)
+    .replace(/\[\[sessionType\]\]/g, sessionTypeLabel)
+    .replace(/\[\[studioName\]\]/g, studioSettings.businessName)
+    .replace(/\[\[eventDate\]\]/g, new Date(event.event_date).toLocaleDateString('pt-BR'))
+    .replace(/\[\[eventTime\]\]/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    .replace(/\[\[studioAddress\]\]/g, studioSettings.address || '')
+    .replace(/\[\[studioPhone\]\]/g, studioSettings.phone || '')
+    .replace(/\[\[studioEmail\]\]/g, studioSettings.email || '')
+    .replace(/\[\[studioWebsite\]\]/g, studioSettings.website || '');
 
   // Substituir variáveis na mensagem
   message = message
-    .replace(/\{\{clientName\}\}/g, event.client_name)
-    .replace(/\{\{sessionType\}\}/g, sessionTypeLabel)
-    .replace(/\{\{studioName\}\}/g, studioSettings.businessName)
-    .replace(/\{\{eventDate\}\}/g, new Date(event.event_date).toLocaleDateString('pt-BR', { 
+    .replace(/\[\[clientName\]\]/g, event.client_name)
+    .replace(/\[\[sessionType\]\]/g, sessionTypeLabel)
+    .replace(/\[\[studioName\]\]/g, studioSettings.businessName)
+    .replace(/\[\[eventDate\]\]/g, new Date(event.event_date).toLocaleDateString('pt-BR', { 
       weekday: 'long', 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     }))
-    .replace(/\{\{eventTime\}\}/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
-    .replace(/\{\{studioAddress\}\}/g, studioSettings.address || '')
-    .replace(/\{\{studioPhone\}\}/g, studioSettings.phone || '')
-    .replace(/\{\{studioEmail\}\}/g, studioSettings.email || '')
-    .replace(/\{\{studioWebsite\}\}/g, studioSettings.website || '');
+    .replace(/\[\[eventTime\]\]/g, new Date(event.event_date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }))
+    .replace(/\[\[studioAddress\]\]/g, studioSettings.address || '')
+    .replace(/\[\[studioPhone\]\]/g, studioSettings.phone || '')
+    .replace(/\[\[studioEmail\]\]/g, studioSettings.email || '')
+    .replace(/\[\[studioWebsite\]\]/g, studioSettings.website || '');
 
   const emailHtml = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
