@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SubscriptionProvider } from './contexts/SubscriptionContext';
 import Login from './components/Login';
 import { DataProvider } from './contexts/DataContext';
+import { useSupabaseData } from './hooks/useSupabaseData';
 import SubscriptionGuard from './components/SubscriptionGuard';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
