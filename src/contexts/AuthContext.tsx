@@ -38,10 +38,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Verificar sessão atual
     const getSession = async () => {
       try {
+        // Clear any potentially invalid tokens before attempting session retrieval
+        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        
+        // If we have a session but it might be invalid, validate it first
+        if (existingSession?.refresh_token) {
+          try {
+            // Test if the refresh token is valid by attempting a refresh
+            await supabase.auth.refreshSession();
+          } catch (refreshError) {
+            console.warn('Refresh token invalid, clearing session:', refreshError);
+            await supabase.auth.signOut();
+            setSupabaseUser(null);
+            setUser(null);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
+          if (error.message.includes('Invalid Refresh Token') || 
+              error.message.includes('Refresh Token Not Found') ||
+              error.message.includes('refresh_token_not_found')) {
             console.warn('Session token expired, signing out user:', error.message);
           } else {
             console.error('Session error:', error.message);
@@ -68,7 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        if (errorMessage.includes('Invalid Refresh Token') || errorMessage.includes('Refresh Token Not Found')) {
+        if (errorMessage.includes('Invalid Refresh Token') || 
+            errorMessage.includes('Refresh Token Not Found') ||
+            errorMessage.includes('refresh_token_not_found')) {
           console.warn('Session token expired, signing out user:', errorMessage);
         } else {
           console.error('Unexpected session error:', errorMessage);
@@ -87,6 +109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
+        
+        // Handle token refresh errors
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('Token refresh failed, signing out user');
+          setSupabaseUser(null);
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
         
         if (session?.user) {
           // Para usuários do Google OAuth, criar perfil automaticamente
