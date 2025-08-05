@@ -50,6 +50,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const { photographer_id, force_scan }: FTPMonitorRequest = await req.json();
+    const target_album_id = req.body?.target_album_id;
     console.log('Request params:', { photographer_id, force_scan });
 
     if (!photographer_id) {
@@ -158,41 +159,72 @@ serve(async (req) => {
 
     // 4. Buscar álbum ativo mais recente
     console.log('Finding target album...');
-    const { data: activeAlbums, error: albumsError } = await supabase
-      .from('albums')
-      .select(`
-        *,
-        events!inner(photographer_id)
-      `)
-      .eq('events.photographer_id', photographer_id)
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-      .limit(1);
+    
+    let targetAlbum;
+    
+    if (target_album_id) {
+      // Usar álbum específico se fornecido
+      const { data: specificAlbum, error: albumError } = await supabase
+        .from('albums')
+        .select(`
+          *,
+          events!inner(photographer_id)
+        `)
+        .eq('id', target_album_id)
+        .eq('events.photographer_id', photographer_id)
+        .single();
+        
+      if (albumError) {
+        console.error('Error fetching specific album:', albumError);
+        return new Response(
+          JSON.stringify({ error: `Álbum específico não encontrado: ${albumError.message}` }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      targetAlbum = specificAlbum;
+    } else {
+      // Buscar álbum ativo mais recente
+      const { data: activeAlbums, error: albumsError } = await supabase
+        .from('albums')
+        .select(`
+          *,
+          events!inner(photographer_id)
+        `)
+        .eq('events.photographer_id', photographer_id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-    if (albumsError) {
-      console.error('Error fetching albums:', albumsError);
-      return new Response(
-        JSON.stringify({ error: `Erro ao buscar álbuns: ${albumsError.message}` }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+      if (albumsError) {
+        console.error('Error fetching albums:', albumsError);
+        return new Response(
+          JSON.stringify({ error: `Erro ao buscar álbuns: ${albumsError.message}` }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (!activeAlbums || activeAlbums.length === 0) {
+        return new Response(
+          JSON.stringify({
+            message: 'Nenhum álbum ativo encontrado. Crie uma seleção primeiro.',
+            photosProcessed: 0
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        );
+      }
+      
+      targetAlbum = activeAlbums[0];
     }
 
-    if (!activeAlbums || activeAlbums.length === 0) {
-      return new Response(
-        JSON.stringify({
-          message: 'Nenhum álbum ativo encontrado. Crie uma seleção primeiro.',
-          photosProcessed: 0
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
-    }
-
-    const targetAlbum = activeAlbums[0];
     console.log(`Using album: ${targetAlbum.name} (${targetAlbum.id})`);
 
     // 5. Processar arquivos do FTP

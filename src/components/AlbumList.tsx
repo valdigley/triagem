@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, MessageCircle, Mail, Eye, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText, Phone, Clock, Camera, Link } from 'lucide-react';
+import { Image, MessageCircle, Mail, Eye, Calendar, User, Plus, Upload, Trash2, X, Copy, FileText, Phone, Clock, Camera, Link, Wifi, WifiOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -9,7 +9,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import FTPMonitor from './FTPMonitor';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -54,6 +53,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [sendingDriveMessage, setSendingDriveMessage] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ftpMonitoringStates, setFtpMonitoringStates] = useState<Record<string, boolean>>({});
+  const [togglingFtpStates, setTogglingFtpStates] = useState<Record<string, boolean>>({});
   const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
 
   const {
@@ -95,6 +96,141 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       }
     } catch (error) {
       console.error('Error loading session types:', error);
+    }
+  };
+
+  // Carregar estados de monitoramento FTP
+  React.useEffect(() => {
+    loadFtpMonitoringStates();
+  }, [albums]);
+
+  const loadFtpMonitoringStates = async () => {
+    try {
+      const states: Record<string, boolean> = {};
+      
+      for (const album of albums) {
+        // Verificar se o álbum tem monitoramento FTP ativo
+        const ftpActive = album.activity_log?.some(log => 
+          log.type === 'ftp_monitoring_enabled'
+        ) || false;
+        
+        states[album.id] = ftpActive;
+      }
+      
+      setFtpMonitoringStates(states);
+    } catch (error) {
+      console.error('Error loading FTP monitoring states:', error);
+    }
+  };
+
+  const toggleFtpMonitoring = async (albumId: string) => {
+    setTogglingFtpStates(prev => ({ ...prev, [albumId]: true }));
+    
+    try {
+      const currentState = ftpMonitoringStates[albumId] || false;
+      const newState = !currentState;
+      
+      // Atualizar log de atividade do álbum
+      const { data: currentAlbum } = await supabase
+        .from('albums')
+        .select('activity_log')
+        .eq('id', albumId)
+        .single();
+
+      const currentLog = currentAlbum?.activity_log || [];
+      const newActivity = {
+        timestamp: new Date().toISOString(),
+        type: newState ? 'ftp_monitoring_enabled' : 'ftp_monitoring_disabled',
+        description: newState 
+          ? 'Monitoramento FTP ativado para este álbum'
+          : 'Monitoramento FTP desativado para este álbum'
+      };
+
+      const { error } = await supabase
+        .from('albums')
+        .update({ 
+          activity_log: [...currentLog, newActivity]
+        })
+        .eq('id', albumId);
+
+      if (error) {
+        console.error('Error updating FTP monitoring state:', error);
+        toast.error('Erro ao alterar monitoramento FTP');
+        return;
+      }
+
+      setFtpMonitoringStates(prev => ({
+        ...prev,
+        [albumId]: newState
+      }));
+
+      toast.success(newState ? 'Monitoramento FTP ativado!' : 'Monitoramento FTP desativado!');
+      
+      // Se ativou, executar scan imediatamente
+      if (newState) {
+        await runFtpScanForAlbum(albumId);
+      }
+      
+    } catch (error) {
+      console.error('Error toggling FTP monitoring:', error);
+      toast.error('Erro ao alterar monitoramento FTP');
+    } finally {
+      setTogglingFtpStates(prev => ({ ...prev, [albumId]: false }));
+    }
+  };
+
+  const runFtpScanForAlbum = async (albumId: string) => {
+    try {
+      if (!user) return;
+
+      // Buscar photographer_id
+      const { data: photographer } = await supabase
+        .from('photographers')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!photographer) {
+        toast.error('Perfil do fotógrafo não encontrado');
+        return;
+      }
+
+      console.log('🔍 Executando scan FTP para álbum:', albumId);
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          photographer_id: photographer.id,
+          target_album_id: albumId,
+          force_scan: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ FTP scan error:', errorData);
+        toast.error(errorData.error || 'Erro no scan FTP');
+        return;
+      }
+
+      const result = await response.json();
+      console.log('✅ FTP scan result:', result);
+
+      if (result.photosProcessed > 0) {
+        toast.success(`🎉 ${result.photosProcessed} fotos reais adicionadas do FTP!`);
+        // Recarregar dados
+        window.location.reload();
+      } else {
+        toast.success('✅ FTP verificado - nenhuma foto nova encontrada');
+      }
+
+    } catch (error) {
+      console.error('❌ Error in FTP scan:', error);
+      toast.error(`Erro no scan FTP: ${error.message}`);
     }
   };
 
@@ -443,12 +579,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           Adicionar Seleção
         </button>
       </div>
-
-      {/* FTP Monitor */}
-      <FTPMonitor onPhotosAdded={() => {
-        console.log('FTP photos added, reloading data...');
-        window.location.reload();
-      }} />
 
       {/* Formulário de Criação de Sessão */}
       {showCreateForm && (
@@ -846,7 +976,8 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
                 {/* Upload de fotos - apenas quando não há seleção */}
                 {selectedCount === 0 && (
-                  <div className="mb-3">
+                  <div className="mb-3 space-y-2">
+                    {/* Upload manual */}
                     <label className="flex items-center justify-center w-full h-12 border border-gray-300 border-dashed rounded cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
                       <div className="flex flex-col items-center justify-center">
                         {uploadingAlbumId === album.id ? (
@@ -872,6 +1003,43 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         disabled={uploadingAlbumId === album.id}
                       />
                     </label>
+                    
+                    {/* Controle FTP por álbum */}
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        {ftpMonitoringStates[album.id] ? (
+                          <Wifi className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <WifiOff className="w-4 h-4 text-gray-400" />
+                        )}
+                        <span className="text-sm font-medium text-blue-900">
+                          Recepção FTP
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          ftpMonitoringStates[album.id] 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {ftpMonitoringStates[album.id] ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => toggleFtpMonitoring(album.id)}
+                        disabled={togglingFtpStates[album.id]}
+                        className={`px-3 py-1 text-xs rounded-lg transition-colors disabled:opacity-50 ${
+                          ftpMonitoringStates[album.id]
+                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'
+                        }`}
+                      >
+                        {togglingFtpStates[album.id] 
+                          ? 'Alterando...' 
+                          : ftpMonitoringStates[album.id] 
+                          ? 'Desativar' 
+                          : 'Ativar'
+                        }
+                      </button>
+                    </div>
                   </div>
                 )}
 
