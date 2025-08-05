@@ -98,12 +98,27 @@ serve(async (req) => {
         `)
         .eq('id', target_album_id)
         .eq('events.photographer_id', photographer_id)
-        .single();
+        .maybeSingle();
         
       if (albumError) {
         console.error('Specific album not found:', albumError);
         return new Response(
           JSON.stringify({ error: `Álbum não encontrado: ${albumError.message}` }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      if (!specificAlbum) {
+        console.error('Album not found or does not belong to photographer');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Álbum não encontrado ou não pertence a este fotógrafo',
+            album_id: target_album_id,
+            photographer_id: photographer_id
+          }),
           { 
             status: 404, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
