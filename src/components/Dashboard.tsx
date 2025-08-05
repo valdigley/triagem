@@ -46,23 +46,36 @@ const Dashboard: React.FC = () => {
 
   const loadSubscriptionStats = async () => {
     try {
+      // Check connection first
+      const { checkSupabaseConnection, withRetry } = await import('../lib/supabase');
+      const isConnected = await checkSupabaseConnection();
+      
+      if (!isConnected) {
+        console.warn('Supabase not connected, using default stats');
+        return;
+      }
+      
       // Buscar apenas transações de assinatura REALMENTE APROVADAS do mês atual
-      const { data: transactions } = await supabase
-        .from('payment_transactions')
-        .select('amount, created_at, status')
-        .eq('status', 'approved') // Apenas status aprovado
-        .eq('payment_method', 'mercadopago')
-        .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
-        .lt('created_at', new Date(currentYear, currentMonth + 1, 1).toISOString());
+      const { data: transactions } = await withRetry(async () => {
+        return await supabase
+          .from('payment_transactions')
+          .select('amount, created_at, status')
+          .eq('status', 'approved')
+          .eq('payment_method', 'mercadopago')
+          .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
+          .lt('created_at', new Date(currentYear, currentMonth + 1, 1).toISOString());
+      });
 
       console.log('Transactions found for current month:', transactions);
       const monthlyRevenue = transactions?.reduce((sum, t) => sum + t.amount, 0) || 0;
       console.log('Calculated monthly revenue from transactions:', monthlyRevenue);
 
       // Buscar apenas assinaturas REALMENTE PAGAS (com payment_date preenchido)
-      const { data: subscriptions } = await supabase
-        .from('subscriptions')
-        .select('status, plan_type, expires_at, trial_end_date, payment_date, payment_amount');
+      const { data: subscriptions } = await withRetry(async () => {
+        return await supabase
+          .from('subscriptions')
+          .select('status, plan_type, expires_at, trial_end_date, payment_date, payment_amount');
+      });
 
       console.log('All subscriptions:', subscriptions);
       
@@ -87,6 +100,12 @@ const Dashboard: React.FC = () => {
       });
     } catch (error) {
       console.error('Error loading subscription stats:', error);
+      
+      // Don't show error toast for connection issues in dashboard
+      if (!error.message?.includes('upstream connect error') && 
+          !error.message?.includes('503')) {
+        toast.error('Erro ao carregar estatísticas');
+      }
     }
   };
   

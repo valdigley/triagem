@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, withRetry, checkSupabaseConnection } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Client } from '../types';
 import { createGoogleCalendarService, getGoogleCalendarConfig } from '../lib/googleCalendar';
@@ -77,6 +77,7 @@ export const useSupabaseData = () => {
   const [loading, setLoading] = useState(true);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
   const [photographerChecked, setPhotographerChecked] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
 
   // Buscar ou criar perfil do fotógrafo
   const ensurePhotographerProfile = async () => {
@@ -97,12 +98,24 @@ export const useSupabaseData = () => {
     try {
       console.log('Checking for existing photographer profile...');
       
-      // Usar uma consulta mais simples para evitar erro 406
-      const { data: existingProfiles, error: fetchError } = await supabase
-        .from('photographers')
-        .select('id')
-        .eq('user_id', user.id)
-        .limit(1);
+      // Check connection first
+      const isConnected = await checkSupabaseConnection();
+      if (!isConnected) {
+        setConnectionError(true);
+        toast.error('Erro de conexão com o banco de dados. Verifique sua internet.');
+        return null;
+      }
+      
+      setConnectionError(false);
+      
+      // Use retry wrapper for database operations
+      const { data: existingProfiles, error: fetchError } = await withRetry(async () => {
+        return await supabase
+          .from('photographers')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+      });
 
       if (!fetchError && existingProfiles && existingProfiles.length > 0) {
         const existingProfile = existingProfiles[0];
@@ -113,6 +126,15 @@ export const useSupabaseData = () => {
 
       if (fetchError) {
         console.error('Error fetching photographer profile:', fetchError);
+        
+        // Handle connection errors specifically
+        if (fetchError.message?.includes('upstream connect error') || 
+            fetchError.message?.includes('503')) {
+          setConnectionError(true);
+          toast.error('Erro de conexão. Tentando reconectar...');
+          return null;
+        }
+        
         // Se for erro de RLS, tentar criar mesmo assim
         if (fetchError.code !== 'PGRST301') {
           return null;
@@ -121,52 +143,56 @@ export const useSupabaseData = () => {
 
       console.log('No existing profile found, creating new one for:', user.email);
       
-      // Usar insert simples em vez de upsert para evitar problemas de constraint
-      const { data: newProfile, error: insertError } = await supabase
-        .from('photographers')
-        .insert({
-          user_id: user.id,
-          business_name: user.name || 'Meu Estúdio',
-          phone: user.user_metadata?.whatsapp || '(11) 99999-9999',
-          watermark_config: {
-            photoPrice: 25.00,
-            packagePhotos: 10,
-            minimumPackagePrice: 300.00,
-            advancePaymentPercentage: 50,
-            sessionTypes: [
-              { value: 'gestante', label: 'Sessão Gestante' },
-              { value: 'aniversario', label: 'Aniversário' },
-              { value: 'comerciais', label: 'Comerciais' },
-              { value: 'pre-wedding', label: 'Pré Wedding' },
-              { value: 'formatura', label: 'Formatura' },
-              { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
-            ],
-            emailTemplates: {
-              bookingConfirmation: {
-                enabled: true,
-                subject: '📸 Agendamento Confirmado - {{studioName}}',
-                message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}} às {{eventTime}}\n• Local: {{studioAddress}}\n\nEm breve você receberá suas fotos para seleção.\n\nObrigado!\n{{studioName}}'
-              },
-              dayOfReminder: {
-                enabled: true,
-                subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
-                message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
+      // Use retry wrapper for insert operation
+      const { data: newProfile, error: insertError } = await withRetry(async () => {
+        return await supabase
+          .from('photographers')
+          .insert({
+            user_id: user.id,
+            business_name: user.name || 'Meu Estúdio',
+            phone: user.user_metadata?.whatsapp || '(11) 99999-9999',
+            watermark_config: {
+              photoPrice: 25.00,
+              packagePhotos: 10,
+              minimumPackagePrice: 300.00,
+              advancePaymentPercentage: 50,
+              sessionTypes: [
+                { value: 'gestante', label: 'Sessão Gestante' },
+                { value: 'aniversario', label: 'Aniversário' },
+                { value: 'comerciais', label: 'Comerciais' },
+                { value: 'pre-wedding', label: 'Pré Wedding' },
+                { value: 'formatura', label: 'Formatura' },
+                { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
+              ],
+              emailTemplates: {
+                bookingConfirmation: {
+                  enabled: true,
+                  subject: '📸 Agendamento Confirmado - {{studioName}}',
+                  message: 'Olá {{clientName}}!\n\nSeu agendamento foi confirmado com sucesso! 🎉\n\nDetalhes:\n• Tipo: {{sessionType}}\n• Data: {{eventDate}} às {{eventTime}}\n• Local: {{studioAddress}}\n\nEm breve você receberá suas fotos para seleção.\n\nObrigado!\n{{studioName}}'
+                },
+                dayOfReminder: {
+                  enabled: true,
+                  subject: '🎉 Hoje é o dia da sua sessão! - {{studioName}}',
+                  message: 'Olá {{clientName}}!\n\nHoje é o grande dia da sua sessão de fotos! 📸\n\nLembre-se:\n• Horário: {{eventTime}}\n• Local: {{studioAddress}}\n• Chegue 10 minutos antes\n\nEstamos ansiosos para te ver!\n{{studioName}}'
+                }
               }
             }
-          }
-        })
-        .select()
-        .maybeSingle();
+          })
+          .select()
+          .maybeSingle();
+      });
 
       if (insertError) {
         // Se for erro de duplicata, buscar o existente
         if (insertError.code === '23505') {
           console.log('Duplicate detected, fetching existing profile...');
-          const { data: existingAfterError, error: fetchAfterError } = await supabase
-            .from('photographers')
-            .select('id')
-            .eq('user_id', user.id)
-            .limit(1);
+          const { data: existingAfterError, error: fetchAfterError } = await withRetry(async () => {
+            return await supabase
+              .from('photographers')
+              .select('id')
+              .eq('user_id', user.id)
+              .limit(1);
+          });
           
           if (!fetchAfterError && existingAfterError && existingAfterError.length > 0) {
             const profile = existingAfterError[0];
@@ -196,6 +222,17 @@ export const useSupabaseData = () => {
   // Carregar dados
   const loadData = async () => {
     if (!user) return;
+    
+    // Check connection before loading data
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      setConnectionError(true);
+      setLoading(false);
+      toast.error('Sem conexão com o banco de dados. Verifique sua internet e tente novamente.');
+      return;
+    }
+    
+    setConnectionError(false);
 
     setLoading(true);
     try {
@@ -206,11 +243,13 @@ export const useSupabaseData = () => {
       }
 
       // Carregar eventos
-      const { data: eventsData, error: eventsError } = await supabase
-        .from('events')
-        .select('*')
-        .eq('photographer_id', currentPhotographerId)
-        .order('created_at', { ascending: false });
+      const { data: eventsData, error: eventsError } = await withRetry(async () => {
+        return await supabase
+          .from('events')
+          .select('*')
+          .eq('photographer_id', currentPhotographerId)
+          .order('created_at', { ascending: false });
+      });
 
       if (eventsError) {
         console.error('Error loading events:', eventsError);
@@ -220,11 +259,13 @@ export const useSupabaseData = () => {
       }
 
       // Carregar álbuns
-      const { data: albumsData, error: albumsError } = await supabase
-        .from('albums')
-        .select('*')
-        .eq('photographer_id', currentPhotographerId)
-        .order('created_at', { ascending: false });
+      const { data: albumsData, error: albumsError } = await withRetry(async () => {
+        return await supabase
+          .from('albums')
+          .select('*')
+          .eq('photographer_id', currentPhotographerId)
+          .order('created_at', { ascending: false });
+      });
 
       if (albumsError) {
         console.error('Error loading albums:', albumsError);
@@ -238,11 +279,13 @@ export const useSupabaseData = () => {
         const albumIds = albumsData.map(album => album.id);
         console.log('Loading photos for albums:', albumIds);
         
-        const { data: photosData, error: photosError } = await supabase
-          .from('photos')
-          .select('*')
-          .in('album_id', albumIds)
-          .order('created_at', { ascending: false });
+        const { data: photosData, error: photosError } = await withRetry(async () => {
+          return await supabase
+            .from('photos')
+            .select('*')
+            .in('album_id', albumIds)
+            .order('created_at', { ascending: false });
+        });
 
         if (photosError) {
           console.error('Error loading photos:', photosError);
@@ -259,11 +302,13 @@ export const useSupabaseData = () => {
       if (eventsData && eventsData.length > 0) {
         const eventIds = eventsData.map(event => event.id);
         try {
-          const { data: ordersData, error: ordersError } = await supabase
-            .from('orders')
-            .select('*')
-            .in('event_id', eventIds)
-            .order('created_at', { ascending: false });
+          const { data: ordersData, error: ordersError } = await withRetry(async () => {
+            return await supabase
+              .from('orders')
+              .select('*')
+              .in('event_id', eventIds)
+              .order('created_at', { ascending: false });
+          });
 
           if (ordersError) {
             console.error('Error loading orders:', ordersError);
@@ -280,11 +325,13 @@ export const useSupabaseData = () => {
       }
 
       // Carregar clientes
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('photographer_id', currentPhotographerId)
-        .order('created_at', { ascending: false });
+      const { data: clientsData, error: clientsError } = await withRetry(async () => {
+        return await supabase
+          .from('clients')
+          .select('*')
+          .eq('photographer_id', currentPhotographerId)
+          .order('created_at', { ascending: false });
+      });
 
       if (clientsError) {
         console.error('Error loading clients:', clientsError);
@@ -294,7 +341,15 @@ export const useSupabaseData = () => {
 
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Erro ao carregar dados');
+      
+      // Handle connection errors specifically
+      if (error.message?.includes('upstream connect error') || 
+          error.message?.includes('503')) {
+        setConnectionError(true);
+        toast.error('Erro de conexão. Verifique sua internet e tente novamente.');
+      } else {
+        toast.error('Erro ao carregar dados');
+      }
     } finally {
       setLoading(false);
     }
@@ -1077,6 +1132,7 @@ export const useSupabaseData = () => {
     orders,
     clients,
     loading,
+    connectionError,
     photographerId,
     addEvent,
     updateEvent,

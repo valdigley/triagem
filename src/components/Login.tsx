@@ -31,9 +31,18 @@ const Login: React.FC = () => {
     try {
       console.log('🔍 Loading studio settings for login background...');
       
+      // Check if Supabase is connected
+      const { checkSupabaseConnection } = await import('../lib/supabase');
+      const isConnected = await checkSupabaseConnection();
+      
       // Check if Supabase is properly configured
       if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
         console.warn('⚠️ Supabase environment variables not configured');
+        return;
+      }
+      
+      if (!isConnected) {
+        console.warn('⚠️ Supabase not connected, using default settings');
         return;
       }
 
@@ -69,7 +78,12 @@ const Login: React.FC = () => {
       
     } catch (error) {
       console.warn('⚠️ Could not connect to Supabase (this is normal if not configured yet):', error instanceof Error ? error.message : 'Unknown error');
-      // Don't show error to user - just use defaults
+      
+      // Only show connection error if it's a real connection issue
+      if (error instanceof Error && 
+          (error.message.includes('upstream connect error') || error.message.includes('503'))) {
+        console.warn('⚠️ Connection issue detected, using offline mode');
+      }
     }
   };
 
