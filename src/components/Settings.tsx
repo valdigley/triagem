@@ -42,21 +42,6 @@ const Settings: React.FC = () => {
   const [evolutionInstance, setEvolutionInstance] = useState('');
   const [showEvolutionKey, setShowEvolutionKey] = useState(false);
   
-  // Login backgrounds
-  const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
-  const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
-  
-  // FTP Configuration
-  const [ftpConfig, setFtpConfig] = useState({
-    host: '',
-    username: '',
-    password: '',
-    port: 21,
-    monitor_path: '/photos',
-    auto_upload: true,
-  });
-  const [showFtpPassword, setShowFtpPassword] = useState(false);
-  
   // Email templates
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
@@ -161,18 +146,6 @@ const Settings: React.FC = () => {
       setEvolutionInstance(config.evolutionInstance || '');
       
       setLoginBackgrounds(config.loginBackgrounds || []);
-      
-      // Carregar configuração FTP da tabela api_access
-      const { data: apiAccess } = await supabase
-        .from('api_access')
-        .select('ftp_config')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (apiAccess?.ftp_config) {
-        setFtpConfig(apiAccess.ftp_config);
-      }
-      
       if (config.emailTemplates) {
         setEmailTemplates(config.emailTemplates);
       }
@@ -301,23 +274,6 @@ const Settings: React.FC = () => {
       if (error) {
         console.error('Error saving settings:', error);
         toast.error('Erro ao salvar configurações');
-        return;
-      }
-
-      // Salvar configuração FTP separadamente na tabela api_access
-      const { error: ftpError } = await supabase
-        .from('api_access')
-        .upsert({
-          user_id: user.id,
-          ftp_config: ftpConfig,
-        }, {
-          onConflict: 'user_id',
-          ignoreDuplicates: false
-        });
-
-      if (ftpError) {
-        console.error('Error saving FTP config:', ftpError);
-        toast.error('Erro ao salvar configuração FTP');
         return;
       }
       toast.success('Configurações salvas com sucesso!');
@@ -786,117 +742,6 @@ const Settings: React.FC = () => {
       {/* Templates de Email */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-          <Mail className="w-5 h-5" />
-          Templates de Email
-        </h3>
-        
-        <div className="space-y-6">
-          {/* Confirmação de Agendamento */}
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
-                checked={emailTemplates.bookingConfirmation.enabled}
-                onChange={(e) => setEmailTemplates(prev => ({
-                  ...prev,
-                  bookingConfirmation: { ...prev.bookingConfirmation, enabled: e.target.checked }
-                }))}
-                className="rounded"
-              />
-              <h4 className="font-medium text-gray-900">Confirmação de Agendamento</h4>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assunto</label>
-                <input
-                  type="text"
-                  value={emailTemplates.bookingConfirmation.subject}
-                  onChange={(e) => setEmailTemplates(prev => ({
-                    ...prev,
-                    bookingConfirmation: { ...prev.bookingConfirmation, subject: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!emailTemplates.bookingConfirmation.enabled}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
-                <textarea
-                  rows={4}
-                  value={emailTemplates.bookingConfirmation.message}
-                  onChange={(e) => setEmailTemplates(prev => ({
-                    ...prev,
-                    bookingConfirmation: { ...prev.bookingConfirmation, message: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!emailTemplates.bookingConfirmation.enabled}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Lembrete do Dia */}
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <input
-                type="checkbox"
-                checked={emailTemplates.dayOfReminder.enabled}
-                onChange={(e) => setEmailTemplates(prev => ({
-                  ...prev,
-                  dayOfReminder: { ...prev.dayOfReminder, enabled: e.target.checked }
-                }))}
-                className="rounded"
-              />
-              <h4 className="font-medium text-gray-900">Lembrete do Dia da Sessão</h4>
-            </div>
-            
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assunto</label>
-                <input
-                  type="text"
-                  value={emailTemplates.dayOfReminder.subject}
-                  onChange={(e) => setEmailTemplates(prev => ({
-                    ...prev,
-                    dayOfReminder: { ...prev.dayOfReminder, subject: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!emailTemplates.dayOfReminder.enabled}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mensagem</label>
-                <textarea
-                  rows={4}
-                  value={emailTemplates.dayOfReminder.message}
-                  onChange={(e) => setEmailTemplates(prev => ({
-                    ...prev,
-                    dayOfReminder: { ...prev.dayOfReminder, message: e.target.value }
-                  }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  disabled={!emailTemplates.dayOfReminder.enabled}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h4 className="font-medium text-gray-700 mb-2">Variáveis Disponíveis</h4>
-          <div className="text-sm text-gray-600 grid md:grid-cols-2 gap-2">
-            <div>• clientName - Nome do cliente</div>
-            <div>• sessionType - Tipo de sessão</div>
-            <div>• eventDate - Data do evento</div>
-            <div>• eventTime - Horário do evento</div>
-            <div>• studioName - Nome do estúdio</div>
-            <div>• studioAddress - Endereço do estúdio</div>
-          </div>
-        </div>
-      </div>
-
       {/* Debug Info */}
       <div className="bg-gray-50 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">🔧 Debug Info</h3>
