@@ -113,6 +113,7 @@ export interface Database {
         Row: {
           id: string;
           event_id: string;
+          photographer_id: string | null;
           name: string;
           share_token: string;
           is_active: boolean;
@@ -122,6 +123,7 @@ export interface Database {
         Insert: {
           id?: string;
           event_id: string;
+          photographer_id?: string | null;
           name: string;
           share_token?: string;
           is_active?: boolean;
@@ -131,6 +133,7 @@ export interface Database {
         Update: {
           id?: string;
           event_id?: string;
+          photographer_id?: string | null;
           name?: string;
           share_token?: string;
           is_active?: boolean;

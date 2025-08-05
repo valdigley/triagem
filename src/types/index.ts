@@ -65,6 +65,7 @@ export interface Event {
 export interface Album {
   id: string;
   eventId: string;
+  photographerId: string | null;
   name: string;
   shareToken: string;
   isActive: boolean;
