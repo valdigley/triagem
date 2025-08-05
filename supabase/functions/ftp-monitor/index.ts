@@ -26,14 +26,32 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Validate environment variables first
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing environment variables:', { 
+      hasUrl: !!supabaseUrl, 
+      hasServiceKey: !!supabaseServiceKey 
+    });
+    return new Response(
+      JSON.stringify({ error: 'Configuração do servidor incompleta' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+
   console.log('FTP monitor function called');
 
   try {
     const { photographer_id, force_scan }: FTPMonitorRequest = await req.json()
 
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      supabaseUrl,
+      supabaseServiceKey
     )
 
     let ftpConfigs = [];
@@ -49,7 +67,7 @@ serve(async (req) => {
       if (photographerError) {
         console.error('Error fetching photographer:', photographerError);
         return new Response(
-          JSON.stringify({ error: 'Fotógrafo não encontrado' }),
+          JSON.stringify({ error: `Fotógrafo não encontrado: ${photographerError.message}` }),
           { 
             status: 404, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -62,15 +80,25 @@ serve(async (req) => {
         .from('api_access')
         .select('*')
         .eq('user_id', photographer.user_id)
-        .not('ftp_config', 'is', null)
         .single();
 
-      if (apiError || !apiAccess) {
+      if (apiError) {
         console.error('Error fetching API access:', apiError);
         return new Response(
-          JSON.stringify({ error: 'Configuração FTP não encontrada' }),
+          JSON.stringify({ error: `Erro ao buscar configurações FTP: ${apiError.message}` }),
           { 
-            status: 404, 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (!apiAccess || !apiAccess.ftp_config) {
+        console.error('No FTP config found for photographer:', photographer_id);
+        return new Response(
+          JSON.stringify({ error: 'Configuração FTP não encontrada para este fotógrafo' }),
+          { 
+            status: 404,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
