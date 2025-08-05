@@ -481,19 +481,19 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                         />
                         <label
                           htmlFor={`upload-${album.id}`}
-                          className={`flex items-center gap-1 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer text-sm ${
+                          className={`flex items-center gap-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors cursor-pointer text-sm font-medium ${
                             uploadingToAlbum === album.id ? 'opacity-50 cursor-not-allowed' : ''
                           }`}
                         >
                           {uploadingToAlbum === album.id ? (
                             <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                               Enviando...
                             </>
                           ) : (
                             <>
-                              <Camera className="w-4 h-4" />
-                              Adicionar Fotos
+                              <Upload className="w-4 h-4" />
+                              📸 Upload Real
                             </>
                           )}
                         </label>
