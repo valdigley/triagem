@@ -445,7 +445,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       </div>
 
       {/* FTP Monitor */}
-      <FTPMonitor onPhotosAdded={() => window.location.reload()} />
+      <FTPMonitor onPhotosAdded={() => {
+        console.log('FTP photos added, reloading data...');
+        window.location.reload();
+      }} />
 
       {/* Formulário de Criação de Sessão */}
       {showCreateForm && (

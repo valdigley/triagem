@@ -254,10 +254,11 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="font-medium text-blue-900 mb-2">📋 Como Usar</h4>
         <div className="text-sm text-blue-800 space-y-1">
-          <p>1. Faça upload das fotos para a pasta: <code>{ftpConfig.monitor_path}</code></p>
+          <p>1. Coloque as fotos na pasta FTP: <code>{ftpConfig.monitor_path}</code></p>
           <p>2. Clique em "Verificar Agora" ou aguarde o scan automático</p>
-          <p>3. As fotos serão adicionadas automaticamente ao álbum mais recente</p>
+          <p>3. As fotos serão baixadas do FTP e adicionadas ao álbum mais recente</p>
           <p>4. Formatos suportados: JPG, JPEG, PNG, GIF, BMP, TIFF</p>
+          <p>5. <strong>Importante:</strong> Certifique-se que as credenciais FTP estão corretas</p>
         </div>
       </div>
     </div>
