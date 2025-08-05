@@ -674,7 +674,7 @@ export const useSupabaseData = () => {
 
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
-    console.log(`📸 Creating ${files.length} demo photos for album ${albumId}`);
+    console.log(`📸 Uploading ${files.length} real photos to album ${albumId}`);
     
     // Verificar se o álbum existe e pertence ao fotógrafo
     const { data: albumCheck, error: albumError } = await supabase
@@ -736,22 +736,67 @@ export const useSupabaseData = () => {
     }
 
     try {
-      console.log(`🔄 Creating demo photos for ${files.length} files...`);
+      console.log(`🔄 Processing ${files.length} real files for upload...`);
       
       const photoPromises = files.map(async (file, index) => {
         const timestamp = Date.now();
-        const photoId = `${timestamp}_${index}`;
+        const safeFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const storageFileName = `${albumId}/${timestamp}_${safeFileName}`;
         
         try {
-          console.log(`📸 Creating demo photo ${index + 1}/${files.length}: ${file.name}`);
+          console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
           
-          // Gerar URLs de demonstração usando Picsum
-          const randomSeed = `${albumId.slice(-6)}_${index}_${timestamp}`;
-          const originalUrl = `https://picsum.photos/1920/1280?random=${randomSeed}`;
-          const thumbnailUrl = `https://picsum.photos/400/400?random=${randomSeed}`;
-          const watermarkedUrl = `https://picsum.photos/800/600?random=${randomSeed}`;
+          // Upload real file to Supabase Storage
+          console.log(`📁 Uploading to path: ${storageFileName}`);
+          
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('photos')
+            .upload(storageFileName, file, {
+              cacheControl: '3600',
+              upsert: false,
+              contentType: file.type
+            });
 
-          console.log(`✅ Demo photo created: ${file.name}`);
+          if (uploadError) {
+            console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
+            
+            // Try with retry name
+            const retryFileName = `${albumId}/retry_${timestamp}_${safeFileName}`;
+            console.log(`🔄 Retrying upload with name: ${retryFileName}`);
+            
+            const { data: retryData, error: retryError } = await supabase.storage
+              .from('photos')
+              .upload(retryFileName, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: file.type
+              });
+            
+            if (retryError) {
+              console.error(`❌ Retry upload also failed for ${file.name}:`, retryError);
+              throw new Error(`Upload failed after retry: ${retryError.message}`);
+            }
+            
+            console.log(`✅ Retry upload successful for ${file.name}`);
+            storageFileName = retryFileName;
+          } else {
+            console.log(`✅ Upload successful for ${file.name}`);
+          }
+          
+          // Generate public URLs
+          const { data: { publicUrl: originalUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          const { data: { publicUrl: thumbnailUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          const { data: { publicUrl: watermarkedUrl } } = supabase.storage
+            .from('photos')
+            .getPublicUrl(storageFileName);
+          
+          console.log(`🔗 Generated URLs for ${file.name}`);
 
           return {
             album_id: albumId,
@@ -762,33 +807,33 @@ export const useSupabaseData = () => {
             is_selected: false,
             price: currentPrice,
             metadata: {
-              size: file.size,
-              type: file.type,
-              uploaded_at: new Date().toISOString(),
-              demo_photo: true,
-              upload_method: 'manual_upload',
+              file_size: file.size,
+              file_type: file.type,
               original_filename: file.name,
-              file_size_mb: (file.size / 1024 / 1024).toFixed(2),
+              uploaded_at: new Date().toISOString(),
+              storage_path: storageFileName,
+              upload_method: 'real_upload',
+              file_size_mb: (file.size / 1024 / 1024).toFixed(2)
             },
           };
         } catch (error) {
-          console.error(`Failed to create demo photo for ${file.name}:`, error);
+          console.error(`❌ Failed to process real file ${file.name}:`, error);
           
           throw error;
         }
       });
 
       try {
-        console.log('🔄 Saving demo photos to database...');
+        console.log('🔄 Processing all uploads...');
         const photosData = await Promise.all(photoPromises);
         
-        console.log(`📊 Demo photos created: ${photosData.length} photos processed`);
+        console.log(`📊 Real photos uploaded: ${photosData.length} photos processed`);
         
         if (photosData.length === 0) {
-          throw new Error('Nenhuma foto de demonstração foi criada');
+          throw new Error('Nenhuma foto foi processada com sucesso');
         }
 
-        console.log(`💾 Saving ${photosData.length} demo photos to database...`);
+        console.log(`💾 Saving ${photosData.length} real photos to database...`);
         
         const { data, error } = await supabase
           .from('photos')
@@ -796,24 +841,24 @@ export const useSupabaseData = () => {
           .select();
 
         if (error) {
-          console.error('Error saving demo photos to database:', error);
+          console.error('Error saving real photos to database:', error);
           throw new Error(`Database error: ${error.message}`);
         }
 
-        console.log(`✅ SUCCESS: ${data.length} photos saved to database!`);
-        console.log('📸 Demo photos are now available for selection!');
+        console.log(`✅ SUCCESS: ${data.length} real photos saved to database!`);
+        console.log('📸 Real photos are now available for selection!');
         
         setPhotos(prev => [...prev, ...data]);
         
         return true;
       } catch (error) {
-        console.error('Error creating demo photos:', error);
+        console.error('Error processing photos:', error);
         throw error;
       }
       
     } catch (error) {
-      console.error('Error in demo photo creation:', error);
-      toast.error(`Erro ao criar fotos de demonstração: ${error.message}`);
+      console.error('Error in photo upload process:', error);
+      toast.error(`Erro ao fazer upload das fotos: ${error.message}`);
       return false;
     }
   };
