@@ -46,6 +46,9 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
       return;
     }
 
+    // Prevenir qualquer navegação durante o processo
+    event?.preventDefault?.();
+    
     setIsMonitoring(true);
     try {
       // Buscar photographer_id
@@ -76,7 +79,9 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro no monitoramento FTP');
+        console.error('FTP monitor error:', errorData);
+        toast.error(errorData.error || 'Erro no monitoramento FTP');
+        return;
       }
 
       const result = await response.json();
@@ -96,7 +101,7 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
 
     } catch (error) {
       console.error('Error running FTP scan:', error);
-      toast.error(error.message || 'Erro no monitoramento FTP');
+      toast.error('Erro no monitoramento FTP');
     } finally {
       setIsMonitoring(false);
     }
@@ -143,7 +148,11 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => runFTPScan(false)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              runFTPScan(false);
+            }}
             disabled={isMonitoring}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
@@ -151,7 +160,11 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
             {isMonitoring ? 'Verificando...' : 'Verificar Agora'}
           </button>
           <button
-            onClick={() => runFTPScan(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              runFTPScan(true);
+            }}
             disabled={isMonitoring}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
           >
