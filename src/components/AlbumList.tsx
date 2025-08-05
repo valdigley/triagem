@@ -347,7 +347,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                       ) : (
                         <>
                           <Upload className="w-4 h-4" />
-                          Upload de Fotos
+                          Fazer Upload
                         </>
                       )}
                     </label>
