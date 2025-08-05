@@ -302,7 +302,7 @@ export const useSupabaseData = () => {
 
   // Upload de fotos REAL para Supabase Storage
   const uploadPhotos = async (albumId: string, files: File[]) => {
-    console.log(`📸 Starting REAL upload of ${files.length} files to album ${albumId}`);
+    console.log(`📸 Starting upload of ${files.length} files to album ${albumId}`);
     
     // Verificar se o álbum existe e pertence ao fotógrafo
     const { data: albumCheck, error: albumError } = await supabase
@@ -350,7 +350,7 @@ export const useSupabaseData = () => {
     }
 
     try {
-      console.log(`🔄 Processing ${files.length} real files for upload...`);
+      console.log(`🔄 Processing ${files.length} files for upload...`);
       
       const photoPromises = files.map(async (file, index) => {
         const timestamp = Date.now() + index; // Evitar conflitos de nome
@@ -360,7 +360,7 @@ export const useSupabaseData = () => {
         try {
           console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
           
-          // Upload real file to Supabase Storage
+          // Upload file to Supabase Storage
           console.log(`📁 Uploading to path: ${storageFileName}`);
           
           const { data: uploadData, error: uploadError } = await supabase.storage
@@ -373,65 +373,7 @@ export const useSupabaseData = () => {
 
           if (uploadError) {
             console.error(`❌ Storage upload failed for ${file.name}:`, uploadError);
-            
-            // Try with retry name if duplicate
-            if (uploadError.message?.includes('duplicate') || uploadError.message?.includes('already exists')) {
-              const retryFileName = `${albumId}/retry_${timestamp}_${Math.random().toString(36).substr(2, 9)}_${safeFileName}`;
-              console.log(`🔄 Retrying upload with name: ${retryFileName}`);
-              
-              const { data: retryData, error: retryError } = await supabase.storage
-                .from('photos')
-                .upload(retryFileName, file, {
-                  cacheControl: '3600',
-                  upsert: true,
-                  contentType: file.type
-                });
-              
-              if (retryError) {
-                console.error(`❌ Retry upload also failed for ${file.name}:`, retryError);
-                throw new Error(`Upload failed after retry: ${retryError.message}`);
-              }
-              
-              console.log(`✅ Retry upload successful for ${file.name}`);
-              // Update storage file name for URL generation
-              const finalStorageFileName = retryFileName;
-              
-              // Generate public URLs with correct path
-              const { data: { publicUrl: originalUrl } } = supabase.storage
-                .from('photos')
-                .getPublicUrl(finalStorageFileName);
-              
-              const { data: { publicUrl: thumbnailUrl } } = supabase.storage
-                .from('photos')
-                .getPublicUrl(finalStorageFileName);
-              
-              const { data: { publicUrl: watermarkedUrl } } = supabase.storage
-                .from('photos')
-                .getPublicUrl(finalStorageFileName);
-              
-              console.log(`🔗 Generated URLs for ${file.name} (retry)`);
-
-              return {
-                album_id: albumId,
-                filename: file.name,
-                original_path: originalUrl,
-                thumbnail_path: thumbnailUrl,
-                watermarked_path: watermarkedUrl,
-                is_selected: false,
-                price: currentPrice,
-                metadata: {
-                  file_size: file.size,
-                  file_type: file.type,
-                  original_filename: file.name,
-                  uploaded_at: new Date().toISOString(),
-                  storage_path: finalStorageFileName,
-                  upload_method: 'real_upload_retry',
-                  file_size_mb: (file.size / 1024 / 1024).toFixed(2)
-                },
-              };
-            } else {
-              throw new Error(`Upload failed: ${uploadError.message}`);
-            }
+            throw new Error(`Upload failed: ${uploadError.message}`);
           } else {
             console.log(`✅ Upload successful for ${file.name}`);
             
@@ -464,7 +406,7 @@ export const useSupabaseData = () => {
                 original_filename: file.name,
                 uploaded_at: new Date().toISOString(),
                 storage_path: storageFileName,
-                upload_method: 'real_upload',
+                upload_method: 'storage_upload',
                 file_size_mb: (file.size / 1024 / 1024).toFixed(2)
               },
             };
@@ -497,8 +439,8 @@ export const useSupabaseData = () => {
           throw new Error(`Database error: ${error.message}`);
         }
 
-        console.log(`✅ SUCCESS: ${data.length} real photos saved to database!`);
-        console.log('📸 Real photos are now available for selection!');
+        console.log(`✅ SUCCESS: ${data.length} photos saved to database!`);
+        console.log('📸 Photos are now available for selection!');
         
         setPhotos(prev => [...prev, ...data]);
         toast.success(`${data.length} fotos carregadas com sucesso!`);
