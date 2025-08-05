@@ -17,6 +17,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newAlbumName, setNewAlbumName] = useState('');
   const [selectedEventId, setSelectedEventId] = useState('');
+  const [createIndependent, setCreateIndependent] = useState(false);
   const [uploadingToAlbum, setUploadingToAlbum] = useState<string | null>(null);
   const [ftpReceivingAlbums, setFtpReceivingAlbums] = useState<Set<string>>(new Set());
   const [lastFtpCheck, setLastFtpCheck] = useState<Record<string, Date>>({});
@@ -63,18 +64,25 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   };
 
   const handleCreateAlbum = async () => {
-    if (!newAlbumName.trim() || !selectedEventId) {
-      toast.error('Preencha todos os campos');
+    if (!newAlbumName.trim()) {
+      toast.error('Nome do álbum é obrigatório');
       return;
     }
 
-    console.log('Creating album:', { name: newAlbumName.trim(), eventId: selectedEventId });
+    if (!createIndependent && !selectedEventId) {
+      toast.error('Selecione um evento ou marque como álbum independente');
+      return;
+    }
+
+    const eventId = createIndependent ? undefined : selectedEventId;
+    console.log('Creating album:', { name: newAlbumName.trim(), eventId, independent: createIndependent });
     
     try {
-      const success = await createAlbum(newAlbumName.trim(), selectedEventId);
+      const success = await createAlbum(newAlbumName.trim(), eventId);
       if (success) {
         setNewAlbumName('');
         setSelectedEventId('');
+        setCreateIndependent(false);
         setShowCreateForm(false);
       }
     } catch (error) {
@@ -367,7 +375,9 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
       {/* Formulário de criação */}
       {showCreateForm && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Criar Novo Álbum</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            {createIndependent ? 'Criar Álbum Independente' : 'Criar Álbum para Evento'}
+          </h3>
           
           <div className="space-y-4">
             <div>
@@ -384,22 +394,49 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             </div>
 
             <div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={createIndependent}
+                  onChange={(e) => {
+                    setCreateIndependent(e.target.checked);
+                    if (e.target.checked) {
+                      setSelectedEventId('');
+                    }
+                  }}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  Criar álbum independente (sem vincular a evento)
+                </span>
+              </label>
+              <p className="text-xs text-gray-500 mt-1">
+                Álbuns independentes podem ser usados para ensaios avulsos ou organizações especiais
+              </p>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Evento Relacionado
+                Evento Relacionado {!createIndependent && '*'}
               </label>
               <select
                 value={selectedEventId}
                 onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  createIndependent ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
+                disabled={createIndependent}
               >
-                <option value="">Selecione um evento...</option>
+                <option value="">
+                  {createIndependent ? 'Álbum independente - sem evento' : 'Selecione um evento...'}
+                </option>
                 {events.filter(event => event.status !== 'cancelled').map((event) => (
                   <option key={event.id} value={event.id}>
                     {event.client_name} - {format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })} ({event.status})
                   </option>
                 ))}
               </select>
-              {events.length === 0 && (
+              {events.length === 0 && !createIndependent && (
                 <p className="text-sm text-gray-500 mt-1">
                   Nenhum evento disponível. Crie um agendamento primeiro.
                 </p>
@@ -408,17 +445,22 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
             <div className="flex justify-end gap-3">
               <button
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => {
+                  setShowCreateForm(false);
+                  setNewAlbumName('');
+                  setSelectedEventId('');
+                  setCreateIndependent(false);
+                }}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleCreateAlbum}
-                disabled={!newAlbumName.trim() || !selectedEventId}
+                disabled={!newAlbumName.trim() || (!createIndependent && !selectedEventId)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Criar Álbum
+                {createIndependent ? 'Criar Álbum Independente' : 'Criar Álbum'}
               </button>
             </div>
           </div>
@@ -456,6 +498,12 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                           <Calendar className="w-4 h-4" />
                           <span>{format(new Date(event.event_date), "dd/MM/yyyy", { locale: ptBR })}</span>
                         </div>
+                      </div>
+                    )}
+                    {!event && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <Camera className="w-4 h-4" />
+                        <span>Álbum independente</span>
                       </div>
                     )}
                   </div>

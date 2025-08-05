@@ -608,25 +608,27 @@ export const useSupabaseData = () => {
   };
 
   // Criar álbum
-  const createAlbum = async (name: string, eventId: string) => {
+  const createAlbum = async (name: string, eventId?: string) => {
     try {
-      if (!eventId || !name.trim()) {
-        toast.error('Nome do álbum e evento são obrigatórios');
+      if (!name.trim()) {
+        toast.error('Nome do álbum é obrigatório');
         return false;
       }
 
-      // Verificar se o evento existe e pertence ao fotógrafo
-      const { data: eventExists, error: eventError } = await supabase
-        .from('events')
-        .select('id, photographer_id')
-        .eq('id', eventId)
-        .eq('photographer_id', photographerId)
-        .single();
+      // Se eventId foi fornecido, verificar se existe e pertence ao fotógrafo
+      if (eventId) {
+        const { data: eventExists, error: eventError } = await supabase
+          .from('events')
+          .select('id, photographer_id')
+          .eq('id', eventId)
+          .eq('photographer_id', photographerId)
+          .single();
 
-      if (eventError || !eventExists) {
-        console.error('Event validation failed:', eventError);
-        toast.error('Evento não encontrado ou não pertence a você');
-        return false;
+        if (eventError || !eventExists) {
+          console.error('Event validation failed:', eventError);
+          toast.error('Evento não encontrado ou não pertence a você');
+          return false;
+        }
       }
 
       // Generate unique share token
@@ -635,7 +637,7 @@ export const useSupabaseData = () => {
       const { data, error } = await supabase
         .from('albums')
         .insert({
-          event_id: eventId,
+          event_id: eventId || null,
           name: name.trim(),
           share_token: shareToken,
           is_active: true,
@@ -650,7 +652,7 @@ export const useSupabaseData = () => {
       }
 
       setAlbums(prev => [data, ...prev]);
-      toast.success('Álbum criado com sucesso!');
+      toast.success(eventId ? 'Álbum criado e vinculado ao evento!' : 'Álbum independente criado com sucesso!');
       return true;
     } catch (error) {
       console.error('Error creating album:', error);
