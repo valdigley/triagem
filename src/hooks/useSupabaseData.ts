@@ -661,33 +661,6 @@ export const useSupabaseData = () => {
     try {
       console.log(`🔄 Processing ${files.length} real files...`);
       
-      // Verificar se o bucket 'photos' existe
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      
-      if (bucketsError) {
-        console.error('Error checking buckets:', bucketsError);
-        throw new Error('Erro ao verificar storage do Supabase');
-      }
-      
-      const photosBucket = buckets?.find(bucket => bucket.name === 'photos');
-      if (!photosBucket) {
-        console.log('📁 Photos bucket not found, creating...');
-        
-        const { error: createBucketError } = await supabase.storage.createBucket('photos', {
-          public: true,
-          allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'],
-          fileSizeLimit: 52428800 // 50MB
-        });
-        
-        if (createBucketError) {
-          console.error('Error creating photos bucket:', createBucketError);
-          // Tentar continuar mesmo se não conseguir criar o bucket
-          console.warn('Continuing without creating bucket...');
-        }
-        
-        console.log('✅ Photos bucket ready');
-      }
-      
       console.log('📁 Starting real file uploads...');
       
       const photoPromises = files.map(async (file, index) => {
