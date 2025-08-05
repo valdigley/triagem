@@ -246,7 +246,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
           window.location.reload();
         }, 1000);
       } else {
-        toast.warning(`⚠️ FTP verificado em ${ftpConfig.host}${result.ftpPath || ''} - nenhuma foto nova encontrada`);
+        toast.warning(`⚠️ FTP verificado em ${result.ftpConfig?.host || 'servidor'}${result.ftpPath || ''} - nenhuma foto nova encontrada`);
         console.log('📭 No new photos found in FTP');
         console.log('🔧 Check if:');
         console.log('   1. Photos are in the correct folder:', result.ftpPath);
@@ -264,7 +264,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
     } catch (error) {
       console.error('❌ Error in FTP scan:', error);
-      toast.error(`❌ Erro no scan FTP: ${error.message}`);
+      toast.error(`❌ Erro no scan FTP: ${error?.message || 'Erro desconhecido'}`);
     }
   };
 

@@ -280,8 +280,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Erro no monitoramento FTP', 
-        message: error.message,
-        stack: error.stack
+        message: error?.message || 'Erro desconhecido',
+        stack: error?.stack || 'Stack trace não disponível'
       }),
       { 
         status: 500, 
