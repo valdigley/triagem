@@ -94,10 +94,9 @@ serve(async (req) => {
         .from('albums')
         .select(`
           *,
-          events!inner(photographer_id)
+          events(photographer_id)
         `)
         .eq('id', target_album_id)
-        .eq('events.photographer_id', photographer_id)
         .maybeSingle();
         
       if (albumError) {
@@ -124,6 +123,47 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
+      }
+      
+      // Verificar se o álbum pertence ao fotógrafo (para álbuns com evento)
+      if (specificAlbum.event_id && specificAlbum.events && specificAlbum.events.photographer_id !== photographer_id) {
+        console.error('Album belongs to different photographer');
+        return new Response(
+          JSON.stringify({ 
+            error: 'Álbum não pertence a este fotógrafo',
+            album_id: target_album_id,
+            photographer_id: photographer_id,
+            album_photographer_id: specificAlbum.events.photographer_id
+          }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+      
+      // Para álbuns independentes (sem event_id), verificar se o usuário atual é fotógrafo
+      if (!specificAlbum.event_id) {
+        console.log('Independent album detected, verifying photographer access...');
+        
+        const { data: photographerCheck } = await supabase
+          .from('photographers')
+          .select('id')
+          .eq('id', photographer_id)
+          .maybeSingle();
+          
+        if (!photographerCheck) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Fotógrafo não encontrado',
+              photographer_id: photographer_id
+            }),
+            { 
+              status: 403, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
       }
       
       targetAlbum = specificAlbum;
