@@ -895,7 +895,8 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
                     alt="Foto"
                     className="w-full h-32 object-cover rounded-lg"
                     onError={(e) => {
-                      e.currentTarget.src = `https://picsum.photos/400/200?random=${editingComment?.slice(-6)}`;
+                      console.warn('Failed to load photo:', photo.thumbnailPath);
+                      e.currentTarget.src = `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=Foto+Indisponível`;
                     }}
                   />
                 </div>

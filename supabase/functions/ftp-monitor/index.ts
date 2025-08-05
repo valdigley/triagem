@@ -346,15 +346,21 @@ async function simulateFTPListing(ftpConfig: FTPConfig) {
 async function processPhotoFile(file: any, albumId: string, ftpConfig: FTPConfig) {
   console.log(`Processing photo: ${file.name}`);
 
-  // Gerar URLs simuladas (em produção, você faria upload real)
+  // Em produção, você faria download do FTP e upload para Supabase Storage
+  // Por enquanto, vamos simular o processo mas com URLs mais realistas
   const photoId = `ftp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Simular download do FTP e upload para Storage
+  // const ftpFile = await downloadFromFTP(ftpConfig, file.path);
+  // const uploadResult = await uploadToSupabaseStorage(ftpFile, albumId);
   
   return {
     album_id: albumId,
     filename: file.name,
-    original_path: `https://picsum.photos/800/600?random=${photoId}`,
-    thumbnail_path: `https://picsum.photos/300/200?random=${photoId}`,
-    watermarked_path: `https://picsum.photos/800/600?random=${photoId}`,
+    // URLs que seriam geradas após upload real para Storage
+    original_path: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/photos/${albumId}/${file.name}`,
+    thumbnail_path: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/photos/${albumId}/thumb_${file.name}`,
+    watermarked_path: `${Deno.env.get('SUPABASE_URL')}/storage/v1/object/public/photos/${albumId}/watermark_${file.name}`,
     is_selected: false,
     price: 25.00,
     metadata: {
@@ -362,7 +368,8 @@ async function processPhotoFile(file: any, albumId: string, ftpConfig: FTPConfig
       ftp_path: file.path,
       file_size: file.size,
       uploaded_at: new Date().toISOString(),
-      processed_by: 'ftp_monitor'
+      processed_by: 'ftp_monitor',
+      note: 'Simulação - configure FTP real para upload automático'
     }
   };
 }

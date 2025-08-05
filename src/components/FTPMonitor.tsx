@@ -46,9 +46,6 @@ const FTPMonitor: React.FC<FTPMonitorProps> = ({ onPhotosAdded }) => {
       return;
     }
 
-    // Prevenir qualquer navegação durante o processo
-    event?.preventDefault?.();
-    
     setIsMonitoring(true);
     try {
       // Buscar photographer_id

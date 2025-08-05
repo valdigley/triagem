@@ -357,8 +357,9 @@ const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 className="w-full h-full object-cover"
                 loading="lazy"
                 onError={(e) => {
-                  // Fallback para imagem de demonstração se a real falhar
-                  e.currentTarget.src = `https://picsum.photos/400/400?random=${photo.id.slice(-6)}`;
+                  // Fallback apenas se a imagem real falhar
+                  console.warn('Failed to load photo:', photo.thumbnail_path);
+                  e.currentTarget.src = `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=Erro+ao+Carregar`;
                 }}
               />
 
