@@ -637,6 +637,10 @@ export const useSupabaseData = () => {
 
   // Upload de fotos (simulado - em produção seria para storage)
   const uploadPhotos = async (albumId: string, files: File[]) => {
+    console.log(`=== STARTING REAL PHOTO UPLOAD ===`);
+    console.log(`Album ID: ${albumId}`);
+    console.log(`Files to upload: ${files.length}`);
+    
     // Buscar preço atual das configurações
     let currentPrice = 25.00; // Preço padrão
     
@@ -657,7 +661,7 @@ export const useSupabaseData = () => {
     }
 
     try {
-      console.log(`Starting upload of ${files.length} photos to album ${albumId}`);
+      console.log(`📸 REAL UPLOAD: Processing ${files.length} files...`);
       
       // Verificar se o bucket 'photos' existe
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
@@ -669,7 +673,7 @@ export const useSupabaseData = () => {
       
       const photosBucket = buckets?.find(bucket => bucket.name === 'photos');
       if (!photosBucket) {
-        console.warn('Photos bucket not found, creating it...');
+        console.log('📁 Creating photos bucket...');
         
         const { error: createBucketError } = await supabase.storage.createBucket('photos', {
           public: true,
@@ -679,18 +683,22 @@ export const useSupabaseData = () => {
         
         if (createBucketError) {
           console.error('Error creating photos bucket:', createBucketError);
-          throw new Error('Erro ao criar bucket de fotos no Supabase Storage');
+          throw new Error(`Erro ao criar bucket: ${createBucketError.message}`);
         }
         
-        console.log('Photos bucket created successfully');
+        console.log('✅ Photos bucket created successfully');
       }
+      
+      console.log('📁 Photos bucket confirmed, starting uploads...');
       
       const photoPromises = files.map(async (file, index) => {
         const fileExt = file.name.split('.').pop();
         const timestamp = Date.now();
-        const fileName = `${albumId}/${timestamp}_${index}_${file.name}`;
+        const fileName = `${albumId}/${timestamp}_${index}.${fileExt}`;
         
         try {
+          console.log(`📤 Uploading file ${index + 1}/${files.length}: ${file.name}`);
+          
           // Validar tipo de arquivo
           const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
           if (!allowedTypes.includes(file.type)) {
@@ -702,8 +710,6 @@ export const useSupabaseData = () => {
             throw new Error('Arquivo muito grande. Máximo 50MB.');
           }
 
-          console.log(`Uploading file: ${file.name} (${file.size} bytes) as ${fileName}`);
-          
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('photos')
             .upload(fileName, file, {
@@ -713,11 +719,11 @@ export const useSupabaseData = () => {
             });
 
           if (uploadError) {
-            console.error('Error uploading file:', file.name, uploadError);
-            throw uploadError;
+            console.error(`❌ Upload failed for ${file.name}:`, uploadError);
+            throw new Error(`Upload failed: ${uploadError.message}`);
           }
 
-          console.log('File uploaded successfully:', uploadData.path);
+          console.log(`✅ File uploaded: ${uploadData.path}`);
           
           // Gerar URLs públicas
           const { data: { publicUrl: originalUrl } } = supabase.storage
@@ -725,7 +731,7 @@ export const useSupabaseData = () => {
             .getPublicUrl(fileName);
 
           // Criar thumbnail (versão reduzida)
-          const thumbnailFileName = `${albumId}/thumb_${timestamp}_${index}_${file.name}`;
+          const thumbnailFileName = `${albumId}/thumb_${timestamp}_${index}.${fileExt}`;
           
           // Por enquanto, usar a mesma imagem para thumbnail (em produção, você redimensionaria)
           const { data: { publicUrl: thumbnailUrl } } = supabase.storage
@@ -736,6 +742,8 @@ export const useSupabaseData = () => {
           const { data: { publicUrl: watermarkedUrl } } = supabase.storage
             .from('photos')
             .getPublicUrl(fileName);
+
+          console.log(`📷 Photo processed: ${file.name} -> ${originalUrl}`);
 
           return {
             album_id: albumId,
@@ -750,31 +758,32 @@ export const useSupabaseData = () => {
               type: file.type,
               uploaded_at: new Date().toISOString(),
               storage_path: fileName,
-              real_upload: true,
+              upload_method: 'manual_real',
+              original_filename: file.name,
             },
           };
         } catch (error) {
-          console.error('Error uploading individual file:', file.name, error);
+          console.error(`❌ Failed to process ${file.name}:`, error);
           
-          // Para qualquer erro, rejeitar o arquivo
           throw error;
         }
       });
 
       try {
+        console.log('🔄 Processing all uploads...');
         const photosData = await Promise.all(photoPromises);
         
-        const successfulPhotos = photosData.filter(photo => photo !== null);
+        console.log(`📊 Upload results: ${photosData.length} photos processed`);
         
-        if (successfulPhotos.length === 0) {
+        if (photosData.length === 0) {
           throw new Error('Nenhuma foto foi processada com sucesso');
         }
 
-        console.log(`Saving ${successfulPhotos.length} photos to database...`);
+        console.log(`💾 Saving ${photosData.length} photos to database...`);
         
         const { data, error } = await supabase
           .from('photos')
-          .insert(successfulPhotos)
+          .insert(photosData)
           .select();
 
         if (error) {
@@ -784,8 +793,8 @@ export const useSupabaseData = () => {
 
         setPhotos(prev => [...prev, ...data]);
         
-        console.log(`${data.length} photos saved successfully`);
-        toast.success(`${data.length} fotos reais enviadas com sucesso!`);
+        console.log(`✅ SUCCESS: ${data.length} photos saved to database`);
+        console.log('📸 Real photos are now available in the album!');
         
         return true;
       } catch (error) {
@@ -795,9 +804,7 @@ export const useSupabaseData = () => {
       
     } catch (error) {
       console.error('Error in photo upload process:', error);
-      
-      // Mostrar erro específico sem fallback para modo demo
-      toast.error(error.message || 'Erro no upload das fotos');
+      console.error('❌ UPLOAD FAILED:', error.message);
       return false;
     }
   };
