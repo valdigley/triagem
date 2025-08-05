@@ -610,11 +610,15 @@ export const useSupabaseData = () => {
   // Criar álbum
   const createAlbum = async (albumData: { event_id: string; name: string }) => {
     try {
+      // Generate unique share token
+      const shareToken = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+      
       const { data, error } = await supabase
         .from('albums')
         .insert({
           event_id: albumData.event_id,
           name: albumData.name,
+          share_token: shareToken,
         })
         .select()
         .single();
