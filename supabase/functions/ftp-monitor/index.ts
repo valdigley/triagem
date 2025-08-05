@@ -36,41 +36,90 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Buscar configurações FTP de todos os fotógrafos ou de um específico
-    let query = supabase
-      .from('api_access')
-      .select(`
-        *,
-        photographers!inner(
-          id,
-          business_name,
-          user_id
-        )
-      `)
-      .not('ftp_config', 'is', null);
+    let ftpConfigs = [];
 
     if (photographer_id) {
-      query = query.eq('photographers.id', photographer_id);
-    }
+      // Buscar fotógrafo específico
+      const { data: photographer, error: photographerError } = await supabase
+        .from('photographers')
+        .select('id, business_name, user_id')
+        .eq('id', photographer_id)
+        .single();
 
-    const { data: ftpConfigs, error } = await query;
+      if (photographerError) {
+        console.error('Error fetching photographer:', photographerError);
+        return new Response(
+          JSON.stringify({ error: 'Fotógrafo não encontrado' }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
 
-    if (error) {
-      console.error('Error fetching FTP configs:', error);
-      return new Response(
-        JSON.stringify({ error: 'Erro ao buscar configurações FTP' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      // Buscar configuração FTP do fotógrafo
+      const { data: apiAccess, error: apiError } = await supabase
+        .from('api_access')
+        .select('*')
+        .eq('user_id', photographer.user_id)
+        .not('ftp_config', 'is', null)
+        .single();
+
+      if (apiError || !apiAccess) {
+        console.error('Error fetching API access:', apiError);
+        return new Response(
+          JSON.stringify({ error: 'Configuração FTP não encontrada' }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      ftpConfigs = [{
+        ...apiAccess,
+        photographers: photographer
+      }];
+    } else {
+      // Buscar todos os fotógrafos com configuração FTP
+      const { data: photographers, error: photographersError } = await supabase
+        .from('photographers')
+        .select('id, business_name, user_id');
+
+      if (photographersError) {
+        console.error('Error fetching photographers:', photographersError);
+        return new Response(
+          JSON.stringify({ error: 'Erro ao buscar fotógrafos' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Buscar configurações FTP para cada fotógrafo
+      for (const photographer of photographers || []) {
+        const { data: apiAccess } = await supabase
+          .from('api_access')
+          .select('*')
+          .eq('user_id', photographer.user_id)
+          .not('ftp_config', 'is', null)
+          .maybeSingle();
+
+        if (apiAccess) {
+          ftpConfigs.push({
+            ...apiAccess,
+            photographers: photographer
+          });
         }
-      );
+      }
     }
 
     if (!ftpConfigs || ftpConfigs.length === 0) {
       return new Response(
         JSON.stringify({ 
           message: 'Nenhuma configuração FTP encontrada',
-          processed: 0
+          totalProcessed: 0
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
