@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, Eye, Share2, Calendar, User, Plus, Trash2, Upload, Wifi, WifiOff, RefreshCw, Folder, CheckCircle, AlertTriangle, Clock, Camera } from 'lucide-react';
+import { Image, Eye, Share2, Calendar, User, Plus, Trash2, Upload, Folder, Camera, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSupabaseData } from '../hooks/useSupabaseData';
@@ -19,49 +19,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
   const [selectedEventId, setSelectedEventId] = useState('');
   const [createIndependent, setCreateIndependent] = useState(false);
   const [uploadingToAlbum, setUploadingToAlbum] = useState<string | null>(null);
-  const [ftpReceivingAlbums, setFtpReceivingAlbums] = useState<Set<string>>(new Set());
-  const [lastFtpCheck, setLastFtpCheck] = useState<Record<string, Date>>({});
-  const [togglingFtp, setTogglingFtp] = useState<string | null>(null);
-
-  // Carregar estado inicial do FTP
-  useEffect(() => {
-    loadFtpStates();
-  }, [albums]);
-
-  const loadFtpStates = async () => {
-    try {
-      const ftpStates = new Set<string>();
-      const checkTimes: Record<string, Date> = {};
-
-      for (const album of albums) {
-        // Verificar se tem monitoramento FTP ativo
-        const hasActiveFtp = album.activity_log?.some(log => 
-          log.type === 'ftp_monitoring_enabled' && 
-          !album.activity_log?.some(laterLog => 
-            laterLog.type === 'ftp_monitoring_disabled' && 
-            new Date(laterLog.timestamp) > new Date(log.timestamp)
-          )
-        );
-
-        if (hasActiveFtp) {
-          ftpStates.add(album.id);
-        }
-
-        // Última verificação FTP
-        const lastCheck = album.activity_log?.find(log => 
-          log.type === 'ftp_scan_completed'
-        );
-        if (lastCheck) {
-          checkTimes[album.id] = new Date(lastCheck.timestamp);
-        }
-      }
-
-      setFtpReceivingAlbums(ftpStates);
-      setLastFtpCheck(checkTimes);
-    } catch (error) {
-      console.error('Error loading FTP states:', error);
-    }
-  };
 
   const handleCreateAlbum = async () => {
     if (!newAlbumName.trim()) {
@@ -119,7 +76,7 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const newActivity = {
               timestamp: new Date().toISOString(),
               type: 'manual_upload',
-              description: `${fileArray.length} fotos reais adicionadas via upload manual`
+              description: `${fileArray.length} fotos adicionadas via upload manual`
             };
 
             await supabase
@@ -141,200 +98,10 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
     }
   };
 
-  const toggleFtpReceiving = async (albumId: string) => {
-    setTogglingFtp(albumId);
-    
-    try {
-      const isCurrentlyReceiving = ftpReceivingAlbums.has(albumId);
-      const newState = !isCurrentlyReceiving;
-      
-      console.log('Toggling FTP for album:', albumId, 'from', isCurrentlyReceiving, 'to', newState);
-      
-      // Atualizar log de atividade
-      const { data: currentAlbum } = await supabase
-        .from('albums')
-        .select('activity_log')
-        .eq('id', albumId)
-        .maybeSingle();
-
-      if (!currentAlbum) {
-        console.error('Album not found for FTP toggle:', albumId);
-        toast.error('Álbum não encontrado');
-        return;
-      }
-      
-      const currentLog = currentAlbum?.activity_log || [];
-      const newActivity = {
-        timestamp: new Date().toISOString(),
-        type: newState ? 'ftp_enabled' : 'ftp_disabled',
-        description: newState 
-          ? 'Monitoramento FTP ativado para recebimento automático'
-          : 'Monitoramento FTP desativado'
-      };
-
-      console.log('Updating album activity log with:', newActivity);
-      
-      const { error } = await supabase
-        .from('albums')
-        .update({ 
-          activity_log: [...currentLog, newActivity]
-        })
-        .eq('id', albumId);
-
-      if (error) {
-        console.error('Error updating FTP state:', error);
-        toast.error('Erro ao alterar estado do FTP');
-        return;
-      }
-
-      console.log('FTP state updated successfully in database');
-      
-      // Atualizar estado local
-      const newFtpStates = new Set(ftpReceivingAlbums);
-      if (newState) {
-        newFtpStates.add(albumId);
-      } else {
-        newFtpStates.delete(albumId);
-      }
-      setFtpReceivingAlbums(newFtpStates);
-
-      toast.success(newState ? 'FTP ativado para este álbum!' : 'FTP desativado para este álbum!');
-      
-      console.log('Local state updated, FTP toggle completed');
-      
-    } catch (error) {
-      console.error('Error toggling FTP:', error);
-      toast.error('Erro ao alterar estado do FTP');
-    } finally {
-      setTogglingFtp(null);
-    }
-  };
-
-  const runFtpScan = async (albumId?: string) => {
-    try {
-      if (!user) return;
-
-      // Verificar se as variáveis de ambiente estão configuradas
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        console.error('Supabase environment variables not configured');
-        toast.error('❌ Configuração do Supabase não encontrada');
-        return;
-      }
-
-      // Buscar photographer_id
-      const { data: photographer } = await supabase
-        .from('photographers')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (!photographer) {
-        toast.error('Perfil do fotógrafo não encontrado');
-        return;
-      }
-
-      // Verificar se as variáveis de ambiente estão configuradas
-      if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-        console.error('Supabase environment variables not configured');
-        toast.error('Configuração do Supabase não encontrada');
-        return;
-      }
-
-      console.log('🔍 Executando scan FTP REAL...');
-      console.log('📁 Album ID:', albumId || 'Mais recente');
-      console.log('👤 Photographer ID:', photographer.id);
-      console.log('🌐 Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-
-      let response;
-      try {
-        response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ftp-monitor`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            photographer_id: photographer.id,
-            target_album_id: albumId,
-            force_scan: true,
-          }),
-        });
-      } catch (fetchError) {
-        console.error('❌ Network error calling FTP monitor:', fetchError);
-        
-        // Verificar se é erro de conectividade
-        if (fetchError instanceof TypeError && fetchError.message.includes('Failed to fetch')) {
-          toast.error('❌ Função FTP não disponível. Verifique se as Edge Functions estão ativas no Supabase.');
-          console.log('💡 Possíveis soluções:');
-          console.log('   1. Verifique se a função ftp-monitor está deployada no Supabase');
-          console.log('   2. Confirme se as variáveis de ambiente estão corretas');
-          console.log('   3. Verifique as configurações de CORS no Supabase');
-        } else {
-          toast.error(`❌ Erro de rede: ${fetchError.message}`);
-        }
-        return;
-      }
-
-      console.log('📡 FTP Monitor response status:', response.status);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (parseError) {
-          console.error('❌ Failed to parse error response:', parseError);
-          errorData = { error: `HTTP ${response.status}: ${response.statusText}` };
-        }
-        
-        console.error('❌ FTP scan error:', errorData);
-        toast.error(`❌ ${errorData.error || 'Erro no scan FTP'}`);
-        return;
-      }
-
-      let result;
-      try {
-        result = await response.json();
-      } catch (parseError) {
-        console.error('❌ Failed to parse success response:', parseError);
-        toast.error('❌ Erro ao processar resposta do servidor');
-        return;
-      }
-      
-      console.log('✅ FTP scan result:', result);
-      console.log('📊 Photos processed:', result.photosProcessed);
-      console.log('📂 Album used:', result.albumName);
-
-      if (result.photosProcessed > 0) {
-        toast.success(`🎉 ${result.photosProcessed} fotos REAIS adicionadas do FTP!`);
-        console.log('🔄 Reloading page to show new photos...');
-        // Recarregar dados
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } else {
-        const ftpHost = result.ftpConfig?.host || 'servidor';
-        const ftpPath = result.ftpPath || '';
-        toast.warning(`⚠️ FTP verificado em ${ftpHost}${ftpPath} - nenhuma foto nova encontrada`);
-        console.log('📭 No new photos found in FTP');
-        console.log('🔧 Check if:');
-        console.log('   1. Photos are in the correct folder:', ftpPath);
-        console.log('   2. FTP credentials are correct');
-        console.log('   3. Photos are image files (jpg, png, etc.)');
-      }
-
-      // Atualizar timestamp da última verificação
-      if (albumId) {
-        setLastFtpCheck(prev => ({
-          ...prev,
-          [albumId]: new Date()
-        }));
-      }
-
-    } catch (error) {
-      console.error('❌ Error in FTP scan:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`❌ Erro no scan FTP: ${errorMessage}`);
-    }
+  const copyShareLink = (shareToken: string) => {
+    const shareUrl = `${window.location.origin}/album/${shareToken}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success('Link de compartilhamento copiado!');
   };
 
   const getAlbumPhotos = (albumId: string) => {
@@ -497,8 +264,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
             const albumPhotos = getAlbumPhotos(album.id);
             const selectedCount = getSelectedPhotosCount(album.id);
             const status = getAlbumStatus(album);
-            const isFtpActive = ftpReceivingAlbums.has(album.id);
-            const lastCheck = lastFtpCheck[album.id];
             
             return (
               <div key={album.id} className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 ${status.bgColor}`}>
@@ -529,12 +294,6 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${status.color} bg-white border`}>
                       {status.label}
                     </span>
-                    {isFtpActive && (
-                      <div className="flex items-center gap-1 text-xs text-green-600">
-                        <Wifi className="w-3 h-3" />
-                        <span>FTP Ativo</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -575,77 +334,36 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
                   </div>
                 )}
 
-                {/* Controles de FTP e Upload */}
-                <div className="space-y-3 mb-4">
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-2">
-                      {isFtpActive ? (
-                        <Wifi className="w-4 h-4 text-green-600" />
+                {/* Upload de Fotos */}
+                <div className="mb-4">
+                  <div className="relative">
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={(e) => e.target.files && handlePhotoUpload(album.id, e.target.files)}
+                      className="hidden"
+                      id={`upload-${album.id}`}
+                      disabled={uploadingToAlbum === album.id}
+                    />
+                    <label
+                      htmlFor={`upload-${album.id}`}
+                      className={`flex items-center gap-2 w-full px-4 py-3 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors cursor-pointer text-sm font-medium justify-center ${
+                        uploadingToAlbum === album.id ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                    >
+                      {uploadingToAlbum === album.id ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Enviando fotos...
+                        </>
                       ) : (
-                        <WifiOff className="w-4 h-4 text-gray-400" />
+                        <>
+                          <Upload className="w-4 h-4" />
+                          Adicionar Fotos
+                        </>
                       )}
-                      <div>
-                        <span className="text-sm font-medium text-blue-900">
-                          Recepção FTP
-                        </span>
-                        {lastCheck && (
-                          <div className="text-xs text-blue-700">
-                            Última verificação: {format(lastCheck, "HH:mm", { locale: ptBR })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      {/* Upload Manual */}
-                      <div className="relative">
-                        <input
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          onChange={(e) => e.target.files && handlePhotoUpload(album.id, e.target.files)}
-                          className="hidden"
-                          id={`upload-${album.id}`}
-                          disabled={uploadingToAlbum === album.id}
-                        />
-                        <label
-                          htmlFor={`upload-${album.id}`}
-                          className={`flex items-center gap-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-colors cursor-pointer text-sm font-medium ${
-                            uploadingToAlbum === album.id ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          {uploadingToAlbum === album.id ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                              Enviando...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4" />
-                              📸 Upload Real
-                            </>
-                          )}
-                        </label>
-                      </div>
-
-                      {/* FTP Toggle */}
-                      <button
-                        onClick={() => toggleFtpReceiving(album.id)}
-                        disabled={togglingFtp === album.id}
-                        className={`px-3 py-2 text-sm rounded-lg transition-colors disabled:opacity-50 ${
-                          isFtpActive
-                            ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                            : 'bg-green-100 text-green-700 hover:bg-green-200'
-                        }`}
-                        type="button"
-                      >
-                        {togglingFtp === album.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-                        ) : (
-                          isFtpActive ? 'Desativar' : 'Ativar'
-                        )}
-                      </button>
-                    </div>
+                    </label>
                   </div>
                 </div>
 
@@ -661,13 +379,13 @@ const AlbumList: React.FC<AlbumListProps> = ({ onViewAlbum }) => {
 
                   <div className="flex gap-2">
                     <button
-                      onClick={() => runFtpScan(album.id)}
+                      onClick={() => copyShareLink(album.share_token)}
                       className="flex items-center gap-1 px-3 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors text-sm"
-                      title="Verificar FTP agora"
+                      title="Copiar link de compartilhamento"
                     >
-                      <RefreshCw className="w-4 h-4" />
+                      <Copy className="w-4 h-4" />
                     </button>
-                    
+
                     <button
                       onClick={() => deleteAlbum(album.id)}
                       className="flex items-center gap-1 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors text-sm"

@@ -9,15 +9,6 @@ const ApiDocumentation: React.FC = () => {
   const [apiAccessId, setApiAccessId] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('');
-  const [ftpConfig, setFtpConfig] = useState({
-    host: '',
-    username: '',
-    password: '',
-    port: 21,
-    monitor_path: '/photos',
-    auto_upload: true,
-  });
-  const [showFtpPassword, setShowFtpPassword] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -46,14 +37,6 @@ const ApiDocumentation: React.FC = () => {
         setApiAccessId(data.id);
         setApiKey(data.api_key);
         setWebhookUrl(data.webhook_url || '');
-        setFtpConfig(data.ftp_config || {
-          host: '',
-          username: '',
-          password: '',
-          port: 21,
-          monitor_path: '/photos',
-          auto_upload: true,
-        });
       }
     } catch (error) {
       console.error('Error loading API config:', error);
@@ -72,7 +55,6 @@ const ApiDocumentation: React.FC = () => {
         user_id: user.id,
         api_key: newApiKey,
         webhook_url: webhookUrl,
-        ftp_config: ftpConfig,
       };
 
       if (apiAccessId) {
@@ -112,7 +94,6 @@ const ApiDocumentation: React.FC = () => {
         user_id: user.id,
         api_key: apiKey,
         webhook_url: webhookUrl,
-        ftp_config: ftpConfig,
       };
 
       if (apiAccessId) {
@@ -218,125 +199,6 @@ const ApiDocumentation: React.FC = () => {
               URL para receber notificações de eventos (agendamentos, pagamentos, etc.)
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* FTP Configuration */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Configuração FTP</h3>
-        
-        <div className="bg-blue-50 rounded-lg p-4 mb-6">
-          <h4 className="font-medium text-blue-900 mb-2">📁 Upload Automático de Fotos</h4>
-          <p className="text-sm text-blue-800">
-            Configure seu servidor FTP para upload automático de fotos. O sistema monitorará a pasta especificada 
-            e adicionará automaticamente novas fotos aos álbuns correspondentes.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Servidor FTP
-              </label>
-              <input
-                type="text"
-                value={ftpConfig.host}
-                onChange={(e) => setFtpConfig(prev => ({ ...prev, host: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="ftp.seuservidor.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Usuário
-              </label>
-              <input
-                type="text"
-                value={ftpConfig.username}
-                onChange={(e) => setFtpConfig(prev => ({ ...prev, username: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="usuario_ftp"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Senha
-              </label>
-              <div className="relative">
-                <input
-                  type={showFtpPassword ? 'text' : 'password'}
-                  value={ftpConfig.password}
-                  onChange={(e) => setFtpConfig(prev => ({ ...prev, password: e.target.value }))}
-                  className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="senha_ftp"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowFtpPassword(!showFtpPassword)}
-                  className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-                >
-                  {showFtpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Porta
-              </label>
-              <input
-                type="number"
-                value={ftpConfig.port}
-                onChange={(e) => setFtpConfig(prev => ({ ...prev, port: parseInt(e.target.value) || 21 }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="21"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pasta de Monitoramento
-              </label>
-              <input
-                type="text"
-                value={ftpConfig.monitor_path}
-                onChange={(e) => setFtpConfig(prev => ({ ...prev, monitor_path: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="/photos"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Pasta que será monitorada para novas fotos
-              </p>
-            </div>
-
-            <div>
-              <label className="flex items-center">
-                <input
-                  type="checkbox"
-                  checked={ftpConfig.auto_upload}
-                  onChange={(e) => setFtpConfig(prev => ({ ...prev, auto_upload: e.target.checked }))}
-                  className="mr-2"
-                />
-                <span className="text-sm text-gray-700">Upload automático ativo</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            onClick={saveConfig}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-          >
-            <Database className="w-4 h-4" />
-            {saving ? 'Salvando...' : 'Salvar Configurações'}
-          </button>
         </div>
       </div>
 

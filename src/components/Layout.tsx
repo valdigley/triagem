@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, onViewChange }) 
     { name: 'Pagamentos', key: 'payments', icon: CreditCard },
     ...(isMasterUser ? [
       { name: 'Assinaturas', key: 'subscriptions', icon: Crown },
-      { name: 'API & FTP', key: 'api', icon: Code },
+      { name: 'API', key: 'api', icon: Code },
     ] : []),
     { name: 'Configurações', key: 'settings', icon: Settings },
   ];
