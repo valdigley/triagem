@@ -29,10 +29,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Dashboard />
-      <Toaster position="top-right" />
-    </div>
+    <Dashboard />
   );
 };
 

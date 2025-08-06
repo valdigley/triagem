@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import toast from 'react-hot-toast';
 
 interface User {
   id: string;
@@ -34,46 +35,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
+    let mounted = true;
+
+    const initAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.warn('Session error:', error.message);
-          await supabase.auth.signOut();
-        } else if (session?.user) {
-          await setupUserProfile(session.user);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          if (session?.user) {
+            setSupabaseUser(session.user);
+            setUser({
+              id: session.user.id,
+              name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+              email: session.user.email || '',
+              role: 'photographer',
+            });
+          }
+          setIsLoading(false);
         }
       } catch (error) {
-        console.warn('Session exception:', error);
-        await supabase.auth.signOut();
+        console.error('Auth init error:', error);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
-      setIsLoading(false);
     };
 
-    getSession();
+    initAuth();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state change:', event);
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          setSupabaseUser(null);
+      (event, session) => {
+        if (!mounted) return;
+
+        if (event === 'SIGNED_OUT' || !session?.user) {
           setUser(null);
-          setIsLoading(false);
-          return;
+          setSupabaseUser(null);
+        } else if (session?.user) {
+          setSupabaseUser(session.user);
+          setUser({
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
+            email: session.user.email || '',
+            role: 'photographer',
+          });
         }
-        
-        if (session?.user) {
-          await setupUserProfile(session.user);
-        }
-        setIsLoading(false);
       }
     );
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -90,52 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Create user record if it doesn't exist
       const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
-          role: 'photographer',
-        })
-        .select()
-        .single();
-
-      if (userError && userError.code !== '23505') {
-        console.error('Error creating user record:', userError);
-      }
-
-      // Create photographer profile if it doesn't exist
-      const { error: photographerError } = await supabase
-        .from('photographers')
-        .insert({
-          user_id: authUser.id,
-          business_name: `Estúdio ${authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Fotográfico'}`,
-          phone: '(11) 99999-9999',
-          settings: {
-            photoPrice: 25.00,
-            packagePhotos: 10,
-            sessionTypes: [
-              { value: 'gestante', label: 'Sessão Gestante' },
-              { value: 'aniversario', label: 'Aniversário' },
-              { value: 'comerciais', label: 'Comerciais' },
-              { value: 'pre-wedding', label: 'Pré Wedding' },
-              { value: 'formatura', label: 'Formatura' },
-              { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
-            ]
-          }
-        })
-        .select()
-        .single();
-
-      if (photographerError && photographerError.code !== '23505') {
-        console.error('Error creating photographer profile:', photographerError);
-      }
-
-    } catch (error) {
-      console.error('Error setting up user profile:', error);
-    }
-  };
-
   const login = async (email: string, password: string): Promise<string | true> => {
     setIsLoading(true);
     
@@ -147,10 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         setIsLoading(false);
-        return error.message || 'Erro ao fazer login';
+        return 'Erro ao fazer login: ' + error.message;
       }
 
-      setIsLoading(false);
       return true;
     } catch (error) {
       console.error('Login error:', error);
@@ -177,10 +139,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         setIsLoading(false);
-        return error.message || 'Erro ao criar conta';
+        return 'Erro ao criar conta: ' + error.message;
       }
 
-      setIsLoading(false);
+      if (data.user) {
+        // Create basic user profile
+        try {
+          await supabase.from('users').insert({
+            id: data.user.id,
+            email: data.user.email,
+            name: name,
+            role: 'photographer',
+          });
+
+          await supabase.from('photographers').insert({
+            user_id: data.user.id,
+            business_name: `Estúdio ${name}`,
+            phone: whatsapp || '(11) 99999-9999',
+          });
+        } catch (profileError) {
+          console.warn('Profile creation error:', profileError);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Registration error:', error);
@@ -190,7 +171,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    setIsLoading(true);
     setUser(null);
     setSupabaseUser(null);
     
@@ -199,8 +179,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.warn('Logout error:', error);
     }
-    
-    setIsLoading(false);
   };
 
   return (
