@@ -104,7 +104,6 @@ export interface Database {
           location?: string;
           notes?: string | null;
           status?: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-          google_calendar_event_id?: string | null;
           album_id?: string | null;
           created_at?: string;
         };
