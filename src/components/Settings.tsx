@@ -42,10 +42,6 @@ const Settings: React.FC = () => {
   const [evolutionInstance, setEvolutionInstance] = useState('');
   const [showEvolutionKey, setShowEvolutionKey] = useState(false);
   
-  // Login backgrounds
-  const [loginBackgrounds, setLoginBackgrounds] = useState<string[]>([]);
-  const [backgroundFiles, setBackgroundFiles] = useState<File[]>([]);
-  
   // Email templates
   const [emailTemplates, setEmailTemplates] = useState({
     bookingConfirmation: {
@@ -146,7 +142,6 @@ const Settings: React.FC = () => {
       setEvolutionApiKey(config.evolutionApiKey || '');
       setEvolutionInstance(config.evolutionInstance || '');
       
-      setLoginBackgrounds(config.loginBackgrounds || []);
       if (config.emailTemplates) {
         setEmailTemplates(config.emailTemplates);
       }
@@ -182,45 +177,6 @@ const Settings: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleBackgroundUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    // Validar arquivos
-    const validFiles = files.filter(file => {
-      if (!file.type.startsWith('image/')) {
-        toast.error(`${file.name} não é uma imagem válida`);
-        return false;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} é muito grande. Máximo 10MB.`);
-        return false;
-      }
-      return true;
-    });
-
-    if (validFiles.length === 0) return;
-
-    setBackgroundFiles(prev => [...prev, ...validFiles]);
-
-    // Converter para base64 e adicionar ao array
-    validFiles.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target?.result as string;
-        setLoginBackgrounds(prev => [...prev, base64]);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    toast.success(`${validFiles.length} imagem(ns) adicionada(s)`);
-  };
-
-  const removeBackground = (index: number) => {
-    setLoginBackgrounds(prev => prev.filter((_, i) => i !== index));
-    setBackgroundFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
   const saveSettings = async () => {
     if (!user || !photographerId) {
       toast.error('Usuário ou perfil do fotógrafo não encontrado');
@@ -244,7 +200,6 @@ const Settings: React.FC = () => {
         evolutionApiUrl,
         evolutionApiKey,
         evolutionInstance,
-        loginBackgrounds,
         emailTemplates,
         sessionTypes: [
           { value: 'gestante', label: 'Sessão Gestante' },
@@ -278,9 +233,6 @@ const Settings: React.FC = () => {
       toast.success('Configurações salvas com sucesso!');
       
       // Verificar se as imagens foram salvas corretamente
-      console.log('✅ VERIFICATION: Backgrounds saved successfully');
-      console.log('📊 Total backgrounds:', loginBackgrounds.length);
-      console.log('🖼️ First background preview:', loginBackgrounds[0]?.substring(0, 100) + '...');
 
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -453,63 +405,6 @@ const Settings: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* Imagens de Fundo da Tela de Login */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-          <Monitor className="w-5 h-5" />
-          Imagens de Fundo da Tela de Login
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload de Imagens de Fundo
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleBackgroundUpload}
-                className="hidden"
-                id="background-upload"
-              />
-              <label htmlFor="background-upload" className="cursor-pointer">
-                <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Clique para selecionar imagens</p>
-                <p className="text-xs text-gray-500 mt-1">Múltiplas imagens criam slideshow • PNG, JPG até 10MB cada</p>
-              </label>
-            </div>
-          </div>
-
-          {/* Preview das imagens de fundo */}
-          {loginBackgrounds.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Preview das Imagens ({loginBackgrounds.length})
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {loginBackgrounds.map((bg, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={bg}
-                      alt={`Background ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                    />
-                    <button
-                      onClick={() => removeBackground(index)}
-                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -830,33 +725,6 @@ const Settings: React.FC = () => {
               <div>• {'{{eventDate}}'} - Data do evento</div>
               <div>• {'{{eventTime}}'} - Horário do evento</div>
               <div>• {'{{studioAddress}}'} - Endereço do estúdio</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Debug Info */}
-      <div className="bg-gray-50 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">🔧 Debug Info</h3>
-        <div className="grid md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <h4 className="font-medium text-gray-700 mb-2">Imagens de Fundo</h4>
-            <div className="space-y-1 text-gray-600">
-              <div>Total: {loginBackgrounds.length}</div>
-              <div>Array existe: {loginBackgrounds ? '✅' : '❌'}</div>
-              <div>É array: {Array.isArray(loginBackgrounds) ? '✅' : '❌'}</div>
-              {loginBackgrounds.length > 0 && (
-                <div>Primeira imagem: {loginBackgrounds[0]?.substring(0, 50)}...</div>
-              )}
-            </div>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-700 mb-2">Configurações</h4>
-            <div className="space-y-1 text-gray-600">
-              <div>Photographer ID: {photographerId || 'Não encontrado'}</div>
-              <div>Business Name: {businessName || 'Não definido'}</div>
-              <div>Logo: {logo ? '✅ Carregada' : '❌ Não carregada'}</div>
-              <div>Mercado Pago: {mercadoPagoAccessToken ? '✅ Configurado' : '❌ Não configurado'}</div>
             </div>
           </div>
         </div>

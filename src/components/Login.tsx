@@ -229,24 +229,14 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-4 relative"
-      style={{
-        backgroundImage: 'url(/Pedra Furada.jpg)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
-      }}
-    >
-      {/* Overlay para melhorar legibilidade */}
-      <div className="absolute inset-0 bg-black/40"></div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
       
       <div className="max-w-md w-full space-y-8">
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 relative z-10">
+        <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Logo and Branding */}
           <div className="text-center mb-6">
             {studioLogo ? (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full mb-4 p-3 shadow-xl">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4 p-3">
                 <img 
                   src={studioLogo} 
                   alt="Logo" 
@@ -254,24 +244,24 @@ const Login: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full mb-4 shadow-xl">
-                <Camera className="w-8 h-8 text-white" />
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+                <Camera className="w-8 h-8 text-blue-600" />
               </div>
             )}
             
-            <h1 className="text-3xl font-bold text-white mb-2 drop-shadow-lg">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Triagem
             </h1>
-            <p className="text-white/90 text-base mb-2 drop-shadow px-2">
+            <p className="text-gray-600 text-base mb-2">
               Sistema de seleção de fotos para estúdio fotográfico
             </p>
-            <p className="text-white/70 text-sm drop-shadow">
+            <p className="text-gray-500 text-sm">
               by Valdigley Santos
             </p>
           </div>
 
           {/* Login Card */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 w-full border border-white/20">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full border border-gray-200">
             {/* Tela de Sucesso do Cadastro */}
             {registrationSuccess ? (
               <div className="text-center space-y-4">
