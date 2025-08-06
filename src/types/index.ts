@@ -55,7 +55,6 @@ export interface Event {
   location: string;
   notes?: string;
   status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
-  googleCalendarEventId?: string;
   albumId?: string;
   createdAt: Date;
   photographer?: Photographer;

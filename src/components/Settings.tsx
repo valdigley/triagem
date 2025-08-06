@@ -142,9 +142,6 @@ const Settings: React.FC = () => {
       setMercadoPagoAccessToken(config.mercadoPagoAccessToken || '');
       setMercadoPagoPublicKey(config.mercadoPagoPublicKey || '');
       
-      setGoogleCalendarAccessToken(config.googleCalendarAccessToken || '');
-      setGoogleCalendarId(config.googleCalendarId || '');
-      
       setEvolutionApiUrl(config.evolutionApiUrl || '');
       setEvolutionApiKey(config.evolutionApiKey || '');
       setEvolutionInstance(config.evolutionInstance || '');
@@ -244,8 +241,6 @@ const Settings: React.FC = () => {
         advancePaymentPercentage,
         mercadoPagoAccessToken,
         mercadoPagoPublicKey,
-        googleCalendarAccessToken,
-        googleCalendarId,
         evolutionApiUrl,
         evolutionApiKey,
         evolutionInstance,
@@ -638,51 +633,6 @@ const Settings: React.FC = () => {
         </div>
       </div>
 
-      {/* Google Calendar */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-          <Calendar className="w-5 h-5" />
-          Google Calendar
-        </h3>
-        
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Access Token
-            </label>
-            <div className="relative">
-              <Key className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
-              <input
-                type={showGoogleToken ? 'text' : 'password'}
-                value={googleCalendarAccessToken}
-                onChange={(e) => setGoogleCalendarAccessToken(e.target.value)}
-                className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="ya29...."
-              />
-              <button
-                type="button"
-                onClick={() => setShowGoogleToken(!showGoogleToken)}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
-              >
-                {showGoogleToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Calendar ID (opcional)
-            </label>
-            <input
-              type="text"
-              value={googleCalendarId}
-              onChange={(e) => setGoogleCalendarId(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="primary ou seu-calendario@gmail.com"
-            />
-          </div>
-        </div>
-      </div>
 
       {/* Evolution API (WhatsApp) */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

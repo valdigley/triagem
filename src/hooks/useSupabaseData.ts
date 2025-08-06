@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase, withRetry, checkSupabaseConnection } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Client } from '../types';
-import { createGoogleCalendarService, getGoogleCalendarConfig } from '../lib/googleCalendar';
 import toast from 'react-hot-toast';
 
 const sessionTypeLabels: Record<string, string> = {
@@ -604,44 +603,12 @@ export const useSupabaseData = () => {
         phone: eventData.client_phone,
       });
 
-      // Tentar criar evento no Google Calendar primeiro
-      let googleEventId: string | null = null;
-      
-      // Verificar se Google Calendar está configurado antes de tentar
-      const googleCalendarConfig = await getGoogleCalendarConfig(user?.id || '');
-      
-      if (user && googleCalendarConfig?.accessToken && googleCalendarConfig.accessToken.trim() && googleCalendarConfig.accessToken.length > 20) {
-        try {
-          console.log('🗓️ GOOGLE CALENDAR: Tentando criar evento...');
-          
-          // Tentar integração real com Google Calendar
-          const googleCalendarService = await createGoogleCalendarService(user.id);
-          
-          if (googleCalendarService) {
-            googleEventId = await googleCalendarService.createEvent(eventData);
-            if (googleEventId) {
-              console.log('✅ Google Calendar event criado com sucesso');
-            } else {
-              console.warn('⚠️ Google Calendar não sincronizado - verifique configurações');
-            }
-          } else {
-            console.warn('⚠️ Google Calendar não configurado');
-          }
-          
-        } catch (error) {
-          console.warn('⚠️ Google Calendar indisponível, continuando sem sincronização');
-          googleEventId = null;
-        }
-      } else {
-        console.log('ℹ️ Google Calendar não configurado');
-      }
 
       const { data, error } = await supabase
         .from('events')
         .insert({
           ...eventData,
           photographer_id: photographerId,
-          google_calendar_event_id: googleEventId,
         })
         .select()
         .single();
@@ -704,29 +671,6 @@ export const useSupabaseData = () => {
   // Atualizar evento
   const updateEvent = async (id: string, updates: Partial<Event>) => {
     try {
-      // Buscar evento atual para obter google_calendar_event_id
-      const currentEvent = events.find(e => e.id === id);
-      
-      // Tentar atualizar no Google Calendar se configurado
-      if (user && currentEvent?.google_calendar_event_id) {
-        try {
-          console.log('Tentando atualizar evento no Google Calendar...');
-          console.log('Google Calendar Event ID:', currentEvent.google_calendar_event_id);
-          
-          const googleCalendarService = await createGoogleCalendarService(user.id);
-          
-          if (googleCalendarService) {
-            const eventDataForUpdate = { ...currentEvent, ...updates };
-            await googleCalendarService.updateEvent(currentEvent.google_calendar_event_id, eventDataForUpdate);
-            console.log('Google Calendar event atualizado com sucesso');
-          } else {
-            console.log('Google Calendar não configurado - pulando atualização');
-          }
-        } catch (error) {
-          console.error('Failed to update Google Calendar event:', error);
-          // Não falhar o processo se o Google Calendar der erro
-        }
-      }
 
       const { data, error } = await supabase
         .from('events')
@@ -745,15 +689,7 @@ export const useSupabaseData = () => {
         event.id === id ? data : event
       ));
       
-      if (currentEvent?.google_calendar_event_id) {
-        if (await createGoogleCalendarService(user.id)) {
-          toast.success('Agendamento atualizado e sincronizado com Google Calendar!');
-        } else {
-          toast.success('Agendamento atualizado!');
-        }
-      } else {
-        toast.success('Agendamento atualizado!');
-      }
+      toast.success('Agendamento atualizado!');
       
       return data;
     } catch (error) {
@@ -766,28 +702,6 @@ export const useSupabaseData = () => {
   // Excluir evento
   const deleteEvent = async (id: string) => {
     try {
-      // Buscar evento para obter google_calendar_event_id
-      const eventToDelete = events.find(e => e.id === id);
-      
-      // Tentar excluir do Google Calendar se configurado
-      if (user && eventToDelete?.google_calendar_event_id) {
-        try {
-          console.log('Tentando excluir evento do Google Calendar...');
-          console.log('Google Calendar Event ID:', eventToDelete.google_calendar_event_id);
-          
-          const googleCalendarService = await createGoogleCalendarService(user.id);
-          
-          if (googleCalendarService) {
-            await googleCalendarService.deleteEvent(eventToDelete.google_calendar_event_id);
-            console.log('Google Calendar event excluído com sucesso');
-          } else {
-            console.log('Google Calendar não configurado - pulando exclusão');
-          }
-        } catch (error) {
-          console.error('Failed to delete Google Calendar event:', error);
-          // Não falhar o processo se o Google Calendar der erro
-        }
-      }
 
       // Primeiro, buscar álbuns relacionados ao evento para limpar fotos
       const { data: relatedAlbums } = await supabase
@@ -815,11 +729,7 @@ export const useSupabaseData = () => {
 
       setEvents(prev => prev.filter(event => event.id !== id));
       
-      if (eventToDelete?.google_calendar_event_id && await createGoogleCalendarService(user.id)) {
-        toast.success('Agendamento excluído do sistema e Google Calendar!');
-      } else {
-        toast.success('Agendamento excluído!');
-      }
+      toast.success('Agendamento excluído!');
       
       return true;
     } catch (error) {

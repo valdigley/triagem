@@ -278,40 +278,6 @@ const PublicScheduling: React.FC = () => {
     try {
       console.log('Creating event after payment confirmation...');
       
-      // Tentar criar evento no Google Calendar primeiro
-      let googleEventId: string | null = null;
-      
-      try {
-        // Buscar configuração do Google Calendar do fotógrafo
-        const { data: photographer } = await supabase
-          .from('photographers')
-          .select('user_id')
-          .eq('id', photographerId)
-          .single();
-
-        if (photographer?.user_id) {
-          // TESTE TEMPORÁRIO - Simular criação no Google Calendar
-          console.log('TESTE: Simulando criação no Google Calendar para agendamento público...');
-          console.log('Photographer user_id:', photographer.user_id);
-          console.log('Dados do evento:', {
-            client_name: pendingEventData.client_name,
-            session_type: pendingEventData.session_type,
-            event_date: pendingEventData.event_date
-          });
-          
-          // Simular ID do Google Calendar
-          googleEventId = `gcal_public_${Date.now()}`;
-          console.log('TESTE: Google Calendar event ID simulado:', googleEventId);
-          
-          // Simular delay da API
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          console.log('TESTE: Simulação concluída - evento seria criado no Google Calendar');
-        }
-      } catch (error) {
-        console.error('Failed to create Google Calendar event:', error);
-        // Não falhar o processo se o Google Calendar der erro
-      }
 
       // Criar o evento
       const { data: newEvent, error: eventError } = await supabase
@@ -319,7 +285,6 @@ const PublicScheduling: React.FC = () => {
         .insert({
           ...pendingEventData,
           photographer_id: photographerId,
-          google_calendar_event_id: googleEventId,
         })
         .select()
         .single();
