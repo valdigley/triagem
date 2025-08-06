@@ -99,6 +99,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Create user record if it doesn't exist
       const { error: userError } = await supabase
+    }
+  }
   const login = async (email: string, password: string): Promise<string | true> => {
     setIsLoading(true);
     
