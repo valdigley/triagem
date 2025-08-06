@@ -38,64 +38,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Verificar sessão atual
     const getSession = async () => {
       try {
-        // Clear any potentially invalid tokens before attempting session retrieval
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
-        
-        // If we have a session but it might be invalid, validate it first
-        if (existingSession?.refresh_token) {
-          try {
-            // Test if the refresh token is valid by attempting a refresh
-            await supabase.auth.refreshSession();
-          } catch (refreshError) {
-            console.warn('Refresh token invalid, clearing session:', refreshError);
-            await supabase.auth.signOut();
-            setSupabaseUser(null);
-            setUser(null);
-            setIsLoading(false);
-            return;
-          }
-        }
-        
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          if (error.message.includes('Invalid Refresh Token') || 
-              error.message.includes('Refresh Token Not Found') ||
-              error.message.includes('refresh_token_not_found')) {
-            console.warn('Session token expired, signing out user:', error.message);
-          } else {
-            console.error('Session error:', error.message);
-          }
-          // Clear invalid tokens and reset auth state
+          console.warn('Session error, clearing auth state:', error.message);
           await supabase.auth.signOut();
           setSupabaseUser(null);
           setUser(null);
         } else if (session?.user) {
           console.log('Session user found:', session.user.email);
-          
-          // Para usuários do Google OAuth, criar perfil automaticamente se necessário
-          if (session.user.app_metadata?.provider === 'google') {
-            await handleGoogleUserSetup(session.user);
-          }
-          
-          setSupabaseUser(session.user);
-          setUser({
-            id: session.user.id,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
-            email: session.user.email || '',
-            role: 'photographer',
-          });
+          await setupUserProfile(session.user);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        if (errorMessage.includes('Invalid Refresh Token') || 
-            errorMessage.includes('Refresh Token Not Found') ||
-            errorMessage.includes('refresh_token_not_found')) {
-          console.warn('Session token expired, signing out user:', errorMessage);
-        } else {
-          console.error('Unexpected session error:', errorMessage);
-        }
-        // Clear invalid tokens and reset auth state
+        console.warn('Session exception, clearing auth state:', errorMessage);
         await supabase.auth.signOut();
         setSupabaseUser(null);
         setUser(null);
@@ -110,9 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         
-        // Handle token refresh errors
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('Token refresh failed, signing out user');
+        if (event === 'SIGNED_OUT' || !session) {
           setSupabaseUser(null);
           setUser(null);
           setIsLoading(false);
@@ -120,18 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         if (session?.user) {
-          // Para usuários do Google OAuth, criar perfil automaticamente
-          if (session.user.app_metadata?.provider === 'google') {
-            await handleGoogleUserSetup(session.user);
-          }
-          
-          setSupabaseUser(session.user);
-          setUser({
-            id: session.user.id,
-            name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Usuário',
-            email: session.user.email || '',
-            role: 'photographer',
-          });
+          await setupUserProfile(session.user);
         } else {
           setSupabaseUser(null);
           setUser(null);
@@ -145,10 +88,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Função para configurar usuário do Google OAuth
-  const handleGoogleUserSetup = async (user: any) => {
+  // Função para configurar perfil do usuário
+  const setupUserProfile = async (user: any) => {
     try {
-      console.log('Setting up Google OAuth user:', user.email);
+      console.log('Setting up user profile:', user.email);
+      
+      // Primeiro, definir o estado do usuário
+      setSupabaseUser(user);
+      setUser({
+        id: user.id,
+        name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+        email: user.email || '',
+        role: 'photographer',
+      });
       
       // Verificar se já existe registro na tabela users
       const { data: existingUser } = await supabase
@@ -157,21 +109,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', user.id)
         .single();
 
-      if (!existingUser || existingUser.length === 0) {
-        console.log('Creating user record for Google OAuth user');
+      if (!existingUser) {
+        console.log('Creating user record');
         
         // Criar registro na tabela users
         const { error: userError } = await supabase
           .from('users')
-          .upsert({
+          .insert({
             id: user.id,
             email: user.email,
             name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Usuário',
             role: 'photographer',
             avatar: user.user_metadata?.avatar_url,
-          }, {
-            onConflict: 'id',
-            ignoreDuplicates: false
           });
 
         if (userError) {
@@ -190,13 +139,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', user.id)
         .single();
 
-      if (!existingPhotographer || existingPhotographer.length === 0) {
-        console.log('Creating photographer profile for Google OAuth user');
+      if (!existingPhotographer) {
+        console.log('Creating photographer profile');
         
         // Criar perfil de fotógrafo
         const { error: photographerError } = await supabase
           .from('photographers')
-          .upsert({
+          .insert({
             user_id: user.id,
             business_name: `Estúdio ${user.user_metadata?.name || user.email?.split('@')[0] || 'Fotográfico'}`,
             phone: '(11) 99999-9999', // Placeholder - usuário pode atualizar depois
@@ -226,9 +175,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 }
               }
             }
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
           });
 
         if (photographerError) {
@@ -247,52 +193,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('user_id', user.id)
         .single();
 
-      if (!existingSubscription || existingSubscription.length === 0) {
-        console.log('Creating subscription for Google OAuth user');
+      if (!existingSubscription) {
+        console.log('Creating subscription');
         
         // Criar subscription de teste
-        const { data, error: subscriptionError } = await supabase
+        const { error: subscriptionError } = await supabase
           .from('subscriptions')
-          .upsert({
+          .insert({
             user_id: user.id,
             plan_type: 'trial',
             status: 'active',
-            trial_start_date: new Date().toISOString(),
-            trial_end_date: new Date().toISOString(), // Expira imediatamente
-            expires_at: new Date().toISOString(), // Expira imediatamente
-          }, {
-            onConflict: 'user_id',
-            ignoreDuplicates: false
-          })
-          .select()
-          .single();
+          });
 
         if (subscriptionError) {
           console.error('Error creating subscription:', subscriptionError);
         } else {
           console.log('Subscription created successfully');
-
-          // Forçar atualização para 0 dias de teste (sobrescrever trigger)
-          const { error: updateError } = await supabase
-            .from('subscriptions')
-            .update({
-              trial_end_date: new Date().toISOString(),
-              expires_at: new Date().toISOString(),
-            })
-            .eq('id', data.id);
-
-          if (updateError) {
-            console.error('Error forcing zero trial days:', updateError);
-          } else {
-            console.log('Forced zero trial days successfully');
-          }
         }
       } else {
         console.log('Subscription already exists');
       }
 
     } catch (error) {
-      console.error('Error setting up Google OAuth user:', error);
+      console.error('Error setting up user profile:', error);
     }
   };
 
@@ -453,21 +376,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
-    // Always clear local state first
+    setIsLoading(true);
     setUser(null);
     setSupabaseUser(null);
     
-    // Try to sign out from Supabase, handling session_not_found specifically
     try {
       const { error } = await supabase.auth.signOut();
-      
-      if (error && error.message !== 'Session from session_id claim in JWT does not exist') {
-        console.warn('Logout warning (non-session error):', error.message);
+      if (error) {
+        console.warn('Logout warning:', error.message);
       }
     } catch (error) {
-      // Suppress all logout errors - they don't affect user experience
-      console.warn('Logout warning (exception):', error instanceof Error ? error.message : 'Unknown error');
+      console.warn('Logout exception:', error instanceof Error ? error.message : 'Unknown error');
     }
+    
+    setIsLoading(false);
   };
 
   return (
