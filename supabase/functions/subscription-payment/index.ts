@@ -87,7 +87,6 @@ serve(async (req) => {
       description: `Assinatura Mensal - Sistema Triagem - ${userName}`,
       payment_method_id: 'pix',
       statement_descriptor: 'TRIAGEM ASSIN',
-      ...(device_id && { device_id }),
       payer: {
         email: user.email,
         first_name: firstName,
@@ -102,7 +101,7 @@ serve(async (req) => {
       binary_mode: false,
       capture: true,
       additional_info: {
-        items: items,
+        ...(device_id && { device_id }),
         payer: {
           first_name: firstName,
           last_name: lastName,
@@ -120,7 +119,7 @@ serve(async (req) => {
         subscription_id: subscription_id,
         type: 'subscription_payment',
         client_name: userName,
-        device_id: device_id || ''
+        ...(device_id && { device_id })
       }
     }
 

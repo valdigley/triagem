@@ -131,8 +131,7 @@ serve(async (req) => {
       transaction_amount,
       description,
       payment_method_id: payment_method_id || 'pix',
-      ...(statement_descriptor && { statement_descriptor }),
-      ...(device_id && { device_id }),
+      statement_descriptor: statement_descriptor || 'TRIAGEM FOTOS',
       payer: {
         email: payer.email,
         first_name: payer.first_name,
@@ -143,13 +142,34 @@ serve(async (req) => {
           number: payer.identification?.number || '00000000000'
         }
       },
-      ...(items && items.length > 0 && { items }),
-      ...(marketplace && { marketplace }),
-      ...(binary_mode !== undefined && { binary_mode }),
-      ...(capture !== undefined && { capture }),
-      ...(additional_info && { additional_info }),
-      ...(notification_url && { notification_url }),
-      ...(external_reference && { external_reference }),
+      items: items || [],
+      marketplace: marketplace || 'NONE',
+      binary_mode: binary_mode !== undefined ? binary_mode : false,
+      capture: capture !== undefined ? capture : true,
+      additional_info: {
+        ...(device_id && { device_id }),
+        payer: {
+          first_name: payer.first_name,
+          last_name: payer.last_name,
+          ...(payer.phone && { phone: payer.phone }),
+          address: {
+            zip_code: '01310-100',
+            street_name: 'Av. Paulista',
+            street_number: 1000
+          }
+        },
+        shipments: {
+          receiver_address: {
+            zip_code: '01310-100',
+            street_name: 'Entrega Digital',
+            street_number: 0,
+            floor: '',
+            apartment: ''
+          }
+        }
+      },
+      notification_url: notification_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
+      external_reference: external_reference || `payment_${Date.now()}`,
       metadata: {
         selected_photos: selected_photos.join(','),
         event_id: event_id || '',
@@ -157,8 +177,8 @@ serve(async (req) => {
         package_type: selected_photos.length > 10 ? 'extra_photos' : 'basic_package',
         photo_count: selected_photos.length,
         payment_type: selected_photos.length > 0 ? 'extra_photos' : 'advance_booking',
-        device_id: device_id || '',
-        items_count: items?.length || 0
+        items_count: items?.length || 0,
+        ...(device_id && { device_id })
       }
     }
 

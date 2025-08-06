@@ -97,8 +97,7 @@ const PublicScheduling: React.FC = () => {
 
   const initializeMercadoPago = async (publicKey: string) => {
     try {
-      const mp = await loadMercadoPago();
-      await mp.load({
+      const mp = await loadMercadoPago({
         key: publicKey,
         locale: 'pt-BR'
       });

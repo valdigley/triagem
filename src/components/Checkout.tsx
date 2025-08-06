@@ -66,8 +66,7 @@ const Checkout: React.FC<CheckoutProps> = ({
   const initializeMercadoPago = async () => {
     try {
       if (mercadoPagoConfig.publicKey) {
-        const mp = await loadMercadoPago();
-        await mp.load({
+        const mp = await loadMercadoPago({
           key: mercadoPagoConfig.publicKey,
           locale: 'pt-BR'
         });
@@ -98,8 +97,7 @@ const Checkout: React.FC<CheckoutProps> = ({
           
           // Inicializar SDK quando as configurações carregarem
           try {
-            const mp = await loadMercadoPago();
-            await mp.load({
+            const mp = await loadMercadoPago({
               key: config.mercadoPagoPublicKey,
               locale: 'pt-BR'
             });
