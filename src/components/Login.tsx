@@ -229,15 +229,25 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-800">
+    <div 
+      className="min-h-screen w-full relative"
+      style={{
+        backgroundImage: 'url(/Pedra Furada.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
 
       {/* Content */}
-      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-sm mx-auto">
           {/* Logo and Branding */}
           <div className="text-center mb-6">
             {studioLogo ? (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 p-3 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full mb-4 p-3 shadow-xl">
                 <img 
                   src={studioLogo} 
                   alt="Logo" 
@@ -245,7 +255,7 @@ const Login: React.FC = () => {
                 />
               </div>
             ) : (
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 rounded-full mb-4 shadow-lg">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/30 backdrop-blur-sm rounded-full mb-4 shadow-xl">
                 <Camera className="w-8 h-8 text-white" />
               </div>
             )}
@@ -262,7 +272,7 @@ const Login: React.FC = () => {
           </div>
 
           {/* Login Card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 w-full border border-white/20">
             {/* Tela de Sucesso do Cadastro */}
             {registrationSuccess ? (
               <div className="text-center space-y-4">
