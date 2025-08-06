@@ -1,89 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail, Check, MessageSquare } from 'lucide-react';
+import { Check, Eye, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
-import Checkout from './Checkout';
-import { loadMercadoPago } from '@mercadopago/sdk-js';
 
 interface Photo {
   id: string;
   filename: string;
-  thumbnailPath: string;
-  watermarkedPath: string;
-  isSelected: boolean;
+  thumbnail_path: string;
+  is_selected: boolean;
   price: number;
-  metadata?: any;
 }
 
 interface Album {
   id: string;
   name: string;
-  shareToken: string;
-  isActive: boolean;
+  share_token: string;
+  is_active: boolean;
 }
 
-interface ClientPhotoSelectionProps {
-  shareToken?: string;
-}
-
-const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
+const ClientPhotoSelection: React.FC = () => {
   const { shareToken } = useParams<{ shareToken: string }>();
   const [album, setAlbum] = useState<Album | null>(null);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [lightboxPhotoIndex, setLightboxPhotoIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [watermarkConfig, setWatermarkConfig] = useState<any>(null);
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectionLocked, setSelectionLocked] = useState(false);
-  const [pricingConfig, setPricingConfig] = useState({
-    photoPrice: 25.00,
-    packagePhotos: 10,
-    minimumPackagePrice: 300.00
-  });
-
-  const [clientData, setClientData] = useState({
-    name: '',
-    email: '',
-    cpf: '',
-  });
-  const [photoComments, setPhotoComments] = useState<Record<string, string>>({});
-  const [editingComment, setEditingComment] = useState<string | null>(null);
-  const [tempComment, setTempComment] = useState('');
 
   useEffect(() => {
     loadAlbumData();
-    loadWatermarkConfig();
-    loadPricingConfig();
-    
-    // Registrar visualização do álbum
-    if (shareToken) {
-      registerAlbumView();
-    }
-    
-    // Gerar device ID para compliance do MP
-    generateDeviceId();
   }, [shareToken]);
-
-  const generateDeviceId = () => {
-    // Gerar device ID único para compliance do MercadoPago
-    const deviceFingerprint = [
-      navigator.userAgent,
-      navigator.language,
-      screen.width + 'x' + screen.height,
-      new Date().getTimezoneOffset(),
-      Date.now()
-    ].join('|');
-    
-    const deviceId = btoa(deviceFingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
-    console.log('Generated device ID for client selection:', deviceId);
-  };
 
   const loadAlbumData = async () => {
     try {
-      // Buscar álbum pelo share token
+      // Load album
       const { data: albumData, error: albumError } = await supabase
         .from('albums')
         .select('*')
@@ -92,28 +42,13 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         .single();
 
       if (albumError || !albumData) {
-        toast.error('Álbum não encontrado ou inativo');
+        toast.error('Álbum não encontrado');
         return;
       }
 
       setAlbum(albumData);
 
-      // Buscar dados do evento para pré-preencher informações do cliente
-      const { data: eventData } = await supabase
-        .from('events')
-        .select('client_name, client_email')
-        .eq('id', albumData.event_id)
-        .maybeSingle();
-
-      if (eventData) {
-        setClientData(prev => ({
-          ...prev,
-          name: eventData.client_name,
-          email: eventData.client_email,
-        }));
-      }
-
-      // Buscar fotos do álbum
+      // Load photos
       const { data: photosData, error: photosError } = await supabase
         .from('photos')
         .select('*')
@@ -125,123 +60,21 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         return;
       }
 
-      const formattedPhotos = photosData.map(photo => ({
-        id: photo.id,
-        filename: photo.filename,
-        thumbnailPath: photo.thumbnail_path,
-        watermarkedPath: photo.watermarked_path,
-        isSelected: photo.is_selected,
-        price: photo.price,
-        metadata: photo.metadata,
-      }));
-
-      setPhotos(formattedPhotos);
+      setPhotos(photosData || []);
       
-      // Inicializar seleções
-      const selected = new Set(formattedPhotos.filter(p => p.isSelected).map(p => p.id));
+      // Initialize selections
+      const selected = new Set(photosData?.filter(p => p.is_selected).map(p => p.id) || []);
       setSelectedPhotos(selected);
-      
-      // Carregar comentários existentes
-      const comments: Record<string, string> = {};
-      formattedPhotos.forEach(photo => {
-        if (photo.metadata?.client_comment) {
-          comments[photo.id] = photo.metadata.client_comment;
-        }
-      });
-      setPhotoComments(comments);
-      
-      // Verificar se a seleção já foi finalizada (tem fotos selecionadas)
-      if (selected.size > 0) {
-        setSelectionLocked(true);
-      }
 
     } catch (error) {
       console.error('Error loading album data:', error);
-      toast.error('Erro ao carregar dados do álbum');
+      toast.error('Erro ao carregar álbum');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadWatermarkConfig = async () => {
-    try {
-      // Buscar configuração do primeiro fotógrafo (assumindo um estúdio)
-      const { data: photographer } = await supabase
-        .from('photographers')
-        .select('watermark_config, user_id')
-        .limit(1)
-        .maybeSingle();
-
-      if (photographer?.watermark_config?.watermarkFile) {
-        setWatermarkConfig(photographer.watermark_config);
-      }
-    } catch (error) {
-      console.error('Error loading watermark config:', error);
-    }
-  };
-
-  const loadPricingConfig = async () => {
-    try {
-      const { data: photographer } = await supabase
-        .from('photographers')
-        .select('watermark_config')
-        .limit(1)
-        .maybeSingle();
-
-      if (photographer?.watermark_config) {
-        const config = photographer.watermark_config;
-        setPricingConfig({
-          photoPrice: config.photoPrice || 25.00,
-          packagePhotos: config.packagePhotos || 10,
-          minimumPackagePrice: config.minimumPackagePrice || 300.00
-        });
-      }
-    } catch (error) {
-      console.error('Error loading pricing config:', error);
-    }
-  };
-
-  const registerAlbumView = async () => {
-    if (!album) return;
-
-    try {
-      // Verificar se já foi registrada uma visualização
-      const { data: currentAlbum } = await supabase
-        .from('albums')
-        .select('activity_log')
-        .eq('id', album.id)
-        .single();
-
-      const currentLog = currentAlbum?.activity_log || [];
-      const hasViewLog = currentLog.some(log => log.type === 'album_viewed');
-
-      if (!hasViewLog) {
-        const newActivity = {
-          timestamp: new Date().toISOString(),
-          type: 'album_viewed',
-          description: 'Cliente visualizou o álbum pela primeira vez'
-        };
-
-        await supabase
-          .from('albums')
-          .update({ 
-            activity_log: [...currentLog, newActivity]
-          })
-          .eq('id', album.id);
-
-        console.log('Album view registered');
-      }
-    } catch (error) {
-      console.error('Error registering album view:', error);
-    }
-  };
   const togglePhotoSelection = async (photoId: string) => {
-    // Verificar se a seleção está bloqueada
-    if (selectionLocked) {
-      toast.error('Seleção finalizada. Entre em contato para alterações.');
-      return;
-    }
-    
     const newSelected = new Set(selectedPhotos);
     const isSelected = selectedPhotos.has(photoId);
     
@@ -253,7 +86,7 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     
     setSelectedPhotos(newSelected);
     
-    // Atualizar no banco de dados
+    // Update in database
     try {
       const { error } = await supabase
         .from('photos')
@@ -262,40 +95,9 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
 
       if (error) {
         console.error('Error updating photo selection:', error);
-        // Reverter se falhou
+        // Revert if failed
         setSelectedPhotos(prev => isSelected ? new Set([...prev, photoId]) : new Set([...prev].filter(id => id !== photoId)));
         toast.error('Erro ao atualizar seleção');
-        return;
-      }
-
-      // Atualizar log de atividade do álbum
-      if (album) {
-        try {
-          const { data: currentAlbum } = await supabase
-            .from('albums')
-            .select('activity_log')
-            .eq('id', album.id)
-            .single();
-
-          const currentLog = currentAlbum?.activity_log || [];
-          const photo = photos.find(p => p.id === photoId);
-          const newActivity = {
-            timestamp: new Date().toISOString(),
-            type: !isSelected ? 'photo_selected' : 'photo_deselected',
-            description: !isSelected 
-              ? `Cliente selecionou a foto "${photo?.filename}"`
-              : `Cliente removeu a foto "${photo?.filename}" da seleção`
-          };
-
-          await supabase
-            .from('albums')
-            .update({ 
-              activity_log: [...currentLog, newActivity]
-            })
-            .eq('id', album.id);
-        } catch (error) {
-          console.error('Error updating activity log:', error);
-        }
       }
     } catch (error) {
       console.error('Error updating photo selection:', error);
@@ -303,267 +105,17 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     }
   };
 
-  const checkExtraPhotosPayment = async () => {
-    try {
-      if (!album) return false;
-      
-      // Buscar pedidos pagos para este evento
-      const { data: paidOrders } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('event_id', album.event_id)
-        .eq('status', 'paid')
-        .gt('total_amount', 0); // Apenas pedidos com valor > 0 (fotos extras)
-      
-      return paidOrders && paidOrders.length > 0;
-    } catch (error) {
-      console.error('Error checking extra photos payment:', error);
-      return false;
-    }
-  };
-
-  const checkAdvancePayment = () => {
-    // Verificar se há pagamento antecipado para este evento
-    // Pagamentos antecipados são valores entre 150-300 (configuração padrão)
-    // Se não há pagamento antecipado, é agendamento manual
-    try {
-      if (!album) return false;
-      
-      // Buscar pedidos pagos para este evento com valor de agendamento
-      const { data: advanceOrders } = supabase
-        .from('orders')
-        .select('*')
-        .eq('event_id', album.event_id)
-        .eq('status', 'paid')
-        .gte('total_amount', 150) // Valor mínimo de agendamento
-        .lte('total_amount', 300); // Valor máximo de agendamento
-      
-      return false; // Por enquanto, assumir que agendamentos manuais não têm pagamento antecipado
-    } catch (error) {
-      console.error('Error checking advance payment:', error);
-      return false;
-    }
-  };
-
-  const startEditingComment = (photoId: string) => {
-    setEditingComment(photoId);
-    setTempComment(photoComments[photoId] || '');
-  };
-
-  const saveComment = async (photoId: string) => {
-    try {
-      const photo = photos.find(p => p.id === photoId);
-      if (!photo) return;
-
-      const updatedMetadata = {
-        ...photo.metadata,
-        client_comment: tempComment.trim()
-      };
-
-      const { error } = await supabase
-        .from('photos')
-        .update({ metadata: updatedMetadata })
-        .eq('id', photoId);
-
-      if (error) {
-        console.error('Error saving comment:', error);
-        toast.error('Erro ao salvar comentário');
-        return;
-      }
-
-      setPhotoComments(prev => ({
-        ...prev,
-        [photoId]: tempComment.trim()
-      }));
-      
-      setEditingComment(null);
-      setTempComment('');
-      toast.success('Comentário salvo!');
-    } catch (error) {
-      console.error('Error saving comment:', error);
-      toast.error('Erro ao salvar comentário');
-    }
-  };
-
-  const cancelEditingComment = () => {
-    setEditingComment(null);
-    setTempComment('');
-  };
-
   const totalPrice = Array.from(selectedPhotos).reduce((total, photoId) => {
     const photo = photos.find(p => p.id === photoId);
     return total + (photo?.price || 0);
   }, 0);
-
-  // Calcular preços com sistema de pacote mínimo e desconto progressivo
-  const calculateTotalWithDiscount = () => {
-    const selectedCount = selectedPhotos.size;
-    const { photoPrice, packagePhotos } = pricingConfig;
-    
-    // Verificar se há pagamento antecipado para este evento
-    const hasAdvancePayment = checkAdvancePayment();
-    
-    if (hasAdvancePayment) {
-      // Cliente pagou antecipadamente - aplicar lógica de pacote
-      if (selectedCount <= packagePhotos) {
-        return {
-          total: 0, // Já pago no agendamento
-          discount: 0,
-          hasDiscount: false,
-          extraPhotosCount: 0,
-          packagePhotos: selectedCount,
-          isMinimumPackage: selectedCount <= packagePhotos,
-          message: `${selectedCount} foto${selectedCount > 1 ? 's' : ''} incluída${selectedCount > 1 ? 's' : ''} no pacote já pago`
-        };
-      }
-      
-      // Mais de X fotos: pacote mínimo + fotos extras com desconto
-      const extraPhotosCount = selectedCount - packagePhotos;
-      let extraPhotosTotal = extraPhotosCount * photoPrice;
-      let discount = 0;
-      
-      // Aplicar desconto progressivo nas fotos extras
-      if (extraPhotosCount > 5) {
-        discount = extraPhotosTotal * 0.05;
-      }
-      
-      const finalExtraTotal = extraPhotosTotal - discount;
-      
-      return {
-        total: finalExtraTotal,
-        discount: discount,
-        hasDiscount: discount > 0,
-        extraPhotosCount: extraPhotosCount,
-        packagePhotos: packagePhotos,
-        extraPhotosOriginalTotal: extraPhotosTotal,
-        photoPrice: photoPrice
-      };
-    } else {
-      // Cliente NÃO pagou antecipadamente (agendamento manual) - cobrar todas as fotos
-      let totalAmount = selectedCount * photoPrice;
-      let discount = 0;
-      
-      // Aplicar desconto progressivo baseado na quantidade
-      if (selectedCount >= 10) {
-        // 10+ fotos: 10% desconto
-        discount = totalAmount * 0.10;
-      } else if (selectedCount >= 5) {
-        // 5-9 fotos: 5% desconto
-        discount = totalAmount * 0.05;
-      }
-      
-      const finalTotal = totalAmount - discount;
-      
-      return {
-        total: finalTotal,
-        discount: discount,
-        hasDiscount: discount > 0,
-        extraPhotosCount: selectedCount,
-        packagePhotos: 0,
-        extraPhotosOriginalTotal: totalAmount,
-        photoPrice: photoPrice,
-        isManualBooking: true,
-        message: `${selectedCount} foto${selectedCount > 1 ? 's' : ''} - Agendamento manual`
-      };
-    }
-  };
-
-  const priceCalculation = calculateTotalWithDiscount();
-
-  const handleFinishSelection = () => {
-    if (selectedPhotos.size === 0) {
-      toast.error('Selecione pelo menos uma foto');
-      return;
-    }
-    
-    if (priceCalculation.total > 0) {
-      setShowCheckout(true);
-    } else {
-      // Fotos gratuitas - confirmar seleção diretamente
-      confirmFreeSelection();
-    }
-  };
-
-  const confirmFreeSelection = async () => {
-    setIsSubmitting(true);
-    try {
-      // Para seleções gratuitas, apenas atualizar as fotos como selecionadas
-      // Não criar entrada na tabela orders pois não houve pagamento
-      console.log('Free selection confirmed - no payment record needed');
-
-      // Registrar finalização da seleção no log de atividades
-      if (album) {
-        try {
-          const { data: currentAlbum } = await supabase
-            .from('albums')
-            .select('activity_log')
-            .eq('id', album.id)
-            .single();
-
-          const currentLog = currentAlbum?.activity_log || [];
-          const newActivity = {
-            timestamp: new Date().toISOString(),
-            type: 'selection_completed',
-            description: `Cliente finalizou a seleção com ${selectedPhotos.size} fotos (seleção gratuita)`
-          };
-
-          await supabase
-            .from('albums')
-            .update({ 
-              activity_log: [...currentLog, newActivity]
-            })
-            .eq('id', album.id);
-        } catch (error) {
-          console.error('Error updating activity log:', error);
-        }
-      }
-
-      // Bloquear futuras alterações
-      setSelectionLocked(true);
-      
-      toast.success('Seleção confirmada com sucesso!');
-      setSelectedPhotos(new Set());
-    } catch (error) {
-      console.error('Error confirming free selection:', error);
-      toast.error('Erro ao confirmar seleção');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const getWatermarkStyle = () => {
-    if (!watermarkConfig) return {};
-    
-    const baseStyle = {
-      position: 'absolute' as const,
-      opacity: watermarkConfig.opacity,
-      width: `${watermarkConfig.size}%`,
-      height: 'auto',
-      pointerEvents: 'none' as const,
-    };
-
-    switch (watermarkConfig.position) {
-      case 'center':
-        return { ...baseStyle, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-      case 'bottom-right':
-        return { ...baseStyle, bottom: '20px', right: '20px' };
-      case 'bottom-left':
-        return { ...baseStyle, bottom: '20px', left: '20px' };
-      case 'top-right':
-        return { ...baseStyle, top: '20px', right: '20px' };
-      case 'top-left':
-        return { ...baseStyle, top: '20px', left: '20px' };
-      default:
-        return baseStyle;
-    }
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando suas fotos...</p>
+          <p className="mt-4 text-gray-600">Carregando fotos...</p>
         </div>
       </div>
     );
@@ -580,26 +132,6 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     );
   }
 
-  if (showCheckout) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
-          <Checkout
-            albumId={album.id}
-            selectedPhotos={Array.from(selectedPhotos)}
-            totalAmount={priceCalculation.total}
-            onBack={() => setShowCheckout(false)}
-            onComplete={() => {
-              setShowCheckout(false);
-              setSelectedPhotos(new Set());
-              setSelectionLocked(true);
-            }}
-          />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster position="top-center" />
@@ -608,346 +140,81 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{album.name}</h1>
           <p className="text-gray-600">
-            Selecione suas fotos favoritas • {photos.length} fotos disponíveis • {selectedPhotos.size} selecionadas
+            {photos.length} fotos disponíveis • {selectedPhotos.size} selecionadas
           </p>
+          {selectedPhotos.size > 0 && (
+            <p className="text-lg font-semibold text-green-600 mt-2">
+              Total: R$ {totalPrice.toFixed(2)}
+            </p>
+          )}
         </div>
 
-        {/* Selection Summary */}
-        {selectedPhotos.size > 0 && priceCalculation.total > 0 && !selectionLocked && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
-                </h3>
-                <div className="text-gray-600">
-                  {priceCalculation.isManualBooking ? (
-                    <div>
-                      <p className="text-sm text-blue-600">Agendamento manual - todas as fotos são cobradas</p>
-                      <p className="text-sm">
-                        {selectedPhotos.size} fotos × R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 ml-2">
-                            ({selectedPhotos.size >= 10 ? '10%' : '5%'} desconto aplicado)
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 text-sm ml-2">
-                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-sm text-green-600">{pricingConfig.packagePhotos} fotos incluídas no pacote</p>
-                      <p className="text-sm">
-                        {priceCalculation.extraPhotosCount} fotos extras: R$ {priceCalculation.photoPrice.toFixed(2)} cada
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 ml-2">
-                            (5% desconto aplicado)
-                          </span>
-                        )}
-                      </p>
-                      <p className="font-semibold text-lg">
-                        Total a pagar: R$ {priceCalculation.total.toFixed(2)}
-                        {priceCalculation.hasDiscount && (
-                          <span className="text-green-600 text-sm ml-2">
-                            (Economia: R$ {priceCalculation.discount.toFixed(2)})
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={handleFinishSelection}
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                {isSubmitting ? 'Finalizando...' : 'Finalizar Seleção'}
-              </button>
-            </div>
+        {/* Photo Grid */}
+        {photos.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Nenhuma foto encontrada neste álbum.</p>
           </div>
-        )}
-
-        {/* Message for free photos */}
-        {selectedPhotos.size > 0 && priceCalculation.total === 0 && !selectionLocked && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
-            <div className="flex items-center justify-center">
-              <div className="text-center">
-                <h3 className="text-lg font-semibold text-green-900 mb-2">
-                  {selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''} selecionada{selectedPhotos.size > 1 ? 's' : ''}
-                </h3>
-                <div className="text-green-700">
-                  <p className="font-medium mb-1">{priceCalculation.message}</p>
-                  <p className="text-sm">Suas fotos estão incluídas no pacote já pago!</p>
-                </div>
-                <button
-                  onClick={handleFinishSelection}
-                  disabled={isSubmitting}
-                  className="mt-4 flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium mx-auto"
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {photos.map((photo, index) => {
+              const isSelected = selectedPhotos.has(photo.id);
+              
+              return (
+                <div
+                  key={photo.id}
+                  className={`relative group bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-all ${
+                    isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : 'hover:shadow-lg'
+                  }`}
+                  style={{ aspectRatio: '1/1' }}
                 >
-                  <Check className="w-5 h-5" />
-                  {isSubmitting ? 'Confirmando...' : 'Confirmar Seleção'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                  <img
+                    src={photo.thumbnail_path}
+                    alt={photo.filename}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://picsum.photos/400/400?random=${photo.id.slice(-6)}`;
+                    }}
+                  />
 
-        {/* Instructions when no photos selected */}
-        {selectedPhotos.size === 0 && !selectionLocked && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                Selecione suas fotos favoritas
-              </h3>
-              <div className="text-blue-700">
-                {checkAdvancePayment() ? (
-                  <>
-                    <p className="mb-2">
-                      <strong>{pricingConfig.packagePhotos} fotos incluídas</strong> no seu pacote
-                    </p>
-                    <p className="text-sm">
-                      Fotos extras: R$ {pricingConfig.photoPrice.toFixed(2)} cada
-                      <span className="text-green-600 ml-1">(5% desconto após 5 extras)</span>
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mb-2">
-                      <strong>Agendamento manual</strong> - todas as fotos são cobradas
-                    </p>
-                    <p className="text-sm">
-                      Preço por foto: R$ {pricingConfig.photoPrice.toFixed(2)}
-                      <span className="text-green-600 ml-1">(Descontos: 5% para 5+ fotos, 10% para 10+ fotos)</span>
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all">
+                    <div className="absolute top-2 right-2 space-y-2">
+                      <button
+                        onClick={() => setLightboxPhotoIndex(index)}
+                        className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <Eye className="w-4 h-4 text-gray-700" />
+                      </button>
 
-        {/* Selection locked message */}
-        {selectionLocked && (
-          <div className="bg-gray-50 border border-gray-300 rounded-lg p-6 mb-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Seleção Finalizada
-              </h3>
-              <div className="text-gray-700">
-                <p className="mb-2">
-                  Você já finalizou sua seleção com <strong>{selectedPhotos.size} foto{selectedPhotos.size > 1 ? 's' : ''}</strong>.
-                </p>
-                <p className="text-sm">
-                  Para fazer alterações, entre em contato conosco.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+                      <button
+                        onClick={() => togglePhotoSelection(photo.id)}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          isSelected
+                            ? 'bg-blue-500 text-white opacity-100'
+                            : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100'
+                        }`}
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {photos.map((photo, index) => {
-            const isSelected = selectedPhotos.has(photo.id);
-            
-            return (
-              <div
-                key={photo.id}
-                className={`relative group bg-gray-100 rounded-lg overflow-hidden transition-all duration-200 ${
-                  isSelected ? 'ring-2 ring-blue-500 ring-offset-2' : ''
-                } ${
-                  selectionLocked ? 'cursor-default' : 'cursor-pointer hover:shadow-lg'
-                }`}
-                style={{ aspectRatio: '1/1' }}
-              >
-                {/* Photo */}
-                <img
-                  src={photo.thumbnailPath}
-                  alt={photo.filename}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.src = `https://picsum.photos/400/400?random=${photo.id.slice(-6)}`;
-                  }}
-                />
+                    <div className="absolute bottom-2 left-2">
+                      <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all">
+                        R$ {photo.price.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
 
-                {/* Watermark overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  {watermarkConfig && watermarkConfig.watermarkFile && (
-                    <img
-                      src={watermarkConfig.watermarkFile}
-                      alt="Watermark"
-                      style={getWatermarkStyle()}
-                    />
-                  )}
-                  {/* Fallback watermark se não houver marca d'água configurada */}
-                  {!watermarkConfig?.watermarkFile && (
-                    <div 
-                      className="absolute inset-0 flex items-center justify-center"
-                      style={{
-                        background: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.1) 35px, rgba(255,255,255,0.1) 70px)',
-                        pointerEvents: 'none'
-                      }}
-                    >
-                      <div className="text-white text-opacity-30 text-lg font-bold transform rotate-45">
-                        PREVIEW
+                  {isSelected && (
+                    <div className="absolute top-2 left-2">
+                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* Selection overlay */}
-                <div className={`absolute inset-0 bg-black bg-opacity-0 transition-all duration-200 ${
-                  !selectionLocked ? 'group-hover:bg-opacity-20' : ''
-                }`}>
-                  <div className="absolute top-2 right-2 space-y-2">
-                    {/* View button */}
-                    <button
-                      onClick={() => setLightboxPhotoIndex(index)}
-                      className={`w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 ${
-                        selectionLocked ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                      }`}
-                    >
-                      <Eye className="w-4 h-4 text-gray-700" />
-                    </button>
-
-                    {/* Selection button - only show if not locked */}
-                    {!selectionLocked && (
-                      <button
-                        onClick={() => togglePhotoSelection(photo.id)}
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 ${
-                          isSelected
-                            ? 'bg-green-500 text-white opacity-100'
-                            : 'bg-white bg-opacity-90 text-gray-700 opacity-0 group-hover:opacity-100 hover:bg-opacity-100'
-                        }`}
-                      >
-                        {isSelected ? '✓' : '+'}
-                      </button>
-                    )}
-
-                    {/* Comment button */}
-                    <button
-                      onClick={() => startEditingComment(photo.id)}
-                      className="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all duration-200 opacity-0 group-hover:opacity-100"
-                    >
-                      <MessageSquare className="w-4 h-4 text-gray-700" />
-                    </button>
-                  </div>
-
-                  {/* Price tag */}
-                  {selectedPhotos.size > pricingConfig.packagePhotos && !selectionLocked && (
-                    <div className="absolute bottom-2 left-2">
-                      <span className="bg-white bg-opacity-90 px-2 py-1 rounded text-xs font-semibold text-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                        R$ {pricingConfig.photoPrice.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Selection indicator - removido para evitar redundância */}
-                {isSelected && (
-                  <div className="absolute inset-0 border-4 border-green-500 rounded-lg pointer-events-none">
-                    <div className="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
-                      {Array.from(selectedPhotos).indexOf(photo.id) + 1}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Lock indicator for selected photos when locked */}
-                {selectionLocked && isSelected && (
-                  <div className="absolute bottom-2 right-2">
-                    <div className="bg-gray-800 bg-opacity-75 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
-                      </svg>
-                      Selecionada
-                    </div>
-                  </div>
-                )}
-
-                {/* Comment indicator */}
-                {photoComments[photo.id] && (
-                  <div className="absolute bottom-2 right-2">
-                    <div className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                      <MessageSquare className="w-3 h-3" />
-                      <span>💬</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Comment Modal */}
-        {editingComment && lightboxPhotoIndex === null && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-              <div className="flex justify-between items-center p-4 border-b">
-                <h3 className="text-lg font-semibold text-gray-900">Comentário da Foto</h3>
-                <button
-                  onClick={cancelEditingComment}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-4">
-                <div className="mb-4">
-                  <img
-                    src={photos.find(p => p.id === editingComment)?.thumbnailPath}
-                    alt="Foto"
-                    className="w-full h-32 object-cover rounded-lg"
-                    onError={(e) => {
-                      console.warn('Failed to load photo:', photo.thumbnailPath);
-                      e.currentTarget.src = `https://via.placeholder.com/400x400/f3f4f6/9ca3af?text=Foto+Indisponível`;
-                    }}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Seu comentário ou dúvida sobre esta foto:
-                  </label>
-                  <textarea
-                    value={tempComment}
-                    onChange={(e) => setTempComment(e.target.value)}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Ex: Pode deixar esta foto mais clara? Gostaria de uma versão em preto e branco..."
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 p-4 border-t">
-                <button
-                  onClick={cancelEditingComment}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => saveComment(editingComment)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Salvar Comentário
-                </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
 
@@ -955,150 +222,55 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
         {lightboxPhotoIndex !== null && (
           <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4">
             <div className="relative max-w-4xl max-h-full">
-              {/* Close button */}
               <button
                 onClick={() => setLightboxPhotoIndex(null)}
-                className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
+                className="absolute top-4 right-4 w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 z-10"
               >
                 <X className="w-6 h-6 text-white" />
               </button>
 
-              {/* Navigation buttons */}
               <button
                 onClick={() => setLightboxPhotoIndex(lightboxPhotoIndex > 0 ? lightboxPhotoIndex - 1 : photos.length - 1)}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 z-10"
               >
                 <ChevronLeft className="w-8 h-8 text-white" />
               </button>
 
               <button
                 onClick={() => setLightboxPhotoIndex(lightboxPhotoIndex < photos.length - 1 ? lightboxPhotoIndex + 1 : 0)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 transition-colors z-10"
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center hover:bg-opacity-30 z-10"
               >
                 <ChevronRight className="w-8 h-8 text-white" />
               </button>
 
-              {/* Main image */}
-              <div className="relative">
-                <img
-                  src={photos[lightboxPhotoIndex].watermarkedPath}
-                  alt={photos[lightboxPhotoIndex].filename}
-                  className="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto"
-                  onError={(e) => {
-                    e.currentTarget.src = `https://picsum.photos/1200/800?random=${photos[lightboxPhotoIndex].id.slice(-6)}`;
-                  }}
-                />
-                
-                {/* Watermark overlay */}
-                {watermarkConfig && watermarkConfig.watermarkFile && (
-                  <img
-                    src={watermarkConfig.watermarkFile}
-                    alt="Watermark"
-                    style={getWatermarkStyle()}
-                  />
-                )}
-                {/* Fallback watermark para lightbox se não houver marca d'água */}
-                {!watermarkConfig?.watermarkFile && (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                    style={{
-                      background: 'repeating-linear-gradient(45deg, transparent, transparent 50px, rgba(255,255,255,0.1) 50px, rgba(255,255,255,0.1) 100px)',
-                    }}
-                  >
-                    <div className="text-white text-opacity-40 text-2xl font-bold transform rotate-45">
-                      PREVIEW
-                    </div>
-                  </div>
-                )}
-              </div>
+              <img
+                src={photos[lightboxPhotoIndex].thumbnail_path}
+                alt={photos[lightboxPhotoIndex].filename}
+                className="max-w-full max-h-[80vh] object-contain rounded-lg mx-auto"
+                onError={(e) => {
+                  e.currentTarget.src = `https://picsum.photos/1200/800?random=${photos[lightboxPhotoIndex].id.slice(-6)}`;
+                }}
+              />
 
-              {/* Comment overlay - appears when editing comment */}
-              {editingComment === photos[lightboxPhotoIndex].id && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20">
-                  <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-                    <div className="flex justify-between items-center p-4 border-b">
-                      <h3 className="text-lg font-semibold text-gray-900">Comentário da Foto</h3>
-                      <button
-                        onClick={cancelEditingComment}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="p-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Seu comentário ou dúvida sobre esta foto:
-                        </label>
-                        <textarea
-                          value={tempComment}
-                          onChange={(e) => setTempComment(e.target.value)}
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Ex: Pode deixar esta foto mais clara? Gostaria de uma versão em preto e branco..."
-                          autoFocus
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 p-4 border-t">
-                      <button
-                        onClick={cancelEditingComment}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={() => saveComment(editingComment)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Salvar Comentário
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Photo info */}
               <div className="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded-lg p-4">
                 <div className="flex justify-between items-center text-white">
                   <div>
-                    <p className="font-semibold">{photos[lightboxPhotoIndex].filename}</p>
+                    <p className="font-medium">{photos[lightboxPhotoIndex].filename}</p>
                     <p className="text-sm text-gray-300">
-                      {lightboxPhotoIndex + 1} de {photos.length}
-                      {selectedPhotos.size > pricingConfig.packagePhotos && (
-                        <span className="ml-2">• R$ {pricingConfig.photoPrice.toFixed(2)}</span>
-                      )}
+                      {lightboxPhotoIndex + 1} de {photos.length} • R$ {photos[lightboxPhotoIndex].price.toFixed(2)}
                     </p>
-                    {photoComments[photos[lightboxPhotoIndex].id] && (
-                      <p className="text-xs text-blue-200 mt-2 max-w-xs sm:max-w-sm md:max-w-md break-words">
-                        💬 Cliente: {photoComments[photos[lightboxPhotoIndex].id]}
-                      </p>
-                    )}
                   </div>
                   
-                  <div className="flex gap-2">
-                    {!selectionLocked && (
-                      <button
-                        onClick={() => togglePhotoSelection(photos[lightboxPhotoIndex].id)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                          selectedPhotos.has(photos[lightboxPhotoIndex].id)
-                            ? 'bg-green-500 text-white hover:bg-green-600'
-                            : 'bg-white text-gray-900 hover:bg-gray-100'
-                        }`}
-                      >
-                        {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
-                      </button>
-                    )}
-                    
-                    <button
-                      onClick={() => startEditingComment(photos[lightboxPhotoIndex].id)}
-                      className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-                    >
-                      💬 Comentar
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => togglePhotoSelection(photos[lightboxPhotoIndex].id)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      selectedPhotos.has(photos[lightboxPhotoIndex].id)
+                        ? 'bg-blue-500 text-white hover:bg-blue-600'
+                        : 'bg-white text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    {selectedPhotos.has(photos[lightboxPhotoIndex].id) ? 'Selecionada' : 'Selecionar'}
+                  </button>
                 </div>
               </div>
             </div>
