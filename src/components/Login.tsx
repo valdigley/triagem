@@ -230,7 +230,7 @@ const Login: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen w-full relative"
+      className="min-h-screen flex items-center justify-center p-4 relative"
       style={{
         backgroundImage: 'url(/Pedra Furada.jpg)',
         backgroundSize: 'cover',
@@ -238,12 +238,11 @@ const Login: React.FC = () => {
         backgroundRepeat: 'no-repeat'
       }}
     >
-      {/* Dark overlay for better text readability */}
-      <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-
-      {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-sm mx-auto">
+      {/* Overlay para melhorar legibilidade */}
+      <div className="absolute inset-0 bg-black/40"></div>
+      
+      <div className="max-w-md w-full space-y-8">
+        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-8 relative z-10">
           {/* Logo and Branding */}
           <div className="text-center mb-6">
             {studioLogo ? (
