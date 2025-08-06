@@ -573,6 +573,7 @@ const PublicScheduling: React.FC = () => {
       selected_photos: [],
       event_id: null, // Será criado após confirmação do pagamento
       client_email: eventData.client_email,
+      items: [
         {
           id: `session_${eventData.session_type || 'photo'}`,
           title: `${sessionTypeLabel} - Pagamento Antecipado`,
