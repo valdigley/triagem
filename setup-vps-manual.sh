@@ -40,6 +40,7 @@ fi
 echo ""
 info "📝 Informações necessárias:"
 read -p "URL do seu repositório GitHub: " REPO_URL
+read -p "Nome do repositório (ex: triagem-sistema): " REPO_NAME
 read -p "Seu domínio ou IP da VPS: " VPS_DOMAIN
 read -p "URL do Supabase: " SUPABASE_URL
 read -p "Chave anônima do Supabase: " SUPABASE_KEY
@@ -74,10 +75,10 @@ fi
 
 # Criar diretório e clonar projeto
 log "📁 Configurando projeto..."
-sudo mkdir -p /var/www/triagem
-sudo chown $USER:$USER /var/www/triagem
+sudo mkdir -p /var/www/$REPO_NAME
+sudo chown $USER:$USER /var/www/$REPO_NAME
 
-cd /var/www/triagem
+cd /var/www/$REPO_NAME
 
 if [ ! -z "$REPO_URL" ]; then
     log "📥 Clonando repositório..."
@@ -106,7 +107,7 @@ cat > ecosystem.config.js << EOF
 module.exports = {
   apps: [
     {
-      name: 'triagem-webhook',
+      name: '$REPO_NAME-webhook',
       script: 'webhook-deploy.js',
       instances: 1,
       autorestart: true,
@@ -116,7 +117,7 @@ module.exports = {
         NODE_ENV: 'production',
         WEBHOOK_PORT: 3001,
         WEBHOOK_SECRET: '$WEBHOOK_SECRET',
-        PROJECT_PATH: '/var/www/triagem'
+        PROJECT_PATH: '/var/www/$REPO_NAME'
       },
       error_file: '/var/log/pm2/triagem-webhook-error.log',
       out_file: '/var/log/pm2/triagem-webhook-out.log',
@@ -133,12 +134,12 @@ npm run build
 
 # Configurar Nginx
 log "🌐 Configurando Nginx..."
-sudo tee /etc/nginx/sites-available/triagem > /dev/null << EOF
+sudo tee /etc/nginx/sites-available/$REPO_NAME > /dev/null << EOF
 server {
     listen 80;
     server_name $VPS_DOMAIN;
     
-    root /var/www/triagem/dist;
+    root /var/www/$REPO_NAME/dist;
     index index.html;
     
     access_log /var/log/nginx/triagem_access.log;
@@ -188,7 +189,7 @@ server {
 EOF
 
 # Ativar site
-sudo ln -sf /etc/nginx/sites-available/triagem /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/$REPO_NAME /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Testar e recarregar Nginx

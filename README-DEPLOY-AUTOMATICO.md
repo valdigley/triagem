@@ -26,8 +26,8 @@ Este guia configura deploy automático do projeto para sua VPS usando GitHub Act
 # Conectar na VPS via SSH
 ssh usuario@sua-vps
 
-# Baixar script do seu repositório (após fazer push do Bolt)
-wget https://raw.githubusercontent.com/SEU-USUARIO/SEU-REPO/main/setup-vps-manual.sh
+# Baixar script do seu repositório (substitua SEU-USUARIO e NOME-DO-REPO)
+wget https://raw.githubusercontent.com/SEU-USUARIO/NOME-DO-REPO/main/setup-vps-manual.sh
 
 # Executar
 bash setup-vps-manual.sh
