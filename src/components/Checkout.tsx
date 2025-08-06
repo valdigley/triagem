@@ -150,7 +150,6 @@ const Checkout: React.FC<CheckoutProps> = ({
     const paymentRequest = {
       transaction_amount: totalAmount,
       description: `Pacote de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} profissional${selectedPhotos.length > 1 ? 'is' : ''} editada${selectedPhotos.length > 1 ? 's' : ''} em alta resolução`,
-      payment_method_id: 'pix', // ou 'visa', 'master', etc.
       statement_descriptor: 'TRIAGEM FOTOS', // Descrição na fatura do cartão
       device_id: deviceId, // ID do dispositivo
       payer: {

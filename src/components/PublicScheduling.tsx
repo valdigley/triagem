@@ -482,9 +482,6 @@ const PublicScheduling: React.FC = () => {
     const paymentRequest = {
       transaction_amount: advanceAmount,
       description: `Agendamento de ${sessionTypeLabel} - Pagamento antecipado para reserva de sessão`,
-      payment_method_id: 'pix',
-      statement_descriptor: 'TRIAGEM AGEND', // Descrição na fatura do cartão
-      device_id: deviceId, // ID do dispositivo
       payer: {
         email: eventData.client_email,
         first_name: firstName,
@@ -503,29 +500,7 @@ const PublicScheduling: React.FC = () => {
       binary_mode: false, // Permitir status pending
       capture: true, // Capturar automaticamente
       additional_info: {
-        items: items,
-        payer: {
-          first_name: firstName,
-          last_name: lastName,
-          phone: {
-            area_code: eventData.client_phone?.replace(/\D/g, '').substring(0, 2) || '11',
-            number: eventData.client_phone?.replace(/\D/g, '').substring(2) || '999999999'
-          },
-          address: {
-            zip_code: '01310-100', // Placeholder
-            street_name: 'Av. Paulista',
-            street_number: 1000
-          }
-        },
-        shipments: {
-          receiver_address: {
-            zip_code: '01310-100',
-            street_name: 'Entrega Digital - Download Online',
-            street_number: 0,
-            floor: '',
-            apartment: ''
-          }
-        }
+        device_id: deviceId
       },
       notification_url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`,
       external_reference: `booking_${Date.now()}_${eventData.session_type}`,
