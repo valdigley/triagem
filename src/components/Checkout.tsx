@@ -135,6 +135,7 @@ const Checkout: React.FC<CheckoutProps> = ({
       unit_price: photo.price, // Preço unitário
       picture_url: photo.thumbnail_path, // URL da imagem do produto
       currency_id: 'BRL' // Moeda
+    }));
     console.log('Creating MercadoPago payment with config:', {
       hasAccessToken: !!mercadoPagoConfig.accessToken,
       accessTokenPrefix: mercadoPagoConfig.accessToken?.substring(0, 20) + '...',
