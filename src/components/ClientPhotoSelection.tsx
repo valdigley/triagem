@@ -4,6 +4,7 @@ import { ShoppingCart, Eye, ChevronLeft, ChevronRight, X, MessageCircle, Mail, C
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
 import Checkout from './Checkout';
+import { loadMercadoPago } from '@mercadopago/sdk-js';
 
 interface Photo {
   id: string;
@@ -61,7 +62,24 @@ const ClientPhotoSelection: React.FC<ClientPhotoSelectionProps> = () => {
     if (shareToken) {
       registerAlbumView();
     }
+    
+    // Gerar device ID para compliance do MP
+    generateDeviceId();
   }, [shareToken]);
+
+  const generateDeviceId = () => {
+    // Gerar device ID único para compliance do MercadoPago
+    const deviceFingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      Date.now()
+    ].join('|');
+    
+    const deviceId = btoa(deviceFingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    console.log('Generated device ID for client selection:', deviceId);
+  };
 
   const loadAlbumData = async () => {
     try {

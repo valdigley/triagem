@@ -13,6 +13,7 @@ interface SubscriptionPaymentRequest {
   amount: number;
   access_token: string;
   client_name?: string;
+  device_id?: string;
 }
 
 serve(async (req) => {
@@ -23,14 +24,15 @@ serve(async (req) => {
   console.log('Subscription payment function called');
 
   try {
-    const { user_id, subscription_id, amount, access_token, client_name }: SubscriptionPaymentRequest = await req.json()
+    const { user_id, subscription_id, amount, access_token, client_name, device_id }: SubscriptionPaymentRequest = await req.json()
 
     console.log('Subscription payment request:', {
       user_id,
       subscription_id,
       amount,
       has_access_token: !!access_token,
-      client_name
+      client_name,
+      has_device_id: !!device_id
     });
 
     if (!user_id || !subscription_id || !amount || !access_token) {
@@ -66,11 +68,26 @@ serve(async (req) => {
     const [firstName, ...lastNameParts] = userName.split(' ');
     const lastName = lastNameParts.join(' ') || 'Silva';
 
+    // Criar itens detalhados para assinatura
+    const items = [
+      {
+        id: 'subscription_monthly',
+        title: 'Assinatura Mensal - Sistema Triagem',
+        description: 'Acesso completo ao sistema de seleção de fotos para fotógrafos profissionais',
+        category_id: 'software_services',
+        quantity: 1,
+        unit_price: amount,
+        currency_id: 'BRL'
+      }
+    ];
+
     // Criar pagamento no Mercado Pago
     const paymentData = {
       transaction_amount: amount,
       description: `Assinatura Mensal - Sistema Triagem - ${userName}`,
       payment_method_id: 'pix',
+      statement_descriptor: 'TRIAGEM ASSIN',
+      ...(device_id && { device_id }),
       payer: {
         email: user.email,
         first_name: firstName,
@@ -80,13 +97,30 @@ serve(async (req) => {
           number: '00000000000'
         }
       },
+      items: items,
+      marketplace: 'NONE',
+      binary_mode: false,
+      capture: true,
+      additional_info: {
+        items: items,
+        payer: {
+          first_name: firstName,
+          last_name: lastName,
+          address: {
+            zip_code: '01310-100',
+            street_name: 'Av. Paulista',
+            street_number: 1000
+          }
+        }
+      },
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/subscription-webhook`,
       external_reference: `subscription_${subscription_id}`,
       metadata: {
         user_id: user_id,
         subscription_id: subscription_id,
         type: 'subscription_payment',
-        client_name: userName
+        client_name: userName,
+        device_id: device_id || ''
       }
     }
 

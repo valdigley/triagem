@@ -4,10 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/logo_triagem_app_icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://sdk.mercadopago.com https://secure.mlstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; connect-src 'self' https://api.mercadopago.com https://*.supabase.co wss://*.supabase.co; font-src 'self' data:;">
     <title>Triagem - Sistema de Seleção de Fotos</title>
     <meta name="description" content="Sistema completo para fotógrafos gerenciarem sessões, compartilharem álbuns e processarem pagamentos de clientes." />
     <meta name="keywords" content="fotografia, seleção de fotos, álbuns, pagamentos, agendamentos" />
     <meta name="author" content="Valdigley Santos" />
+    
+    <!-- MercadoPago SDK V2 -->
+    <script src="https://sdk.mercadopago.com/js/v2" async></script>
   </head>
   <body>
     <div id="root"></div>

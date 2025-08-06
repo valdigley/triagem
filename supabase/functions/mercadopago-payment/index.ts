@@ -11,19 +11,21 @@ interface PaymentRequest {
   transaction_amount: number;
   description: string;
   payment_method_id: string;
+  statement_descriptor?: string;
+  device_id?: string;
   payer: {
     email: string;
     first_name?: string;
     last_name?: string;
+    phone?: {
+      area_code: string;
+      number: string;
+    };
     identification?: {
       type: string;
       number: string;
     };
   };
-  access_token: string;
-  selected_photos: string[];
-  event_id?: string;
-  client_email: string;
   items?: Array<{
     id: string;
     title: string;
@@ -31,7 +33,19 @@ interface PaymentRequest {
     category_id: string;
     quantity: number;
     unit_price: number;
+    currency_id?: string;
+    picture_url?: string;
   }>;
+  marketplace?: string;
+  binary_mode?: boolean;
+  capture?: boolean;
+  additional_info?: any;
+  notification_url?: string;
+  external_reference?: string;
+  access_token: string;
+  selected_photos: string[];
+  event_id?: string;
+  client_email: string;
 }
 
 serve(async (req) => {
@@ -49,12 +63,20 @@ serve(async (req) => {
       transaction_amount, 
       description, 
       payment_method_id, 
+      statement_descriptor,
+      device_id,
       payer, 
       access_token,
       selected_photos,
       event_id,
       client_email,
-      items
+      items,
+      marketplace,
+      binary_mode,
+      capture,
+      additional_info,
+      notification_url,
+      external_reference
     }: PaymentRequest = await req.json()
 
     console.log('Received payment request:', {
@@ -67,17 +89,22 @@ serve(async (req) => {
       selected_photos_count: selected_photos?.length,
       event_id,
       client_email,
+      has_device_id: !!device_id,
+      has_items: !!items && items.length > 0,
+      statement_descriptor
     });
     // Validar dados obrigatórios
-    if (!transaction_amount || !description || !payer?.email || !access_token) {
+    if (!transaction_amount || !description || !payer?.email || !access_token || !payer?.first_name || !payer?.last_name) {
       console.error('Missing required fields:', {
         has_transaction_amount: !!transaction_amount,
         has_description: !!description,
         has_payer_email: !!payer?.email,
         has_access_token: !!access_token,
+        has_first_name: !!payer?.first_name,
+        has_last_name: !!payer?.last_name,
       });
       return new Response(
-        JSON.stringify({ error: 'Dados obrigatórios não fornecidos' }),
+        JSON.stringify({ error: 'Dados obrigatórios não fornecidos: transaction_amount, description, payer.email, payer.first_name, payer.last_name, access_token' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -85,32 +112,53 @@ serve(async (req) => {
       )
     }
 
-    // Criar pagamento no Mercado Pago
-    const [firstName, ...lastNameParts] = (payer.first_name || payer.email.split('@')[0]).split(' ');
-    const lastName = lastNameParts.join(' ') || payer.last_name || 'Cliente';
+    // Validar itens se fornecidos
+    if (items && items.length > 0) {
+      for (const item of items) {
+        if (!item.id || !item.title || !item.description || !item.category_id || !item.quantity || !item.unit_price) {
+          return new Response(
+            JSON.stringify({ error: 'Itens inválidos: todos os campos são obrigatórios (id, title, description, category_id, quantity, unit_price)' }),
+            { 
+              status: 400, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+      }
+    }
     
     const paymentData = {
       transaction_amount,
       description,
       payment_method_id: payment_method_id || 'pix',
+      ...(statement_descriptor && { statement_descriptor }),
+      ...(device_id && { device_id }),
       payer: {
         email: payer.email,
-        first_name: firstName,
-        last_name: lastName,
-        identification: payer.identification || {
+        first_name: payer.first_name,
+        last_name: payer.last_name,
+        ...(payer.phone && { phone: payer.phone }),
+        identification: {
           type: 'CPF',
-          number: '00000000000' // Será substituído pelo valor real quando disponível
+          number: payer.identification?.number || '00000000000'
         }
       },
-      notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/mercadopago-webhook`,
-      external_reference: `order_${Date.now()}`,
+      ...(items && items.length > 0 && { items }),
+      ...(marketplace && { marketplace }),
+      ...(binary_mode !== undefined && { binary_mode }),
+      ...(capture !== undefined && { capture }),
+      ...(additional_info && { additional_info }),
+      ...(notification_url && { notification_url }),
+      ...(external_reference && { external_reference }),
       metadata: {
         selected_photos: selected_photos.join(','),
         event_id: event_id || '',
         client_email: payer.email,
         package_type: selected_photos.length > 10 ? 'extra_photos' : 'basic_package',
         photo_count: selected_photos.length,
-        payment_type: selected_photos.length > 0 ? 'extra_photos' : 'advance_booking'
+        payment_type: selected_photos.length > 0 ? 'extra_photos' : 'advance_booking',
+        device_id: device_id || '',
+        items_count: items?.length || 0
       }
     }
 

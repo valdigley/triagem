@@ -4,6 +4,7 @@ import { useSupabaseData } from '../hooks/useSupabaseData';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { loadMercadoPago } from '@mercadopago/sdk-js';
 
 interface CheckoutProps {
   albumId: string;
@@ -33,6 +34,8 @@ const Checkout: React.FC<CheckoutProps> = ({
     accessToken?: string;
     publicKey?: string;
   }>({});
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [mpInstance, setMpInstance] = useState<any>(null);
 
   const album = albums.find(a => a.id === albumId);
   const event = album ? events.find(e => e.id === album.event_id) : null;
@@ -41,8 +44,40 @@ const Checkout: React.FC<CheckoutProps> = ({
   // Carregar configurações de pagamento
   React.useEffect(() => {
     loadPaymentSettings();
+    initializeMercadoPago();
+    generateDeviceId();
   }, [user]);
 
+  const generateDeviceId = () => {
+    // Gerar device ID único baseado no navegador e timestamp
+    const deviceFingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      Date.now()
+    ].join('|');
+    
+    const deviceId = btoa(deviceFingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    setDeviceId(deviceId);
+    console.log('Generated device ID:', deviceId);
+  };
+
+  const initializeMercadoPago = async () => {
+    try {
+      if (mercadoPagoConfig.publicKey) {
+        const mp = await loadMercadoPago();
+        await mp.load({
+          key: mercadoPagoConfig.publicKey,
+          locale: 'pt-BR'
+        });
+        setMpInstance(mp);
+        console.log('MercadoPago SDK initialized');
+      }
+    } catch (error) {
+      console.error('Error initializing MercadoPago SDK:', error);
+    }
+  };
   const loadPaymentSettings = async () => {
     if (!user) return;
 
@@ -60,6 +95,19 @@ const Checkout: React.FC<CheckoutProps> = ({
             accessToken: config.mercadoPagoAccessToken,
             publicKey: config.mercadoPagoPublicKey,
           });
+          
+          // Inicializar SDK quando as configurações carregarem
+          try {
+            const mp = await loadMercadoPago();
+            await mp.load({
+              key: config.mercadoPagoPublicKey,
+              locale: 'pt-BR'
+            });
+            setMpInstance(mp);
+            console.log('MercadoPago SDK initialized with config');
+          } catch (error) {
+            console.error('Error initializing MercadoPago SDK:', error);
+          }
         }
       }
     } catch (error) {
@@ -76,6 +124,18 @@ const Checkout: React.FC<CheckoutProps> = ({
     const nameParts = event?.client_name?.split(' ') || ['Cliente'];
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || 'Silva';
+
+    // Criar itens detalhados conforme exigências do MP
+    const items = selectedPhotoObjects.map((photo, index) => ({
+      id: `photo_${photo.id}`, // Código único do item
+      title: `Foto Profissional ${index + 1}`, // Nome do item
+      description: `Foto profissional editada em alta resolução - ${photo.filename}`, // Descrição detalhada
+      category_id: 'photography_services', // Categoria específica
+      quantity: 1, // Quantidade
+      unit_price: photo.price, // Preço unitário
+      picture_url: photo.thumbnail_path, // URL da imagem do produto
+      currency_id: 'BRL' // Moeda
+    }));
 
     // Criar itens detalhados para o Mercado Pago
     const items = selectedPhotoObjects.map((photo, index) => ({
@@ -96,26 +156,64 @@ const Checkout: React.FC<CheckoutProps> = ({
       clientEmail,
       itemsCount: items.length,
       firstName,
-      lastName
+      lastName,
+      deviceId
     });
     
     const paymentRequest = {
       transaction_amount: totalAmount,
-      description: `Pacote de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} profissional${selectedPhotos.length > 1 ? 'is' : ''} editada${selectedPhotos.length > 1 ? 's' : ''}`,
+      description: `Pacote de ${selectedPhotos.length} foto${selectedPhotos.length > 1 ? 's' : ''} profissional${selectedPhotos.length > 1 ? 'is' : ''} editada${selectedPhotos.length > 1 ? 's' : ''} em alta resolução`,
       payment_method_id: 'pix', // ou 'visa', 'master', etc.
+      statement_descriptor: 'TRIAGEM FOTOS', // Descrição na fatura do cartão
+      device_id: deviceId, // ID do dispositivo
       payer: {
         email: clientEmail,
         first_name: firstName,
         last_name: lastName,
+        phone: {
+          area_code: event?.client_phone?.replace(/\D/g, '').substring(0, 2) || '11',
+          number: event?.client_phone?.replace(/\D/g, '').substring(2) || '999999999'
+        },
         identification: {
           type: 'CPF',
-          number: '00000000000' // Será atualizado quando implementarmos coleta de CPF
+          number: '00000000000' // Placeholder - será coletado no futuro
         }
       },
+      items: items, // Itens detalhados conforme exigência
+      marketplace: 'NONE', // Não é marketplace
+      binary_mode: false, // Permitir status pending
+      capture: true, // Capturar automaticamente
+      additional_info: {
+        items: items,
+        payer: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: {
+            area_code: event?.client_phone?.replace(/\D/g, '').substring(0, 2) || '11',
+            number: event?.client_phone?.replace(/\D/g, '').substring(2) || '999999999'
+          },
+          address: {
+            zip_code: '01310-100', // Placeholder
+            street_name: 'Av. Paulista',
+            street_number: 1000
+          }
+        },
+        shipments: {
+          receiver_address: {
+            zip_code: '01310-100',
+            street_name: 'Entrega Digital',
+            street_number: 0,
+            floor: '',
+            apartment: ''
+          }
+        }
+      },
+      notification_url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`,
+      external_reference: `order_${Date.now()}_${albumId}`,
       access_token: mercadoPagoConfig.accessToken,
       selected_photos: selectedPhotos,
       event_id: album?.event_id,
-      items: items
+      client_email: clientEmail
     };
 
     console.log('Payment request payload:', {

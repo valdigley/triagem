@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.0",
+    "@mercadopago/sdk-js": "^0.0.3",
     "@mercadopago/sdk-react": "^1.0.3",
     "@supabase/storage-js": "^2.10.2",
     "@supabase/supabase-js": "^2.52.1",

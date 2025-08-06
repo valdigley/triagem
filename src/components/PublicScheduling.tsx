@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { Calendar, Clock, User, Mail, Phone, Camera, Check, X, Copy, RefreshCw, Building, MapPin, Globe, Instagram } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 import { supabase } from '../lib/supabase';
+import { loadMercadoPago } from '@mercadopago/sdk-js';
 
 const eventSchema = z.object({
   clientName: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres'),
@@ -58,6 +59,8 @@ const PublicScheduling: React.FC = () => {
   const [pendingEventData, setPendingEventData] = useState<any>(null);
   const [photographerId, setPhotographerId] = useState<string | null>(null);
   const [sessionTypes, setSessionTypes] = useState<Array<{ value: string; label: string }>>([]);
+  const [deviceId, setDeviceId] = useState<string>('');
+  const [mpInstance, setMpInstance] = useState<any>(null);
 
   const {
     register,
@@ -70,11 +73,41 @@ const PublicScheduling: React.FC = () => {
 
   useEffect(() => {
     loadStudioSettings();
+    generateDeviceId();
     
     // Debug: Log para verificar se o componente está carregando
     console.log('PublicScheduling component mounted');
     console.log('Current URL:', window.location.href);
   }, []);
+
+  const generateDeviceId = () => {
+    // Gerar device ID único baseado no navegador e timestamp
+    const deviceFingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + 'x' + screen.height,
+      new Date().getTimezoneOffset(),
+      Date.now()
+    ].join('|');
+    
+    const deviceId = btoa(deviceFingerprint).replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    setDeviceId(deviceId);
+    console.log('Generated device ID for scheduling:', deviceId);
+  };
+
+  const initializeMercadoPago = async (publicKey: string) => {
+    try {
+      const mp = await loadMercadoPago();
+      await mp.load({
+        key: publicKey,
+        locale: 'pt-BR'
+      });
+      setMpInstance(mp);
+      console.log('MercadoPago SDK initialized for scheduling');
+    } catch (error) {
+      console.error('Error initializing MercadoPago SDK:', error);
+    }
+  };
 
   const loadStudioSettings = async () => {
     try {
@@ -95,6 +128,7 @@ const PublicScheduling: React.FC = () => {
           minimumPackagePrice: photographer.watermark_config?.minimumPackagePrice || 300.00,
           advancePaymentPercentage: photographer.watermark_config?.advancePaymentPercentage || 50,
           mercadoPagoAccessToken: photographer.watermark_config?.mercadoPagoAccessToken || '',
+          mercadoPagoPublicKey: photographer.watermark_config?.mercadoPagoPublicKey || '',
           email: photographer.watermark_config?.email || '',
           address: photographer.watermark_config?.address || '',
           website: photographer.watermark_config?.website || '',
@@ -111,6 +145,11 @@ const PublicScheduling: React.FC = () => {
           { value: 'revelacao-sexo', label: 'Revelação de Sexo' },
         ];
         setSessionTypes(configuredSessionTypes);
+        
+        // Inicializar MercadoPago SDK se configurado
+        if (photographer.watermark_config?.mercadoPagoPublicKey) {
+          await initializeMercadoPago(photographer.watermark_config.mercadoPagoPublicKey);
+        }
       }
     } catch (error) {
       console.error('Error loading studio settings:', error);
@@ -465,26 +504,75 @@ const PublicScheduling: React.FC = () => {
     const firstName = nameParts[0];
     const lastName = nameParts.slice(1).join(' ') || 'Silva';
 
+    // Criar itens detalhados conforme exigências do MP
+    const items = [
+      {
+        id: `session_${eventData.session_type || 'photo'}`, // Código único
+        title: `${sessionTypeLabel} - Pagamento Antecipado`, // Nome do item
+        description: `Reserva de sessão de fotos profissional com direito a 10 fotos editadas em alta resolução`, // Descrição detalhada
+        category_id: 'photography_services', // Categoria específica
+        quantity: 1, // Quantidade
+        unit_price: advanceAmount, // Preço unitário
+        currency_id: 'BRL' // Moeda
+      }
+    ];
+
     console.log('Creating payment for event data:', eventData);
 
     const paymentRequest = {
       transaction_amount: advanceAmount,
-      description: `Agendamento de ${sessionTypeLabel} - Pagamento antecipado`,
+      description: `Agendamento de ${sessionTypeLabel} - Pagamento antecipado para reserva de sessão`,
       payment_method_id: 'pix',
+      statement_descriptor: 'TRIAGEM AGEND', // Descrição na fatura do cartão
+      device_id: deviceId, // ID do dispositivo
       payer: {
         email: eventData.client_email,
         first_name: firstName,
         last_name: lastName,
+        phone: {
+          area_code: eventData.client_phone?.replace(/\D/g, '').substring(0, 2) || '11',
+          number: eventData.client_phone?.replace(/\D/g, '').substring(2) || '999999999'
+        },
         identification: {
           type: 'CPF',
-          number: '00000000000' // Será atualizado quando implementarmos coleta de CPF
+          number: '00000000000' // Placeholder - será coletado no futuro
         }
       },
+      items: items, // Itens detalhados conforme exigência
+      marketplace: 'NONE', // Não é marketplace
+      binary_mode: false, // Permitir status pending
+      capture: true, // Capturar automaticamente
+      additional_info: {
+        items: items,
+        payer: {
+          first_name: firstName,
+          last_name: lastName,
+          phone: {
+            area_code: eventData.client_phone?.replace(/\D/g, '').substring(0, 2) || '11',
+            number: eventData.client_phone?.replace(/\D/g, '').substring(2) || '999999999'
+          },
+          address: {
+            zip_code: '01310-100', // Placeholder
+            street_name: 'Av. Paulista',
+            street_number: 1000
+          }
+        },
+        shipments: {
+          receiver_address: {
+            zip_code: '01310-100',
+            street_name: 'Entrega Digital - Download Online',
+            street_number: 0,
+            floor: '',
+            apartment: ''
+          }
+        }
+      },
+      notification_url: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mercadopago-webhook`,
+      external_reference: `booking_${Date.now()}_${eventData.session_type}`,
       access_token: studioSettings.mercadoPagoAccessToken,
       selected_photos: [],
       event_id: null, // Será criado após confirmação do pagamento
       client_email: eventData.client_email,
-      items: [
         {
           id: `session_${eventData.session_type || 'photo'}`,
           title: `${sessionTypeLabel} - Pagamento Antecipado`,
