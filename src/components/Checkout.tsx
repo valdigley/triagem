@@ -135,18 +135,6 @@ const Checkout: React.FC<CheckoutProps> = ({
       unit_price: photo.price, // Preço unitário
       picture_url: photo.thumbnail_path, // URL da imagem do produto
       currency_id: 'BRL' // Moeda
-    }));
-
-    // Criar itens detalhados para o Mercado Pago
-    const items = selectedPhotoObjects.map((photo, index) => ({
-      id: photo.id,
-      title: `Foto ${index + 1} - ${photo.filename}`,
-      description: `Foto profissional editada em alta resolução`,
-      category_id: 'photography',
-      quantity: 1,
-      unit_price: photo.price
-    }));
-
     console.log('Creating MercadoPago payment with config:', {
       hasAccessToken: !!mercadoPagoConfig.accessToken,
       accessTokenPrefix: mercadoPagoConfig.accessToken?.substring(0, 20) + '...',
