@@ -24,10 +24,6 @@ const eventSchema = z.object({
 
 type EventFormData = z.infer<typeof eventSchema>;
 
-const sessionTypes = [
-  // Será carregado dinamicamente das configurações
-];
-
 const sessionTypeLabels: Record<string, string> = {
   'gestante': 'Sessão Gestante',
   'aniversario': 'Aniversário',
