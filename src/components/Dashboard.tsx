@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Image, Users, Plus, Eye, Upload, Trash2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface Event {
   id: string;
@@ -85,7 +85,7 @@ const Dashboard: React.FC = () => {
         .from('photographers')
         .select('id')
         .eq('user_id', user?.id)
-        .single();
+        .maybeSingle();
 
       if (!photographer) {
         setLoading(false);
