@@ -39,7 +39,8 @@ fi
 # Solicitar informações
 echo ""
 info "📝 Configuração necessária:"
-echo "📂 Repositório: https://github.com/valdigley/triagem-app.git"
+REPO_URL="https://github.com/valdigley/triagem-app.git"
+echo "📂 Repositório: $REPO_URL"
 read -p "Seu domínio ou IP da VPS: " VPS_DOMAIN
 read -p "URL do Supabase: " SUPABASE_URL
 read -p "Chave anônima do Supabase: " SUPABASE_KEY
