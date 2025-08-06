@@ -28,9 +28,7 @@ const AppContent: React.FC = () => {
     return <Login />;
   }
 
-  return (
-    <Dashboard />
-  );
+  return <Dashboard />;
 };
 
 function App() {

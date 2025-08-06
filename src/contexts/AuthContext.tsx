@@ -87,34 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  const setupUserProfile = async (authUser: SupabaseUser) => {
-    try {
-      setSupabaseUser(authUser);
-      setUser({
-        id: authUser.id,
-        name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário',
-        email: authUser.email || '',
-        role: 'photographer',
-      });
-
-      // Create user record if it doesn't exist
-      const { error: userError } = await supabase
-        .from('users')
-        .insert({
-          id: authUser.id,
-          email: authUser.email,
-          name: authUser.user_metadata?.name || authUser.user_metadata?.full_name || 'Usuário',
-          role: 'photographer',
-        });
-
-      if (userError && !userError.message.includes('duplicate key')) {
-        console.error('Error creating user:', userError);
-      }
-    } catch (error) {
-      console.error('Error in setupUserProfile:', error);
-    }
-  };
-
   const login = async (email: string, password: string): Promise<string | true> => {
     setIsLoading(true);
     
